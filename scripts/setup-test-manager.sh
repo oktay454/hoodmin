@@ -38,11 +38,16 @@ SQL
 	then
 		runuser -u postgres -- psql -v ON_ERROR_STOP=1 -d vpnhood_manager -f "${PROJE_DIZINI}/migrations/0001_initial.sql"
 	fi
+	if [ "$(runuser -u postgres -- psql -d vpnhood_manager -Atqc "SELECT to_regclass('public.accounts') IS NULL")" = t ]
+	then
+		runuser -u postgres -- psql -v ON_ERROR_STOP=1 -d vpnhood_manager -f "${PROJE_DIZINI}/migrations/0002_panel.sql"
+	fi
 	runuser -u postgres -- psql -v ON_ERROR_STOP=1 -d vpnhood_manager <<'SQL'
 GRANT CONNECT ON DATABASE vpnhood_manager TO vhmgr;
 GRANT USAGE ON SCHEMA public TO vhmgr;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO vhmgr;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO vhmgr;
+REVOKE UPDATE, DELETE ON audit_events FROM vhmgr;
 SQL
 	install -d -m 0755 /usr/lib/vpnhood-manager
 	install -m 0755 "${PROJE_DIZINI}/target/release/vpnhood-manager" /usr/lib/vpnhood-manager/vpnhood-manager

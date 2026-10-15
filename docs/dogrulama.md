@@ -1,42 +1,51 @@
-# İlk aşama doğrulaması — 15 Ekim 2026
+# Çekirdek ve panel doğrulaması — 16 Ekim 2026
 
 ## Ortam
 
-- Ana depo: kullanıcı makinesindeki YapayZeka/VpnHood, main dalı. Uzak Git adresi kullanıcı tarafından eklenecek.
-- yapayzeka: Debian 13.7 amd64, 10.0.3.236.
-- vpnhood: Debian 13.7 amd64, 10.0.3.220.
-- Mevcut VpnHood kaynağı: 9.0.856, kardeş VpnHood-Current dizini; ana makinedeki kaynak değiştirilmedi.
+- Ana depo: `/home/oktay454/KumHavuzu/YapayZeka/VpnHood`, `main` dalı; uzak Git adresi kullanıcı tarafından eklenecek.
+- yapayzeka: Debian 13.7 amd64, 10.0.3.236. vpnhood: Debian 13.7 amd64, 10.0.3.220; lxcbr0 ağı.
+- Mevcut VpnHood kaynağı 9.0.856, kardeş VpnHood-Current dizini. Ana makinedeki kaynak değiştirilmedi; derlemeler kapsayıcıdaki kopyasında yapıldı.
 
 ## Kurulanlar
 
 - yapayzeka: Debian rustup 1.27.1 ve rsync 3.5.0; Microsoft deposundan .NET SDK 10.0.402 ve ilişkili 10.0.13 çalışma zamanı/hedefleme paketleri.
-- Resmî Rust dağıtımından Rust/Cargo 1.99.1 kararlı, rustfmt, Clippy ve wasm32-unknown-unknown standart kitaplığı. Araç zinciri /opt/vpnhood-toolchain altında; proje sürümü sabitler. Debian rustc/cargo paketlerinin yerini rustup yönlendirmeleri aldı.
-- crates.io üzerinden Cargo Audit 0.22.2 ve Cargo.lock ile sabitlenmiş proje bağımlılıkları.
+- Resmî Rust dağıtımından Rust/Cargo 1.99.1 kararlı, rustfmt, Clippy ve wasm32-unknown-unknown standart kitaplığı. Araç zinciri `/opt/vpnhood-toolchain` altında; proje sürümü sabitler. Debian rustc/cargo paketlerinin yerini rustup yönlendirmeleri aldı.
+- crates.io üzerinden Cargo Audit 0.22.2 ve Cargo.lock ile sabitlenmiş proje bağımlılıkları. Panel aşamasında Leptos 0.8.22, Argon2 0.5.3, OpenSSL 0.10.81 ve ilişkili Rust bağımlılıkları eklendi; yeni APT paketi gerekmedi, mevcut Debian OpenSSL geliştirme kitaplığı kullanıldı.
 - vpnhood: Microsoft deposundan .NET runtime 10.0.13, Debian rsync ve bağımlılıkları.
 - PostgreSQL 17, Nginx, derleyici/paketleme araçları önceden mevcuttu.
 
-APT her iki kapsayıcıda Microsoft deposunun .list ve .sources biçiminde iki kez tanımlandığına dair uyarı verdi. Kullanıcının kaynak tanımları değiştirilmedi; bu durum kurulumu engellemedi.
+APT Microsoft deposunun .list/.sources biçiminde iki kez tanımlandığını bildirdi. Kullanıcının kaynak tanımları değiştirilmedi; kurulum engellenmedi.
 
 ## Çalışan sınama servisleri
 
-- yapayzeka: vpnhood-manager.service, vhmgr kullanıcısı, 127.0.0.1:3080.
-- Nginx test TLS uç noktası: https://10.0.3.236:3443; özel CA, 30 günlük sertifika. Yalnızca LXC özel adresinde dinler. Vekil kullanım bildirimlerini kendiliğinden tekrar göndermez.
-- vpnhood: vpnhood-test.service, özgün VpnHoodServer.dll, 0.0.0.0:2443.
-- Sunucu yapılandırmayı aldı, Server is ready durumuna geçti; veri tabanında machineName=vpnhood ve configError boş olarak doğrulandı.
-- CA güveni yalnızca vpnhood kapsayıcısına eklendi. TLS doğrulaması kapatılmadı; HTTP dinleyici yalnızca yöneticinin loopback adresindedir.
+- yapayzeka: `vpnhood-manager.service`, vhmgr kullanıcısı, `127.0.0.1:3080`.
+- Nginx: mevcut port 80 yanında `https://yapayzeka:3443`; LXC adresi 10.0.3.236 ve kapsayıcı içi ad çözümü 127.0.1.1 üzerinde dinler. `nginx -t` geçti; Nginx ve Rust servisleri etkin. SSE tamponlaması kapalıdır; vekil kullanım bildirimini kendiliğinden tekrarlamaz.
+- vpnhood: özgün gerçek VpnHoodServer.dll ile `vpnhood-test.service` port 2443; panelden üretilen ayrı ayarlarla `vpnhood-panel-test.service` port 2444. Her ikisi Server is ready durumunda.
+- Yönetici TLS için 30 günlük özel CA kullanıldı; CA'da kritik BasicConstraints/KeyUsage, sunucu sertifikasında SAN/EKU tanımlı. Python 3.13 katı TLS doğrulaması ve .NET HTTPS başarılı. CA'nın yalnız açık sertifikası vpnhood kapsayıcısına eklendi. TLS doğrulaması kapatılmadı.
+- Başlangıç hesabı `admin@vpnhood.test`; parola `work/panel-admin.txt` dosyasında, 0600 ve Git dışında. Dosya ana makinedeki proje dizinine de alındı. Panel parolayı değiştirebilir.
 
-## Geçen sınamalar
+## Otomatik sınamalar
 
-- cargo test --workspace --locked: 3 Rust testi geçti.
-- cargo clippy --workspace --all-targets --locked -- -D warnings: geçti.
-- cargo audit --deny warnings: geçti; 221 kilitli bağımlılıkta RustSec eşleşmesi/uyarısı yok. Bu sonuç genel bir güvenlik garantisi değildir.
-- İlk denetimde kullanılmayan SQLx MySQL sürücüsünün rsa bağımlılığı RUSTSEC-2023-0071 bildirimi üretti. MySQL/SQLite/makro bağımlılıkları tamamen çıkarıldı; yalnızca sqlx-core ve sqlx-postgres kullanılıyor. Uyarı bastırılmadı.
-- Gerçek .NET HttpAccessManager ile yapılandırma, sunucu kimliği, sahte kimliğin reddi, istemci kanıtı, anahtar/kiracı sınırı, oturum açma, okuma, listeleme, kapatma ve tekrar açma.
-- Tekli ve toplu trafik farkı, durum bildirimi, kota aşımı, negatif trafik ve u64 kimlik sınırı.
-- 16 farklı istemcinin eşzamanlı oturum açma isteğinde yalnızca bir isteğin kabul edilmesi, diğer 15 isteğin cihaz kotası nedeniyle reddi.
-- PostgreSQL RLS: bağlamsız sorgunun sıfır satır döndürmesi, başka kiracının görünmemesi ve kiracılar arası dış anahtar ilişkisinin reddi.
-- Gerçek VpnHoodClient: Rust yöneticinin ürettiği vh:// anahtarla uzak kapsayıcıdaki gerçek sunucuya bağlantı kuruldu. Sertifika eşleşmesi VpnHood'un normal doğrulamasından geçti.
+- `cargo fmt --all -- --check`: geçti.
+- `cargo test --workspace --locked`: 7 Rust testi geçti. Şifreleme kaynak bağlamı, .NET JSON, bozuk istemci kanıtı, parola/çerez, HTML kaçırma, CSV formül güvenliği ve makro uyumluluğu.
+- `cargo clippy --workspace --all-targets --locked -- -D warnings`: geçti. Kilitli release derlemesi başarılı.
+- `cargo audit --deny warnings`: geçti; 326 kilitli bağımlılıkta RustSec eşleşmesi/uyarısı yok. Bu sonuç genel güvenlik garantisi değildir.
+- Kullanılmayan SQLx MySQL/RSA bağımlılıkları önceki aşamada kaldırıldı. Leptos'un bakım dışı paste bağımlılığı için özgün uygulama kaldırılıp bakımı süren pastey 0.2.3 makrosuna yönlendiren küçük yerel uyumluluk katmanı eklendi; uyarı bastırılmadı.
+- `scripts/test-contract.sh`: gerçek .NET HttpAccessManager ile yapılandırma, kimliksiz/sahte sunucu reddi, istemci kanıtı, anahtar/kiracı sınırı, süre/iptal, oturum açma/okuma/listeleme/kapatma/yeniden açma, tekli/toplu trafik farkı, negatif kullanım, u64 sınırı ve trafik kotası geçti.
+- 16 eşzamanlı istemci isteğinde tek cihaz kotası atomik korundu: yalnız 1 kabul, 15 ret.
+- PostgreSQL RLS: bağlamsız sorgu sıfır satır; başka kiracı görünmez; kiracılar arası dış anahtar reddedildi.
+- `tests/test_panel.py`: gerçek HTTPS/DB üzerinde giriş/çıkış, çerezler, yanlış parola ve hesap giriş sınırı, CSRF/Origin reddi, üç rol, son yönetici koruması, kullanıcı kapatma/parola değişimi, kiracı sınırı, grup/sunucu oluşturma ve düzenleme, toplu anahtar üretim/iptal/kota/süre, arama/sayfalama, CSV, denetim kaydı ve SSE geçti.
+- Panel sınaması gerçek .NET ServerConfig ile `certificates` alanının küçük harfle aktarılmasını, 16 bayt sunucu sırrını ve özel anahtarlı PFX yüklenmesini doğrular. İlk gerçek sunucu denemesinde bulunan alan harfi uyumsuzluğu düzeltildi; gerileme sınaması (regression test) eklendi.
+- Panelden oturum kapatma, status yanıtında kararın tekrar gönderilmesi ve sunucu kapanış onayından sonra temizlenmesi geçti. Bakım modu yeni oturumu reddetti. Kimlik yenilemede eski sunucu kimliği 401, yenisi başarılı.
+- Uygulama DB rolünün denetim kayıtlarını silme girişimi reddedildi.
+- Gerçek VpnHoodClient, hem çekirdeğin hem panelin ürettiği vh:// anahtarla uzak gerçek sunucuya bağlandı. VpnHood'un sertifika eşleşmesi doğrulaması başarılı.
+
+## Görsel doğrulama
+
+Gerçek Leptos SSR çıktıları parola/oturum çerezi taşımadan, CSRF değerleri ayıklanarak geçici yerel önizlemede incelendi. Masaüstü genel bakış/sunucular ile 390×844 dar ekranda genel bakış/anahtar tablosu doğrulandı. Mobil tablo kendi alanında yatay kayar. Gerçek JavaScript ile toplu seçme/temizleme, seçili adet ve forma aktarılacak kimlik sayısı yerel önizlemede doğrulandı. Önizleme panelin dinamik JavaScript davranışını sınamaz. SSE uç noktası ve oturum işlemleri HTTPS/DB sınamalarında denetlendi. Uygulama içi tarayıcı özel CA'ya güvenmediğinden canlı HTTPS tarayıcı sınaması tamamlanmadı; güvenlik uyarısı atlanmadı.
 
 ## Sınırlar
 
-Bağlantı sınaması NullVpnAdapter kullanır; işletim sisteminin VPN yönlendirmesini veya tünel üzerinden kullanıcı trafiğini taşıma başarımını sınamaz. Panel, kullanıcı rolleri, kalıcı işler, ACME, grup içi yük dağıtımı ve Debian paketleme sonraki aşamalardır. Sınama kayıtları ayrılmış veri tabanında bırakıldı; özel veriler work altında ve Git dışında kalır.
+ConnectionProbe NullVpnAdapter kullanır; işletim sistemi VPN yönlendirmesini, tünelden kullanıcı trafiğini veya yük altında başarımı sınamaz. Cihaz sınırı yeni oturum kabulünde uygulanır. Kullanım sözleşmesi kesintilerde tam bir kez muhasebe garantisi sağlamaz.
+
+SSH otomasyonu, kalıcı işler, ACME, grup yönlendirmesi/yük dağıtımı, Debian paketleme, üretim yedekleme/anahtar döndürme sonraki aşamadadır. Sınama servisleri ve kayıtlar ayrılmış kapsayıcılarda bırakıldı. Özel anahtarlar, erişim anahtarları ve parolalar `work` altında veya kapsayıcıdaki özel sistem dizinlerindedir; Git'e eklenmez.

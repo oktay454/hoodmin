@@ -8,6 +8,7 @@ Type=simple
 User=vhmgr
 Group=vhmgr
 Environment="DATABASE_URL=postgresql:///vpnhood_manager?host=/var/run/postgresql&user=vhmgr"
+Environment="VHM_PUBLIC_ORIGIN=https://yapayzeka:3443"
 Environment="VHM_MASTER_KEY_FILE=/var/lib/vpnhood-manager/master.key"
 ExecStart=/usr/lib/vpnhood-manager/vpnhood-manager serve
 Restart=on-failure

@@ -125,9 +125,14 @@ async fn status(
 	.bind(Value::Object(status.details))
 	.fetch_one(&mut *tx)
 	.await?;
-	let responses = store
+	let mut responses = store
 		.usages(&mut tx, tenant, server, status.session_usages)
 		.await?;
+	let pending=sqlx_core::query::query("SELECT id FROM sessions WHERE tenant_id=$1 AND server_id=$2 AND pending_notify ORDER BY id LIMIT 1000").bind(tenant).bind(server).fetch_all(&mut *tx).await?;
+	for row in pending {
+		let id = row.get::<i64, _>("id") as u64;
+		responses.insert(id, store.get(&mut tx, tenant, server, id).await?);
+	}
 	tx.commit().await?;
 	Ok(Json(ServerCommand {
 		config_code: code,

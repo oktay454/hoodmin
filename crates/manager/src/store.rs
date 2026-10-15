@@ -31,6 +31,16 @@ impl Store {
 		server: Uuid,
 		request: SessionRequest,
 	) -> Result<SessionResponse> {
+		let paused: bool = sqlx_core::query_scalar::query_scalar(
+			"SELECT paused FROM servers WHERE tenant_id=$1 AND id=$2 FOR SHARE",
+		)
+		.bind(tenant)
+		.bind(server)
+		.fetch_one(&mut **tx)
+		.await?;
+		if paused {
+			return Ok(SessionResponse::error(Code::Maintenance));
+		}
 		if request.client_info.client_id.len() > 256
 			|| request
 				.host_end_point
@@ -200,7 +210,7 @@ impl Store {
 					.execute(&mut **tx)
 					.await?;
 					sqlx_core::query::query(
-						"UPDATE sessions SET last_seen=now(),closed=closed OR $3 WHERE tenant_id=$1 AND id=$2",
+						"UPDATE sessions SET last_seen=now(),closed=closed OR $3,pending_notify=CASE WHEN $3 THEN false ELSE pending_notify END WHERE tenant_id=$1 AND id=$2",
 					)
 					.bind(tenant)
 					.bind(id)

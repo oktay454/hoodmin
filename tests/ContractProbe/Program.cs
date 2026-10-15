@@ -44,6 +44,32 @@ if (args[0] == "prepare") {
 	Console.WriteLine("PASS: .NET ServerConfig ve sertifika sınama dosyası hazırlandı.");
 	return;
 }
+if (args[0] == "check-config") {
+	var credential = File.ReadAllText(Path.Combine(work, "server-a.credential")).Trim();
+	using var manager = new HttpAccessManager(new HttpAccessManagerOptions(new Uri("http://127.0.0.1:3080"), "Bearer " + credential));
+	using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+	var config = await manager.Server_Configure(new ServerInfo {
+		Version = new Version("9.0.856"), EnvironmentVersion = Environment.Version,
+		PrivateIpAddresses = [IPAddress.Loopback], PublicIpAddresses = [],
+		Status = new ServerStatus(), MachineName = "configuration-probe"
+	}, deadline.Token);
+	if (config.Certificates.Length != 1 || config.ServerSecret?.Length != 16 || config.TcpEndPoints?.Length == 0)
+		throw new InvalidOperationException("Sunucu yapılandırması .NET sözleşmesine uymuyor.");
+	using var certificate = X509CertificateLoader.LoadPkcs12(config.Certificates[0].RawData, "");
+	if (!certificate.HasPrivateKey) throw new InvalidOperationException("Sertifika özel anahtarı eksik.");
+	Console.WriteLine("PASS: panel yapılandırması ve PKCS12 sertifikası gerçek .NET tipleriyle doğrulandı.");
+	return;
+}
+if (args[0] == "one-session") {
+	var credential = File.ReadAllText(Path.Combine(work, "server-a.credential")).Trim();
+	var token = Token.FromAccessKey(File.ReadAllText(Path.Combine(work, "token-a.vh")));
+	using var manager = new HttpAccessManager(new HttpAccessManagerOptions(new Uri("http://127.0.0.1:3080"), "Bearer " + credential));
+	using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+	var session = await manager.Session_Create(Request(token, Guid.NewGuid().ToString()), deadline.Token);
+	if (session.ErrorCode != SessionErrorCode.Ok) throw new InvalidOperationException("Sınama oturumu açılamadı.");
+	Console.WriteLine(session.SessionId);
+	return;
+}
 if (args[0] != "probe")
 	throw new ArgumentException("Bilinmeyen komut.");
 var baseUrl = new Uri(args.Length > 2 ? args[2] : "http://127.0.0.1:3080");

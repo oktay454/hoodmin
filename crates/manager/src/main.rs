@@ -1,6 +1,12 @@
+#![recursion_limit = "512"]
+
 mod agent;
+mod auth;
 mod crypto;
+mod management;
 mod store;
+mod views;
+mod web;
 
 use anyhow::{Context, Result, ensure};
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
@@ -24,9 +30,27 @@ struct Cli {
 }
 #[derive(Subcommand)]
 enum Command {
+	CreateAccount {
+		#[arg(long)]
+		tenant: Uuid,
+		#[arg(long)]
+		tenant_name: String,
+		#[arg(long)]
+		email: String,
+		#[arg(long)]
+		password_file: PathBuf,
+		#[arg(long, default_value = "admin")]
+		role: String,
+	},
 	Serve {
 		#[arg(long, default_value = "127.0.0.1:3080")]
 		listen: SocketAddr,
+		#[arg(
+			long,
+			env = "VHM_PUBLIC_ORIGIN",
+			default_value = "https://yapayzeka:3443"
+		)]
+		public_origin: String,
 	},
 	RegisterServer {
 		#[arg(long)]
@@ -90,14 +114,37 @@ async fn main() -> Result<()> {
 	);
 	let state = store::Store { pool, vault };
 	match cli.command {
-		Command::Serve { listen } => {
+		Command::CreateAccount {
+			tenant,
+			tenant_name,
+			email,
+			password_file,
+			role,
+		} => {
+			let password = std::fs::read_to_string(password_file)?;
+			let id = auth::create_account(
+				&state,
+				tenant,
+				&tenant_name,
+				&email,
+				password.trim_end(),
+				&role,
+			)
+			.await?;
+			println!("Panel kullanıcısı oluşturuldu: {id}");
+		}
+		Command::Serve {
+			listen,
+			public_origin,
+		} => {
 			ensure!(
 				listen.ip().is_loopback(),
 				"Servis yalnızca loopback üzerinde dinler; dış erişim için TLS ters vekil kullanın."
 			);
 			let listener = tokio::net::TcpListener::bind(listen).await?;
 			tracing::info!(%listen, "Erişim yöneticisi hazır");
-			axum::serve(listener, agent::router(state))
+			let panel = web::WebState::new(state.clone(), public_origin)?;
+			axum::serve(listener, agent::router(state).merge(web::router(panel)))
 				.with_graceful_shutdown(async {
 					let mut terminate =
 						tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
