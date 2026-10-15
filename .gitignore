@@ -1,0 +1,12 @@
+/target/
+/work/
+.env
+*.key
+*.pfx
+**/bin/
+**/obj/
+*.credential
+*.vh
+*.p12
+*.pem
+.env.*

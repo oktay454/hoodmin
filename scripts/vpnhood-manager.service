@@ -1,0 +1,23 @@
+[Unit]
+Description=VpnHood Rust erişim yöneticisi
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=vhmgr
+Group=vhmgr
+Environment="DATABASE_URL=postgresql:///vpnhood_manager?host=/var/run/postgresql&user=vhmgr"
+Environment="VHM_MASTER_KEY_FILE=/var/lib/vpnhood-manager/master.key"
+ExecStart=/usr/lib/vpnhood-manager/vpnhood-manager serve
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
