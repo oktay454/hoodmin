@@ -1,4 +1,4 @@
-# Onaylanan mimari ve kiracı modeli
+# Hoodmin — onaylanan mimari ve kiracı modeli
 
 Her kullanıcı kuruluşu bir kiracıdır (tenant). Bir kiracı birden fazla yöneticiyi, sunucu grubunu (server farm), sunucuyu ve erişim anahtarını barındırabilir. Bir sunucu tek kiracıya aittir; ortak sunucu havuzu yoktur. Anahtarlar şu anda tek sunucuya bağlıdır. Grup yönlendirmesi tamamlandığında yalnız aynı kiracının sunucuları arasında kullanılacaktır.
 
@@ -37,3 +37,9 @@ Cihaz sayımı ve oturum açma aynı anahtar satırı kilidi altında yapılır.
 ## Sınama yerleşimi
 
 `yapayzeka` (10.0.3.236): araç zinciri, PostgreSQL, Rust yönetici ve Nginx. Panel `https://vhm-test.oktayaktogan.com.tr`; VPS Nginx (`43.229.92.120`), `https://46.196.34.83:40443` üzerinden kapsayıcı Nginx'ine bağlanır. Rust `127.0.0.1:3080`. Eski `https://yapayzeka:3443/api/agent/` sınama sunucuları için korunur. Geçiş ayrıntıları `docs/vps-ters-vekil.md` içindedir. `vpnhood` (10.0.3.220): mevcut gerçek VpnHood sunucusu port 2443, panelden oluşturulan ayrı sınama sunucusu port 2444. Ağ lxcbr0. Mevcut Nginx port 80 ile çakışma yoktur. Ek kapsayıcı henüz gerekmemiştir.
+
+## Ürün adı ve özellik kapsamı
+
+Ürün adı Hoodmin olarak kesinleşti. [Türkçe](../README.md), [Arapça](../README.ar.md) ve [İngilizce](../README.en.md) benioku dosyaları mevcuttur. Cargo paket adı `hoodmin`; mevcut sınama servis/binary, veri tabanı, kullanıcı, ayar/çerez ve depo yolları kurulum uyumluluğu için korunur. Bunların isim geçişi veri koruyan Debian paket yükseltmesinde ele alınacaktır. VpnHood sunucu/istemci/protokol adları uyumluluk referanslarıdır.
+
+Kalan işlerin resmî Manager ile doğrudan ilişkisi, mimari gereklilikleri ve isteğe bağlı kapsamı [özellik karşılaştırmasında](console-karsilastirmasi.md) ayrılmıştır. Önceki listeye ek olarak plan/profil ve hız sınırı, dönemsel kota, bot yönetim API anahtarları ve ayrıntılı raporlar eşdeğerlik farklarıdır; bu kayıt bunların uygulanması için onay değildir.

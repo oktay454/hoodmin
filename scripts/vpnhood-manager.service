@@ -1,5 +1,5 @@
 [Unit]
-Description=VpnHood Rust erişim yöneticisi
+Description=Hoodmin bağımsız VpnHood yönetim paneli
 After=network.target postgresql.service
 Requires=postgresql.service
 

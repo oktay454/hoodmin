@@ -20,7 +20,11 @@ use std::{net::SocketAddr, path::PathBuf};
 use uuid::Uuid;
 
 #[derive(Parser)]
-#[command(version, about = "VpnHood BYOS yönetim çekirdeği")]
+#[command(
+	name = "hoodmin",
+	version,
+	about = "Hoodmin — VpnHood ile uyumlu bağımsız BYOS yönetim paneli"
+)]
 struct Cli {
 	#[arg(long, env = "DATABASE_URL")]
 	database_url: String,

@@ -18,7 +18,7 @@ function Hazirla()
 	umask 077
 	openssl rand -base64 24 >"${PAROLA_DOSYASI}"
 	chown vhmgr:vhmgr "${PAROLA_DOSYASI}"
-	runuser -u vhmgr --preserve-environment -- /usr/lib/vpnhood-manager/vpnhood-manager create-account --tenant "${KIRACI}" --tenant-name 'VpnHood çalışma alanı' --email 'admin@vpnhood.test' --password-file "${PAROLA_DOSYASI}" --role admin
+	runuser -u vhmgr --preserve-environment -- /usr/lib/vpnhood-manager/vpnhood-manager create-account --tenant "${KIRACI}" --tenant-name 'Hoodmin çalışma alanı' --email 'admin@vpnhood.test' --password-file "${PAROLA_DOSYASI}" --role admin
 	{
 		printf '%s\n' 'Adres: https://yapayzeka:3443' 'E-posta: admin@vpnhood.test'
 		printf 'Parola: '

@@ -80,3 +80,14 @@ Kullanım ve uygulama notları: `docs/arayuz-ve-diller.md`. Yeni paket/bağıml�
 - Tarayıcıda mevcut Sınama B yalnız görüntülendi; IP/FQDN `10.0.3.220`, port `2443` ile dolduruluyor. Mevcut kayıt üzerinde Kaydet veya kimlik yenileme yapılmadı.
 - Tek tema düğmesinde görünür yazı yok; güneş/ay dönüşüyor, açıklama güncelleniyor, odak korunuyor. SVG genişliği 18 piksel doğrulandı. Son CSS/JavaScript HTTPS üzerinden SHA-256 ile kaynakla eşleştirildi.
 - Son ekran kanıtı Codex çıktılarında `vhm-adres-duzenleme.jpg`.
+
+## Hoodmin adı ve üç dilde benioku — 16 Ekim 2026
+
+- Ürün adı Hoodmin; arayüz başlığı, giriş/hata ekranları, HM işareti, alt bilgi, CLI kimliği ve systemd açıklaması güncellendi. Ana Cargo paketi `hoodmin` oldu. Çalıştırılabilir dosya/servis adı ve veri/ayar yolları mevcut kurulumla uyumluluk için korundu; geçiş Debian paketleme aşamasına kaydedildi.
+- `README.md` Türkçe, `README.ar.md` Arapça ve `README.en.md` İngilizce olarak aynı kapsamla hazırlandı. UTF-8, kod blokları ve yerel belge bağlantıları kontrol edildi.
+- Resmî Manager ürün açıklaması/wiki üzerinden `docs/console-karsilastirmasi.md` hazırlandı. Doğrudan özellikler, Hoodmin'in mantıksal işletim gereksinimleri ve isteğe bağlı kapsam ayrıldı. Console'da yeni bir oturum incelemesi yapılmadı; kapalı kaynak iç mimari hakkında eşdeğerlik iddiası yok.
+- `cargo test --workspace --locked`: 13 test geçti. Clippy `--all-targets --locked -- -D warnings` ve kilitli release derlemesi başarılı. Yeni bağımlılık veya sistem paketi eklenmedi; mevcut kilitli bağımlılıklar derlendi.
+- Derleme yapayzeka kapsayıcısına dağıtıldı; healthz ve systemd etkinlik kontrolü başarılı. Önceki binary ve servis `work/hoodmin-rename` içinde saklandı. Veri tabanı, şifreleme anahtarı, sunucu kimlikleri ve kayıtlar taşınmadı/değiştirilmedi.
+- `tests/test_preferences.py`: 18 HTTPS kontrolü geçti. Türkçe/İngilizce/Arapça giriş sayfalarında Hoodmin/HOODMIN/HM, dil ve RTL/LTR yönü ayrıca doğrulandı.
+- Tarayıcıdaki mevcut oturum korunarak genel bakışta `Genel bakış · Hoodmin`, HM işareti ve Hoodmin alt bilgisi doğrulandı. Mevcut çalışma alanının kullanıcı verisi olan adı değiştirilmedi.
+- Ekran kanıtı Codex çıktılarında `hoodmin-panel.jpg`.
