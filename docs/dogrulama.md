@@ -61,3 +61,14 @@ SSH otomasyonu, kalıcı işler, ACME, grup yönlendirmesi/yük dağıtımı, De
 - Ekran kanıtları Codex çıktılarında `vhm-fume-panel.jpg`, `vhm-yardim-fume.jpg`, `vhm-kimlik-onayi.jpg`, `vhm-arapca.jpg` ve `vhm-arapca-mobil.jpg`.
 
 Kullanım ve uygulama notları: `docs/arayuz-ve-diller.md`. Yeni paket/bağımlılık kurulmadı.
+
+## Düz renkli açık/koyu temalar — 16 Ekim 2026
+
+- Onaylanan FortiGate/Proxmox/AtlasHub kompozisyonu uygulandı. Genel bakış kısa başlık, dört sayaç, sunucu durum tablosu ve hızlı erişim paneliyle hizalandı.
+- Gradyen ve kabartma kaldırıldı. Açık tema sıcak gri/kırık beyaz; koyu tema nötr antrasit. Mor ve ölçülü kehribar vurgu kullanıldı.
+- Clippy uyarısız, çalışma alanındaki 10 test başarılı. `tests/test_preferences.py` içinde 18 gerçek HTTPS kontrolü başarılı: iki tema, kalıcı ve güvenli çerez, yönlendirmesiz 204 yanıtı, JavaScript olmadan geçiş, dönüş adresi sınırı, üç dille uyum, geçersiz tercihler ve HTML niteliği güvenliği.
+- Tarayıcıda tema anlık değiştirildi; kaydedilmemiş sunucu adı korundu. Deneme metni silindi, herhangi bir kayıt oluşturulmadı. Yeniden yüklemede tercih korundu.
+- DOM üzerinden panel/kart/düğme yüzeylerinde `background-image` olmadığı doğrulandı. Son CSS ve JavaScript HTTPS üzerinden SHA-256 ile kaynakla karşılaştırıldı.
+- 390 piksel genişlikte Türkçe açık Genel bakış ile Arapça açık/koyu Sunucular görünümünde gövde yatay taşmıyor. Yardım penceresi açık temada çalışıyor. Geçici görünüm boyutu sıfırlandı.
+- Tema/dil tercihi dışında mevcut sunucu veya anahtarlar değiştirilmedi. Yeni paket kurulmadı.
+- Son ekran kanıtları Codex çıktılarında: `vhm-acik-tema.jpg`, `vhm-koyu-tema.jpg`, `vhm-koyu-arapca-mobil.jpg`. Panel Türkçe/açık tema ile açık bırakıldı.

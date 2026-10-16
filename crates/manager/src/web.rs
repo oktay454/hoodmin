@@ -46,6 +46,7 @@ pub fn router(state: WebState) -> Router {
 		.route("/", get(|| async { Redirect::to("/panel") }))
 		.route("/signin", get(signin).post(login))
 		.route("/language", get(i18n::change))
+		.route("/theme", get(i18n::change_theme))
 		.route("/logout", post(logout))
 		.route("/panel", get(dashboard))
 		.route("/panel/{page}", get(page))

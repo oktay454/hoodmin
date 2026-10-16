@@ -34,8 +34,29 @@ impl Locale {
 		if self == Self::Ar { "rtl" } else { "ltr" }
 	}
 }
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Theme {
+	Light,
+	Dark,
+}
+impl Theme {
+	pub fn parse(value: &str) -> Option<Self> {
+		match value {
+			"light" => Some(Self::Light),
+			"dark" => Some(Self::Dark),
+			_ => None,
+		}
+	}
+	pub fn code(self) -> &'static str {
+		match self {
+			Self::Light => "light",
+			Self::Dark => "dark",
+		}
+	}
+}
 struct RequestLanguage {
 	locale: Locale,
+	theme: Theme,
 	return_to: String,
 }
 tokio::task_local! {
@@ -45,6 +66,25 @@ pub fn locale() -> Locale {
 	LANGUAGE
 		.try_with(|value| value.locale)
 		.unwrap_or(Locale::Tr)
+}
+pub fn theme() -> Theme {
+	LANGUAGE
+		.try_with(|value| value.theme)
+		.unwrap_or(Theme::Light)
+}
+fn cookie_theme(headers: &HeaderMap) -> Theme {
+	headers
+		.get(header::COOKIE)
+		.and_then(|value| value.to_str().ok())
+		.and_then(|value| {
+			value.split(';').find_map(|part| {
+				let (key, value) = part.trim().split_once('=')?;
+				(key == "__Host-vhm_theme")
+					.then(|| Theme::parse(value))
+					.flatten()
+			})
+		})
+		.unwrap_or(Theme::Light)
 }
 pub fn return_to() -> String {
 	LANGUAGE
@@ -87,6 +127,7 @@ pub fn safe_return_to(value: &str) -> &str {
 pub async fn middleware(request: Request, next: Next) -> Response {
 	let language = RequestLanguage {
 		locale: cookie_locale(request.headers()),
+		theme: cookie_theme(request.headers()),
 		return_to: safe_return_to(
 			request
 				.uri()
@@ -121,6 +162,38 @@ pub async fn change(Query(query): Query<LanguageQuery>) -> Response {
 		Redirect::to(safe_return_to(&query.return_to)),
 	)
 		.into_response()
+}
+#[derive(Deserialize)]
+pub struct ThemeQuery {
+	theme: String,
+	#[serde(default)]
+	return_to: String,
+}
+pub async fn change_theme(headers: HeaderMap, Query(query): Query<ThemeQuery>) -> Response {
+	let Some(theme) = Theme::parse(&query.theme) else {
+		return (
+			StatusCode::BAD_REQUEST,
+			crate::views::error("Desteklenmeyen tema."),
+		)
+			.into_response();
+	};
+	let cookie = format!(
+		"__Host-vhm_theme={}; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=31536000",
+		theme.code()
+	);
+	if headers
+		.get(header::ACCEPT)
+		.and_then(|value| value.to_str().ok())
+		== Some("application/json")
+	{
+		([(header::SET_COOKIE, cookie)], StatusCode::NO_CONTENT).into_response()
+	} else {
+		(
+			[(header::SET_COOKIE, cookie)],
+			Redirect::to(safe_return_to(&query.return_to)),
+		)
+			.into_response()
+	}
 }
 static EN: OnceLock<Value> = OnceLock::new();
 static AR: OnceLock<Value> = OnceLock::new();
@@ -167,6 +240,7 @@ mod tests {
 				.scope(
 					RequestLanguage {
 						locale,
+						theme: Theme::Light,
 						return_to: "/panel".into(),
 					},
 					async {

@@ -28,3 +28,15 @@ Anahtar iptali, toplu anahtar değişiklikleri ve VPN oturumu sonlandırma da ta
 - Uygulama içi tarayıcıda yardım/Escape/odak dönüşü, kimlik onayını açıp vazgeçme, dil geçişleri, Arapça yön ve dar ekran taşması görsel olarak kontrol edildi. Sonuçlar `docs/dogrulama.md` dosyasında kaydedilir.
 
 Kullanıcının mevcut “Sınama B” kimliği bu geliştirmede tekrar yenilenmedi. Daha önce yenilenen kimliği sunucuya uygulamak ayrı bir işletim adımıdır.
+
+## Onaylanan açık/koyu tasarım — 16 Ekim 2026
+
+Kullanıcının FortiGate, Proxmox ve AtlasHub referanslarıyla onayladığı yeni kompozisyon uygulandı. Büyük karşılama alanı yerini kısa çalışma alanı başlığına bıraktı. Dört gerçek sayaç üstte; altında hizalı sunucu durum tablosu ve hızlı erişim paneli var. Panel verileri ve yönetim izinleri değişmedi.
+
+Açık temada kırık beyaz zemin, beyaz paneller ve sıcak gri sınırlar; koyu temada nötr antrasit yüzeyler kullanılır. Mor ana eylem rengidir; seçili menü ve sınırlı vurgularda kehribar bulunur. Yeşil, sarı ve kırmızı durum anlamlarını korur. Gradyen, parlak düğme ve kabartma etkileri kaldırılmıştır. Paletler CSS değişkenleriyle tanımlıdır.
+
+Tema, `__Host-vhm_theme` tercih çereziyle bir yıl saklanır (Secure, HttpOnly, SameSite=Lax, kök yol). Varsayılan açıktır. Rust ilk HTML'yi tercihle oluşturur; sayfa başında farklı tema parlaması oluşmaz. Yerel form kontrollerinin `color-scheme` değeri de seçime uyar.
+
+JavaScript çalışırken tema seçimi aynı kaynak üzerindeki `/theme` tercih uç noktasından 204 yanıtıyla kaydedilir; sayfa yenilenmez ve form verileri korunur. Hata halinde önceki seçim korunup yerelleştirilmiş hata gösterilir. JavaScript kapalıyken standart GET formu ve uygula düğmesi çalışır. Yardım ve kimlik yenileme onay akışları korunmuştur.
+
+`tests/test_preferences.py` kimliksiz, gerçek HTTPS üzerinde tema/dil tercihlerini sınar; herhangi bir sunucu veya erişim anahtarını değiştirmez.
