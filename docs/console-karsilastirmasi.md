@@ -8,7 +8,7 @@ Değerlendirme tarihi: 16 Ekim 2026. Bu belge geliştirme onayı veya yeni özel
 - **Mantıksal:** Hoodmin'in kendi sunucusunda güvenilir çalışması için gereken mühendislik/işletim işi. Kapalı kaynak Manager'ın iç mimarisi hakkında iddia değildir.
 - **Eklense güzel olur:** Mevcut BYOS hedefini tamamlamak için zorunlu olmayan kullanım kolaylığı veya kapsam genişletmesi. Console'da doğrudan karşılığı olan bir özellik de bizim kapsamımızda isteğe bağlı olabilir.
 
-İlk değerlendirme resmî [Manager ürün açıklaması](https://www.vpnhood.com/vpnhood-manager/) ve [Manager wiki](https://github.com/vpnhood/VpnHood/wiki/VpnHood-MANAGER) üzerinden yapılmıştır. Ardından kullanıcının kurulum ekranı/örnekleri ve açık Console oturumundaki Deneme1 → INSTALL menüsünün beş yöntemi salt okunur incelenmiştir. Diğer bütün Console menülerinin ayrıntılı denetiminin tamamlandığı iddia edilmez. Ürünün kaynak kodu incelenebilir olmadığından iş kuyruğu, yedekleme ve muhasebe garantileri hakkında eşdeğerlik iddiası yoktur.
+İlk değerlendirme resmî [Manager ürün açıklaması](https://www.vpnhood.com/vpnhood-manager/) ve [Manager wiki](https://github.com/vpnhood/VpnHood/wiki/VpnHood-MANAGER) üzerinden yapılmıştır. Ardından kullanıcının kurulum ekranı/örnekleri ve açık Console oturumundaki Deneme1 → INSTALL menüsünün beş yöntemi salt okunur incelenmiştir. Son incelemede doğrudan maddeler için mevcut Free projenin ana menü ve ayrıntı/formları incelendi; alan bazındaki kanıtlar ve doğrulanamayanlar [canlı menü incelemesinde](console-menu-incelemesi.md) kaydedildi. Menü incelemesi işlev sınaması veya erişilemeyen planların denetimi değildir. Ürünün kaynak kodu incelenebilir olmadığından iş kuyruğu, yedekleme ve muhasebe garantileri hakkında eşdeğerlik iddiası yoktur.
 
 ## Önceki kalan işler listesinin karşılığı
 
@@ -16,7 +16,7 @@ Değerlendirme tarihi: 16 Ekim 2026. Bu belge geliştirme onayı veya yeni özel
 |---|---|---|---|
 | Debian paketi (.deb) | Mantıksal | Console bir hizmettir; kullanıcısına Hoodmin kurulum paketi sunmasıyla birebir karşılık beklenmez. | Kendi altyapımıza dağıtım, bağımlılık/servis yönetimi, veri koruyan yükseltme ve kaldırma için gerekli. Henüz paket yok. |
 | SSH veya tek komutla sunucu kurma | Doğrudan | Resmî açıklama tek komutla kurulum ve SSH bilgileriyle kurulum sunuyor. | Panel şu anda bağlantı ayarını üretir; kullanıcı elle uygular. Resmî hazır VpnHood kurulumunu kullanarak otomasyon eklenebilir. |
-| SSH ile bakım/güncelleme | Mantıksal; isteğe bağlı otomasyon | Otomatik kurulum doğrudan doğrulanıyor; kapsamlı bir SSH bakım/güncelleme ekranı bu kaynaklarda ayrıca doğrulanmıyor. | Güvenli güncelleme prosedürü gerekli; bütün bakımın panelden yapılması zorunlu değil. VpnHood'un resmî güncelleyicisi ile çakışmamalı. |
+| SSH ile bakım/güncelleme | Mantıksal; isteğe bağlı otomasyon | Kurulu sunucuda REINSTALL var; ayrı UPDATE/SSH bakım ekranı gözlenmedi. Resmî güncelleyici kaynakta yeni kurucuyu sessiz çalıştırıyor; Console'un bunu nasıl çağırdığı bilinmiyor. | Yeni bir güncelleyici yazmak gerekmiyor. Güvenli bakım prosedürü gerekli; panelden SSH bakım otomasyonu ayrıca kapsam seçimi. |
 | Kalıcı iş kuyruğu (job queue) | Mantıksal | Kullanıcıya sunulan kurulum gibi uzun işler vardır; hangi kuyruk teknolojisinin kullanıldığı bilinmiyor. | SSH/ACME gibi uzun işler eklendiğinde kesinti sonrası sürdürme, durum takibi, yeniden deneme ve eşzamanlılık kontrolü için. Basit mevcut form işlemlerinin hepsi kuyruk gerektirmez. |
 | Sunucu çiftliği ve yük dağıtımı (server farm / load balancing) | Doğrudan | Resmî açıklama tek anahtarla çiftlikteki sunuculara erişimi ve ağırlıklı dağıtımı anlatıyor. | Gruplar yalnız düzenleme amaçlı; anahtar tek sunucuya bağlı. Yalnız aynı kiracının kendi sunucuları arasında uygulanmalı. |
 | Anahtar bağlantısı (token URL) ve adres yenileme | Doğrudan | Resmî açıklama istemcilerin bağlantı üzerinden yeni adresi almasını anlatıyor. | IP/FQDN düzenlenebiliyor, fakat eski statik anahtarlar güncellenmiyor. Bağlantıdan yenileme henüz yok. |
@@ -56,7 +56,7 @@ Aşağıdaki satırlar **doğrudan ürün vaatlerinin** karşılaştırmasıdır
 | 7 | Desteklenen sağlayıcıda IP değiştirme ve anahtar bağlantısıyla adres yenileme | Eksik | IP/FQDN düzenleme var; sağlayıcıdan IP alma/bırakma ve token URL yok. Önceden paylaşılan statik anahtarlar güncellenmiyor. Bulut IP otomasyonu isteğe bağlı kapsam olabilir; token URL'nin doğrudan karşılığı ayrı tutulmalı. |
 | 8 | Çiftlik TLS'i, otomatik sertifika veya mevcut sertifikayı kullanma | Eksik; temel TLS mevcut | `make_config` sunucu başına kendinden imzalı sertifika üretir. Çiftlik sertifikası, Let's Encrypt/ACME ve kullanıcı sertifikası içe aktarma arayüzü yok. Sertifika dosyasının teknik yapılandırmada bulunması, kullanıcıya sunulan içe aktarma özelliği değildir. HTTPS benzerliği VpnHood tünelinin özelliğidir; Hoodmin VPN motorunu yeniden yazmaz. |
 | 9 | Durum, etkin kullanıcılar, anlık hız, ülke ve kullanım görünümü | Kısmen | Durum/CPU/bellek, oturumlar, toplam bayt ve CSV var. Anlık trafik hızı, ülke kırılımı ve zaman serisi/ayrıntılı kullanım raporu yok. SSE özetleri 15 saniyede yeniler; bu tek başına anlık hız ölçümü değildir. `views.rs`, `events`, `export_csv`. |
-| 10 | Ekip daveti ve rol verme; bot anahtarıyla tüm yönetim işlemlerine API erişimi | Kısmen | Admin/operator/viewer ve doğrudan hesap oluşturma var. Davet/kabul akışı, bot API anahtarı ve belgelenmiş JSON yönetim API'si yok. Sayfa davetin e-posta veya bağlantı türünü belirtmiyor. HTML form uç noktaları ile agent API'si, bu vaadin karşılığı sayılmaz. `add_user`, `web::router`, `agent::router`. |
+| 10 | Ekip daveti ve rol verme; bot anahtarıyla tüm yönetim işlemlerine API erişimi | Kısmen | Hoodmin'de admin/operator/viewer ve yerel hesap oluşturma var. Console'da yalnız Email isteyen ADD USER ve beş rol doğrulandı; gerçek davet/kabul davranışı sınanmadı. Bot API anahtarı ve belgelenmiş JSON yönetim API'si Hoodmin'de yok. HTML form uç noktaları ile agent API'si, bu vaadin karşılığı sayılmaz. `add_user`, `web::router`, `agent::router`. |
 
 ### Kurulum menüsündeki beş ayrı yol — canlı Console doğrulaması
 
@@ -83,11 +83,11 @@ Hoodmin için komut üretilirken BaseUrl Hoodmin'in erişilebilir HTTPS adresi, 
 ### Önceki değerlendirmeye eklenen veya netleştirilen farklar
 
 - Yönetilebilir marka özelleştirmesi (branding) önceki tabloda açıkça listelenmemişti. Bağımsız Hoodmin adı seçimi ile ayrı bir ürün özelliğidir.
-- Ekip hesabı açma ve rol yönetimi mevcut; davet/kabul akışı ayrıca eksik. Davetin teknik yöntemi kaynakta açıklanmadığından e-posta zorunluluğu varsayılmadı.
+- Canlı Team → ADD USER formu yalnız Email istiyor; beş rol doğrulandı. E-posta daveti/kabul akışı veya mevcut hesaba doğrudan üyelik davranışı, kayıt yapmadan doğrulanmadı. Hoodmin'in yerel hesap ve üç rol modeliyle fark bu düzeyde ele alınmalı.
 - Kurulum hedeflerinde Windows da var. Debian önceliğimiz korunurken VPN sunucusu kurulum hedefi olarak kapsamı ayrıca seçilmeli.
 - Çiftlik vaadi ağırlıkları ve yeni üyeyi kapsıyor; yalnız grup kaydı yeterli değildir.
 - Sertifika tarafında otomasyona ek olarak mevcut kullanıcı sertifikasının içe aktarılması da eksik.
-- Canlı toplam sayaç, anlık hız ve geçmiş raporu aynı şey değildir. Ülke kırılımı için gereken konum verisi kaynağı ve gizlilik tercihleri ayrıca tasarlanmalı.
+- Canlı toplam sayaç, anlık hız ve geçmiş raporu aynı şey değildir. Canlı menüde ülke raporunun Country / Used Devices sütunları doğrulandı; ülke başına trafik miktarı varsayılmamalı.
 
 ### Pazarlama metninden çıkarmadığımız gereksinimler
 
@@ -95,10 +95,14 @@ Bu sayfa ödeme alma, fatura/abonelik tahsilatı, mağaza veya müşteri ödeme 
 
 ## Önerilen kapsam kararı
 
-Pazarlama sayfasıyla tam eşdeğerlik hedeflendiğinde marka özelleştirmesi, davet, yönetim API'si ve belirtilen kurulum hedefleri de doğrudan kapsamın parçasıdır. Önceki tablodaki "eklense güzel olur" değerlendirmesi, dar BYOS başlangıç kapsamının önceliğiyle ilgilidir; bu özelliklerin Manager'da karşılığı olmadığı anlamına gelmez.
+Pazarlama sayfasıyla tam eşdeğerlik hedeflendiğinde marka özelleştirmesi, ekip üyeliği/rol yönetimi, yönetim API'si ve belirtilen kurulum hedefleri de doğrudan kapsamın parçasıdır. Menüde doğrulanamayan markalama ve bulut IP işlerini çalıştığı doğrulanmış özelliklerle karıştırmamalıyız. Önceki tablodaki "eklense güzel olur" değerlendirmesi, dar BYOS başlangıç kapsamının önceliğiyle ilgilidir; bu özelliklerin Manager'da karşılığı olmadığı anlamına gelmez.
 
 1. **Temel eşdeğerlik:** Çiftlik/yük dağıtımı, token URL, plan/profil ve hız/kota dönemleri, sertifika yönetimi/içe aktarma, ayrıntılı raporlar. Kurulum kolaylığı için resmî kurulum üzerinden otomasyon.
 2. **Güvenilir dağıtım:** .deb ve kurulum adı geçişi, yedekleme/geri yükleme, anahtar döndürme, kesinti muhasebesi ve gerçek trafik/yük doğrulaması. Uzun işlemler eklenirken kalıcı iş altyapısı.
 3. **Kapsam seçimi:** Bot yönetim API'si, çoklu çalışma alanı geçişi, platform yöneticisi/kayıt akışı, davet akışı, marka özelleştirmesi ve bulut IP otomasyonu kullanım ihtiyacına göre önceliklendirilmeli. Bot API'sinin Console'da doğrudan karşılığı olması, mevcut hedef için hemen zorunlu olduğu anlamına gelmez.
 
 Hoodmin VpnHood'a odaklı kalır. Başka VPN sunucu yazılımlarını desteklemek bu karşılaştırmanın veya isim değişikliğinin parçası değildir.
+
+## Doğrudan maddelerin güncel menü kanıtları
+
+[Canlı Console menü incelemesi](console-menu-incelemesi.md), her doğrudan madde için ekran yolunu, görülen alanları, Hoodmin karşılığını ve kanıt sınırını içerir. Eski pazarlama tablosu bu ayrıntı belgesiyle birlikte okunmalıdır. Özellikle REINSTALL/UPDATE ayrımı, beş proje rolü, ADD USER formunun davet anlamına gelmeyebileceği, bot oluşturma ile API yetki sınamasının ayrılığı ve markalama/bulut IP ekranlarının bu hesapta bulunamaması güncellenmiştir.

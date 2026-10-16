@@ -106,3 +106,12 @@ Kullanım ve uygulama notları: `docs/arayuz-ve-diller.md`. Yeni paket/bağıml�
 - Mevcut upstream Linux/Windows kurucu kaynaklarının parametreleri alıp appsettings yazdığı salt okunur kontrol edildi. İlk iki yolun içeride birebir aynı komutu yürüttüğü, kapalı kaynak olduğu ve kurulum başlatılmadığı için kesinleştirilmedi.
 - Karşılaştırmada kurulum başlığı kısmi olarak düzeltildi: Hoodmin'de elle bağlantı JSON'u mevcut; eksik işler resmî hazır kurucu için komut üretimi ve SSH yürütme. Yönetim sırrı alanındaki fark ayrıca kaydedildi.
 - Bu tur yalnız belgeler güncellendi; uygulama/sınama servisleri değiştirilmedi.
+
+## Doğrudan özelliklerin canlı menü incelemesi — 16 Ekim 2026
+
+- Mevcut Free projede ana menüler ve ayrıntı/formlar incelendi: kurulu sunucu, çiftlik/Power/token URL, sertifika oluşturma/PFX/Signing, erişim profili/kota/hız/ömrü/politika, anahtar üretim/ayrıntı/key, Project/Team/roller/bot formu, Server Profiles/Advanced Edit, Locked IPs ve raporlar.
+- Mevcut sunucu kurulumunun REINSTALL düğmesi görüldü; yeniden kurulum çalıştırılmadı. Resmî Linux/Windows güncelleyicilerinin yeni kurucuyu çağırdığı kaynakta okundu; Console yürütme yöntemi doğrulanmadı.
+- Marka özelleştirmesi ve sağlayıcıdan IP siparişi ekranları bu hesapta bulunamadı. Mevcut bot olmadığı için anahtar/yetki ayrıntısı için bot oluşturulmadı. Ülke raporunda cihaz sayısı sütunu ve boş sonuç doğrulandı; genel Live Status sayaçları bu incelemede `-` gösterdi.
+- Hiçbir kayıt/kimlik/rol/sunucu/sertifika/IP değişmedi; tüm düzenleme formları CANCEL ile kapatıldı. AutoSign yalnız formda seçilip iptal edildi, imzalama başlatılmadı. Sırlar belgeye kaydedilmedi.
+- Bulgular `docs/console-menu-incelemesi.md` içinde ekran yolları ve kanıt düzeyleriyle kaydedildi. Kod değişmediği için derleme/işlev sınamaları tekrarlanmadı.
+- İnceleme sonunda çiftlik sayfası yeniden yüklendi; sertifikanın Signing değeri Manual olarak kaldığı doğrulandı.
