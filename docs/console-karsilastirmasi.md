@@ -8,7 +8,7 @@ Değerlendirme tarihi: 16 Ekim 2026. Bu belge geliştirme onayı veya yeni özel
 - **Mantıksal:** Hoodmin'in kendi sunucusunda güvenilir çalışması için gereken mühendislik/işletim işi. Kapalı kaynak Manager'ın iç mimarisi hakkında iddia değildir.
 - **Eklense güzel olur:** Mevcut BYOS hedefini tamamlamak için zorunlu olmayan kullanım kolaylığı veya kapsam genişletmesi. Console'da doğrudan karşılığı olan bir özellik de bizim kapsamımızda isteğe bağlı olabilir.
 
-Bu turda açık bir console oturumu bulunmadığından güncel menüler yeniden denetlenmedi. Karşılaştırma resmî [Manager ürün açıklaması](https://www.vpnhood.com/vpnhood-manager/) ve [Manager wiki](https://github.com/vpnhood/VpnHood/wiki/VpnHood-MANAGER) üzerinden yapılmıştır. Ekran konumu ve iç mimari hakkında doğrulanmamış ayrıntı verilmez. Ürünün kaynak kodu incelenebilir olmadığından iş kuyruğu, yedekleme ve muhasebe garantileri hakkında eşdeğerlik iddiası yoktur.
+İlk değerlendirme resmî [Manager ürün açıklaması](https://www.vpnhood.com/vpnhood-manager/) ve [Manager wiki](https://github.com/vpnhood/VpnHood/wiki/VpnHood-MANAGER) üzerinden yapılmıştır. Ardından kullanıcının kurulum ekranı/örnekleri ve açık Console oturumundaki Deneme1 → INSTALL menüsünün beş yöntemi salt okunur incelenmiştir. Diğer bütün Console menülerinin ayrıntılı denetiminin tamamlandığı iddia edilmez. Ürünün kaynak kodu incelenebilir olmadığından iş kuyruğu, yedekleme ve muhasebe garantileri hakkında eşdeğerlik iddiası yoktur.
 
 ## Önceki kalan işler listesinin karşılığı
 
@@ -49,7 +49,7 @@ Aşağıdaki satırlar **doğrudan ürün vaatlerinin** karşılaştırmasıdır
 |---|---|---|---|
 | 1 | Kendi sunucularını tek panelden yönetme | Mevcut | BYOS ve tek kiracıya ait sunucu modeli var. `migrations/0001_initial.sql`, `0002_panel.sql`, `store.rs`. Manager'ın hizmet bedeli hakkındaki pazarlama ifadesinden Hoodmin için fiyatlandırma çıkarmıyoruz. |
 | 2 | Arayüzü kendi markasıyla sunma | Eksik | Hoodmin adının sabitlenmesi, yönetilebilir marka özelleştirmesi değildir. `views.rs` marka metinleri sabit; `update_tenant` yalnız çalışma alanının adını değiştirir. Logo/renk gibi ayarlar düşünülebilir; kiracı başına marka veya özel alan adı desteği sayfada ayrıntılandırılmıyor. |
-| 3 | Linux/Windows'ta tek komut veya SSH ile kurulum | Eksik | Yalnız Debian sınama betikleri var; panelden sunucu kurulum akışı yok. Resmî VpnHood hazır kurulumu kullanılarak geliştirilmeli. Windows burada VPN sunucusunun kurulum hedefidir; Hoodmin yönetim servisinin Windows'a taşınması şartı değildir. |
+| 3 | Linux/Windows'ta tek komut veya SSH ile kurulum | Kısmen: elle appsettings bağlantısı mevcut | Resmî hazır kurucu zaten var. Hoodmin bağlantı JSON'u üretir; sunucuya özel Linux/Windows komutu ve SSH yürütme arayüzü yok. Beş yöntem aşağıda ayrı karşılaştırıldı. Windows burada VPN sunucusunun kurulum hedefidir; Hoodmin yönetim servisinin Windows'a taşınması şartı değildir. |
 | 4 | İstemcinin anahtarı yapıştırarak bağlanması | Temel karşılık mevcut | `management::create_tokens` uyumlu `vh://` üretir; gerçek .NET/uzak bağlantı doğrulaması kayıtlı. Ancak gerçek VPN trafiği henüz sınanmadı. Anahtarları yeniden dağıtmadan güncelleme ayrı 7. satırdır. |
 | 5 | Plan başına cihaz, aylık trafik, hız ve süre sınırları | Kısmen | Anahtar başına cihaz, toplam trafik ve bitiş zamanı mevcut. Plan şablonu, hız sınırı ve aylık kota dönemi yok. Aylık kotanın yenilenme zamanı/kuralları pazarlama metninde açıklanmıyor; bunlar ayrıca tasarlanmalı. İşlem başına 100 anahtar sınırı, toplam anahtar sayısının 100 olduğu anlamına gelmez. |
 | 6 | Çiftlikte tek anahtar, ağırlıklı dağıtım, yeni sunucunun katılması | Eksik | Gruplar etiketleme/düzenleme içindir. `access_tokens.server_id` tek sunucuya bağlı; çiftlik üyeliğine göre anahtar, ağırlık ve seçim/yönlendirme mantığı yok. Yeni sunucunun nasıl ve hangi sürede trafiğe alınacağı ayrıca sınanmalı. Kiracılar arası ortak havuz gerektirmez. |
@@ -57,6 +57,28 @@ Aşağıdaki satırlar **doğrudan ürün vaatlerinin** karşılaştırmasıdır
 | 8 | Çiftlik TLS'i, otomatik sertifika veya mevcut sertifikayı kullanma | Eksik; temel TLS mevcut | `make_config` sunucu başına kendinden imzalı sertifika üretir. Çiftlik sertifikası, Let's Encrypt/ACME ve kullanıcı sertifikası içe aktarma arayüzü yok. Sertifika dosyasının teknik yapılandırmada bulunması, kullanıcıya sunulan içe aktarma özelliği değildir. HTTPS benzerliği VpnHood tünelinin özelliğidir; Hoodmin VPN motorunu yeniden yazmaz. |
 | 9 | Durum, etkin kullanıcılar, anlık hız, ülke ve kullanım görünümü | Kısmen | Durum/CPU/bellek, oturumlar, toplam bayt ve CSV var. Anlık trafik hızı, ülke kırılımı ve zaman serisi/ayrıntılı kullanım raporu yok. SSE özetleri 15 saniyede yeniler; bu tek başına anlık hız ölçümü değildir. `views.rs`, `events`, `export_csv`. |
 | 10 | Ekip daveti ve rol verme; bot anahtarıyla tüm yönetim işlemlerine API erişimi | Kısmen | Admin/operator/viewer ve doğrudan hesap oluşturma var. Davet/kabul akışı, bot API anahtarı ve belgelenmiş JSON yönetim API'si yok. Sayfa davetin e-posta veya bağlantı türünü belirtmiyor. HTML form uç noktaları ile agent API'si, bu vaadin karşılığı sayılmaz. `add_user`, `web::router`, `agent::router`. |
+
+### Kurulum menüsündeki beş ayrı yol — canlı Console doğrulaması
+
+Kullanıcının gönderdiği ekran ve komutlar üzerine açık Console oturumunda mevcut **Deneme1 → INSTALL** menüsü incelendi. Sunucu oluşturulmadı, kurulum başlatılmadı, SSH bilgisi girilmedi ve kimlik yenilenmedi. Linux/Windows komutları ile JSON içeriğindeki sırlar çıktıya veya bu belgeye alınmadı; yalnız alan adlarının varlığı doğrulandı.
+
+| Seçenek | Console'da gözlenen | Hoodmin karşılığı |
+|---|---|---|
+| 1. Linux: kullanıcı adı + parola | Host/IP, SSH portu (varsayılan 22), kullanıcı adı ve parola formu; sudo/root yetkisi açıklaması. | Eksik: SSH üzerinden kurulum yürütme. |
+| 2. Linux: kullanıcı adı + SSH anahtarı | Host/IP, port, kullanıcı adı, isteğe bağlı parola, özel anahtar ve anahtar parolası alanları; özel anahtar yükleme seçeneği. | Eksik: anahtarlı SSH üzerinden kurulum yürütme. |
+| 3. Linux: komutu kullanıcı çalıştırır | Resmî `VpnHoodServer-linux.sh` ve `-managementSecret`, `-httpBaseUrl`, `-httpAuthorization` parametreleri doğrulandı. | Eksik: Hoodmin sunucusuna özel komutu üretip kopyalatma. Yeni bir VpnHood kurucusu yazmak gerekmiyor. |
+| 4. Windows: komutu kullanıcı çalıştırır | Resmî `VpnHoodServer-win-x64.ps1` ve aynı üç parametre doğrulandı. | Eksik: PowerShell komutu üretip kopyalatma ve hazır kurucuyla uyumluluk sınaması. Hoodmin servisinin Windows'ta çalışması gerekmiyor. |
+| 5. Mevcut kuruluma appsettings uygula | `HttpAccessManager.BaseUrl`, `HttpAccessManager.Authorization`, `ManagementSecret` alanları ve appsettings dosyası açıklaması doğrulandı. | Temel karşılık mevcut: `add_server` ve `rotate_credential`, Hoodmin adresi/kimliğiyle bağlantı JSON'u verir. Hoodmin şu anda `ManagementSecret` vermiyor; birebir menü/alan eşdeğerliği ve bu alanın kullanılacağı yönetim davranışı ayrıca doğrulanmalı. |
+
+**Düzeltilen iş tanımı:** Resmî hazır VpnHood kurulumuna Hoodmin bağlantı bilgilerini veren bir komut üretme ekranı; SSH yöntemleri için bunun uzaktan yürütülmesi, durum/çıktı takibi ve sonuç doğrulaması. Resmî VPN sunucusunu veya kurucusunu yeniden geliştirme işi değildir.
+
+Mevcut `VpnHood-Current` kaynak kopyasındaki `pub/lib/vh-installer/linux/install.sh` ve `win/install.ps1` dosyaları, bu parametreleri alıp `storage/appsettings.json` yazdıklarını gösteriyor. Kurulum için resmî hazır sürüm kullanılmalı; bu kaynaklar yalnız okundu, değiştirilmedi veya çalıştırılmadı.
+
+İlk iki yolun SSH ile kurulum yaptığı formlardan doğrulanıyor. İçeride üçüncü seçenekle tamamen aynı komutun çalıştırıldığı, yürütme yapılmadan veya kapalı kaynak işleyici görülmeden kesin söylenemez; aynı resmî kurucuyu kullanmaları makul bir çıkarımdır.
+
+Hoodmin için komut üretilirken BaseUrl Hoodmin'in erişilebilir HTTPS adresi, Authorization ise Hoodmin'in ilgili sunucu için ürettiği kimlik olmalı. `access.vpnhood.com` ve resmî Console'un JWT'si kopyalanırsa sunucu Hoodmin yerine resmî hizmete bağlanır. `ManagementSecret` ayrı bir alandır; diğer kimlikle eşit olduğu varsayılmamalı. Belgelerde yalnız `<HOODMIN_ADRESI>`, `<SUNUCU_KIMLIGI>`, `<YONETIM_SIRRI>` gibi yer tutucular kullanılmalı.
+
+Öncelik olarak 3/4/5 yolları SSH yetkisi almadan sunulabilir. 1/2, aynı hazırlığın üzerine SSH kimlik doğrulama ve uzun işlem takibi ekler. Bu bir uygulama sırası önerisidir; yeni işlev geliştirmesine başlanmadı.
 
 ### Önceki değerlendirmeye eklenen veya netleştirilen farklar
 

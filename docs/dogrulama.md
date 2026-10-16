@@ -98,3 +98,11 @@ Kullanım ve uygulama notları: `docs/arayuz-ve-diller.md`. Yeni paket/bağıml�
 - Karşılaştırma belgesine on maddelik mevcut/kısmi/eksik matrisi eklendi. Önceki listede açık olmayan marka özelleştirmesi ve ekip daveti; Windows sunucu kurulum hedefi, çiftlik ağırlıkları/yeni üye katılımı ve kullanıcı sertifikası içe aktarma ayrıntıları kaydedildi.
 - Plan tanımlama vaadinden ödeme/faturalama sistemi; genel site bağlantılarından Hoodmin güvenlik denetimi veya kapalı kaynak iç mimari garantisi çıkarılmadı.
 - Bu tur yalnız belgeler güncellendi; uygulama, servis ve kullanıcı verileri değiştirilmedi. Belge bağlantıları ve Git boşluk denetimi başarılı; kod değişmediğinden derleme/işlev sınamaları tekrarlanmadı.
+
+## Kurulum menüsünün beş yöntemle doğrulanması — 16 Ekim 2026
+
+- Kullanıcının ekran ve örnekleri üzerine açık Console oturumunda Deneme1 → INSTALL incelendi. Parolalı ve anahtarlı SSH formları, Linux komutu, Windows komutu ve appsettings seçeneği tek tek açıldı. Alan/parametre adları doğrulandı; komut/JSON sırları çıktıya veya belgeye alınmadı.
+- SSH kimlik bilgileri girilmedi, INSTALL gönderilmedi, yeni sunucu oluşturulmadı ve kimlik yenilenmedi. Sır içeren pencere kapatılarak sunucu ayrıntısı açık bırakıldı.
+- Mevcut upstream Linux/Windows kurucu kaynaklarının parametreleri alıp appsettings yazdığı salt okunur kontrol edildi. İlk iki yolun içeride birebir aynı komutu yürüttüğü, kapalı kaynak olduğu ve kurulum başlatılmadığı için kesinleştirilmedi.
+- Karşılaştırmada kurulum başlığı kısmi olarak düzeltildi: Hoodmin'de elle bağlantı JSON'u mevcut; eksik işler resmî hazır kurucu için komut üretimi ve SSH yürütme. Yönetim sırrı alanındaki fark ayrıca kaydedildi.
+- Bu tur yalnız belgeler güncellendi; uygulama/sınama servisleri değiştirilmedi.
