@@ -207,6 +207,29 @@ for filename, content in [("server-a.credential", credential_a), ("token-a.vh", 
 	file = WORK / filename
 	file.write_text(content)
 	file.chmod(0o600)
+# Adres düzenlemesi yalnız bu ayrılmış kiracının sınama sunucusuna uygulanır.
+before_config = agent(credential_a, "configure", {})
+before_code = agent(credential_a, "status", {})["configCode"]
+check(other.post(f"/manage/servers/{server_a}", name="No", host="203.0.113.55", port=8443, farm="")[0] == 404, "Başka kiracının sunucu adresi değiştirilemedi")
+check(admin.request(f"/manage/servers/{server_a}", {"csrf":"invalid", "name":"QA", "host":"203.0.113.55", "port":8443})[0] == 403, "Adres düzenlemesi CSRF denetiminden geçiyor")
+for host, port, expected in [("203.0.113.55",8443,["203.0.113.55:8443"]),("2001:db8::55",9443,["[2001:db8::55]:9443"]),("vpn.endpoint.test",8443,[])]:
+	check(admin.post(f"/manage/servers/{server_a}", name="QA kendi sunucum", host=host, port=port, farm="")[0] == 303, "Sunucu adresi ve portu düzenlendi: " + host)
+	config = agent(credential_a, "configure", {})
+	code = agent(credential_a, "status", {})["configCode"]
+	check(code != before_code and config["configCode"] == code, "Yeni yapılandırma sürümü agent bildirimine taşındı")
+	check(config["tcpEndPoints"] == [f"0.0.0.0:{port}",f"[::]:{port}"], "TCP dinleme portları güncellendi")
+	check(config["serverSecret"] == before_config["serverSecret"] and config["certificates"] == before_config["certificates"], "Sunucu sırrı ve sertifikası korundu")
+	before_code = code
+check('value="vpn.endpoint.test"' in admin.request("/panel/servers")[1], "Düzenleme formu kayıtlı FQDN ile dolduruldu")
+check(admin.post(f"/manage/servers/{server_a}", name="QA kendi sunucum", host="vpn.endpoint.test", port=8443, farm="")[0] == 303 and agent(credential_a,"status",{})["configCode"] == before_code, "Değişmeyen adres gereksiz yapılandırma sürümü üretmedi")
+for invalid_host, invalid_port in [("https://bad.example/path",8443),("999.0.0.1",8443),("vpn.endpoint.test",0)]:
+	check(admin.post(f"/manage/servers/{server_a}", name="QA kendi sunucum", host=invalid_host, port=invalid_port, farm="")[0] == 400, "Geçersiz adres/port reddedildi")
+	check(agent(credential_a,"configure",{}) == config, "Geçersiz düzenleme yapılandırmayı değiştirmedi")
+code, body, _ = admin.post("/manage/tokens", server=server_a, name="Adres sınaması", count=1, max_clients=1, max_gib=0, expires="")
+updated_key = json.loads(base64.b64decode(Fields(body).output.split("vh://",1)[1].strip()))
+check(code == 200 and updated_key["ser"]["hname"] == "vpn.endpoint.test" and updated_key["ser"]["hport"] == 8443, "Yeni erişim anahtarı güncellenen FQDN ve portu taşıyor")
+check(updated_key["ser"]["sec"] == tokens[0]["ser"]["sec"] and updated_key["ser"]["ch"] == tokens[0]["ser"]["ch"], "Yeni adres için sunucu sırrı ve sertifika parmak izi korundu")
+
 configuration_check = subprocess.run(["dotnet", "run", "--project", str(ROOT / "tests/ContractProbe"), "-c", "Release", "--no-build", "--", "check-config", str(WORK)], capture_output=True, text=True, check=True)
 check("PASS:" in configuration_check.stdout, "Panelin sertifika ve yapılandırması gerçek .NET tipleriyle doğrulandı")
 result = subprocess.run(["dotnet", "run", "--project", str(ROOT / "tests/ContractProbe"), "-c", "Release", "--no-build", "--", "one-session", str(WORK)], capture_output=True, text=True, check=True)
@@ -218,6 +241,7 @@ check(command["sessionResponses"][str(session_id)]["errorCode"] == "SessionClose
 check(str(session_id) in agent(credential_a, "status", {})["sessionResponses"], "Karar onay alınana kadar tekrar iletildi")
 agent(credential_a, "sessions/usages", [{"sessionId": session_id, "errorCode": "SessionClosed"}])
 check(str(session_id) not in agent(credential_a, "status", {})["sessionResponses"], "Kapanış bildirimi alınınca bekleyen karar temizlendi")
+check(admin.post(f"/manage/servers/{server_a}", name="QA kendi sunucum", host="10.0.3.220", port=2444, farm="")[0] == 303, "Sınama adresi başlangıç değerine geri getirildi")
 check(admin.post(f"/manage/servers/{server_a}", name="QA kendi sunucum", farm="", paused="true")[0] == 303, "Sunucu bakım moduna alındı")
 result = subprocess.run(["dotnet", "run", "--project", str(ROOT / "tests/ContractProbe"), "-c", "Release", "--no-build", "--", "one-session", str(WORK)], capture_output=True, text=True)
 check(result.returncode != 0, "Bakım modunda yeni VPN oturumu reddedildi")

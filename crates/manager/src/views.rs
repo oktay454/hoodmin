@@ -19,6 +19,8 @@ pub struct Farm {
 pub struct Server {
 	pub id: String,
 	pub name: String,
+	pub host: String,
+	pub port: u16,
 	pub farm: String,
 	pub group: Option<String>,
 	pub status: String,
@@ -115,13 +117,13 @@ pub async fn load(
 	let stats = stats(store, user.tenant).await?;
 	let mut tx = store.begin(user.tenant).await?;
 	let needle = search.to_lowercase();
-	let rows=query("SELECT s.id,s.name,s.farm_id,s.paused,s.last_seen,s.status,f.name AS group_name FROM servers s LEFT JOIN farms f ON f.tenant_id=s.tenant_id AND f.id=s.farm_id WHERE s.tenant_id=$1 ORDER BY s.name LIMIT 500").bind(user.tenant).fetch_all(&mut *tx).await?;
+	let rows=query("SELECT s.id,s.name,s.farm_id,s.paused,s.last_seen,s.status,s.configuration,f.name AS group_name FROM servers s LEFT JOIN farms f ON f.tenant_id=s.tenant_id AND f.id=s.farm_id WHERE s.tenant_id=$1 ORDER BY s.name LIMIT 500").bind(user.tenant).fetch_all(&mut *tx).await?;
 	let servers = rows
 		.into_iter()
 		.filter(|r| {
 			current != "servers" || r.get::<String, _>("name").to_lowercase().contains(&needle)
 		})
-		.map(|r| {
+		.map(|r| -> Result<Server> {
 			let paused: bool = r.get("paused");
 			let seen: Option<DateTime<Utc>> = r.get("last_seen");
 			let status: Option<Value> = r.get("status");
@@ -131,9 +133,21 @@ pub async fn load(
 				.as_ref()
 				.and_then(|v| v["configError"].as_str())
 				.is_some_and(|e| !e.is_empty());
-			Server {
+			let (host, port) = if current == "servers" && user.can_write() {
+				let id: Uuid = r.get("id");
+				let bytes = store.vault.open(
+					&r.get::<Vec<u8>, _>("configuration"),
+					&format!("{}:{id}:config", user.tenant),
+				)?;
+				crate::management::endpoint(&serde_json::from_slice::<Value>(&bytes)?)?
+			} else {
+				(String::new(), 443)
+			};
+			Ok(Server {
 				id: r.get::<Uuid, _>("id").to_string(),
 				name: r.get("name"),
+				host,
+				port,
 				farm: r
 					.get::<Option<Uuid>, _>("farm_id")
 					.map(|v| v.to_string())
@@ -168,9 +182,9 @@ pub async fn load(
 					.and_then(|v| v["sessionCount"].as_i64())
 					.unwrap_or(0),
 				seen: time(seen),
-			}
+			})
 		})
-		.collect();
+		.collect::<Result<Vec<_>>>()?;
 	let farms = query("SELECT id,name FROM farms WHERE tenant_id=$1 ORDER BY name LIMIT 500")
 		.bind(user.tenant)
 		.fetch_all(&mut *tx)
@@ -263,8 +277,13 @@ fn language_switch() -> AnyView {
 	view!{<form method="get" action="/language" class="language-switch"><label><span class="language-label">{tr("Dil")}</span><select name="lang" aria-label=tr("Dil")><option value="tr" lang="tr" selected={locale==i18n::Locale::Tr}>{tr("Türkçe")}</option><option value="en" lang="en" selected={locale==i18n::Locale::En}>{tr("English")}</option><option value="ar" lang="ar" selected={locale==i18n::Locale::Ar}>{tr("العربية")}</option></select></label><input type="hidden" name="return_to" value=i18n::return_to()/><button class="button secondary language-apply" type="submit" aria-label=tr("Dili değiştir")>{tr("↵")}</button></form>}.into_any()
 }
 fn theme_switch() -> AnyView {
-	let theme = i18n::theme();
-	view!{<form method="get" action="/theme" class="theme-switch"><label><span class="preference-label">{tr("Tema")}</span><select name="theme" aria-label=tr("Tema")><option value="light" selected={theme==i18n::Theme::Light}>{tr("Açık tema")}</option><option value="dark" selected={theme==i18n::Theme::Dark}>{tr("Koyu tema")}</option></select></label><input type="hidden" name="return_to" value=i18n::return_to()/><button class="button secondary preference-apply" type="submit" aria-label=tr("Temayı değiştir")>{tr("↵")}</button><span class="theme-feedback" role="status" aria-live="polite"></span></form>}.into_any()
+	let light = i18n::theme() == i18n::Theme::Light;
+	let label = tr(if light {
+		"Koyu temaya geç"
+	} else {
+		"Açık temaya geç"
+	});
+	view!{<form method="get" action="/theme" class="theme-switch"><input type="hidden" name="theme" value=if light {"dark"} else {"light"}/><input type="hidden" name="return_to" value=i18n::return_to()/><button class="button theme-toggle" type="submit" aria-label=label.clone() title=label><svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2 M12 20v2 M2 12h2 M20 12h2 M5 5l1.5 1.5 M17.5 17.5L19 19 M5 19l1.5-1.5 M17.5 6.5L19 5"/></svg><svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 13a8.6 8.6 0 0 1-9.5-9.5A8.6 8.6 0 1 0 20.5 13Z"/></svg></button><span class="theme-feedback" role="status" aria-live="polite"></span></form>}.into_any()
 }
 fn help(title: &str, body: &str) -> AnyView {
 	view!{<button class="help-trigger" type="button" aria-haspopup="dialog" aria-label=format!("{}: {}",tr("Yardım"),tr(title)) title=tr("Açıklamayı aç") data-help-title=tr(title) data-help-body=tr(body)>{tr("?")}</button>}.into_any()
@@ -278,7 +297,7 @@ fn dialogs() -> AnyView {
 fn document(title: &str, content: AnyView) -> Html<String> {
 	let title = format!("{} · {}", tr(title), tr("VpnHood Yönetici"));
 	Html(format!("<!doctype html>{}",view!{
-		<html lang=i18n::locale().code() dir=i18n::locale().direction() data-theme=i18n::theme().code() data-theme-error=tr("Tema kaydedilemedi. Yeniden deneyin.") data-copy-success=tr("Kopyalandı.") data-copy-fallback=tr("Metin seçildi. Kopyalama kısayolunu kullanabilirsiniz.")><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="color-scheme" content=i18n::theme().code()/><title>{title}</title><link rel="stylesheet" href="/assets/app.css"/><script src="/assets/app.js" defer></script></head><body>{content}{dialogs()}</body></html>
+		<html lang=i18n::locale().code() dir=i18n::locale().direction() data-theme=i18n::theme().code() data-theme-light=tr("Açık temaya geç") data-theme-dark=tr("Koyu temaya geç") data-theme-error=tr("Tema kaydedilemedi. Yeniden deneyin.") data-copy-success=tr("Kopyalandı.") data-copy-fallback=tr("Metin seçildi. Kopyalama kısayolunu kullanabilirsiniz.")><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="color-scheme" content=i18n::theme().code()/><title>{title}</title><link rel="stylesheet" href="/assets/app.css"/><script src="/assets/app.js" defer></script></head><body>{content}{dialogs()}</body></html>
 	}.to_html()))
 }
 fn csrf(value: &str) -> AnyView {
@@ -392,7 +411,7 @@ fn servers(user: &User, data: Data) -> AnyView {
 	let farms = data.farms.clone();
 	let farm_options = data.farms.clone();
 	let rows=data.servers.into_iter().map(|server|{
-		let controls=user.can_write().then(||view!{<details class="edit-details"><summary>{tr("Düzenle")}</summary><form method="post" action=format!("/manage/servers/{}",server.id) class="stack compact-form">{csrf(&user.csrf)}<label>{tr("Sunucu adı")}<input name="name" value=server.name.clone() required maxlength="120"/></label>{farm_select(farms.clone(),server.farm.clone())}<label class="checkbox"><input type="checkbox" name="paused" value="true" checked=server.paused/>{tr("Yeni oturumları durdur (bakım)")}</label><button class="button secondary" type="submit">{tr("Kaydet")}</button></form><div class="credential-action"><p class="small muted">{tr("Kimliği yenilerseniz yeni bağlantı ayarını sunucuya uygulamanız gerekir.")}</p><a class="button danger-outline" href=format!("/manage/servers/{}/credential",server.id)>{tr("Bağlantı kimliğini yenile")}</a>{help("Bağlantı kimliği", "Bu kimlik VPN sunucusunun yönetim paneline bağlanmasını sağlar. Yenileme eski kimliği geçersiz kılar. Yeni ayarı sunucuya uygulayana kadar durum ve yönetim iletişimi durur. VPN erişim anahtarları ayrı bilgilerdir.")}</div></details>});
+		let controls=user.can_write().then(||view!{<details class="edit-details"><summary>{tr("Düzenle")}</summary><form method="post" action=format!("/manage/servers/{}",server.id) class="stack compact-form">{csrf(&user.csrf)}<label>{tr("Sunucu adı")}<input name="name" value=server.name.clone() required maxlength="120"/></label><label>{tr("VPN adresi (DNS veya IP)")}<input name="host" value=server.host.clone() required maxlength="253"/></label><label>{tr("TCP portu")}<input type="number" name="port" value=server.port min="1" max="65535" required/></label><p class="small muted">{tr("Adres veya port değişikliği sunucunun sonraki bildiriminde uygulanır. Daha önce paylaşılan erişim anahtarlarındaki adres kendiliğinden güncellenmez.")}</p>{farm_select(farms.clone(),server.farm.clone())}<label class="checkbox"><input type="checkbox" name="paused" value="true" checked=server.paused/>{tr("Yeni oturumları durdur (bakım)")}</label><button class="button secondary" type="submit">{tr("Kaydet")}</button></form><div class="credential-action"><p class="small muted">{tr("Kimliği yenilerseniz yeni bağlantı ayarını sunucuya uygulamanız gerekir.")}</p><a class="button danger-outline" href=format!("/manage/servers/{}/credential",server.id)>{tr("Bağlantı kimliğini yenile")}</a>{help("Bağlantı kimliği", "Bu kimlik VPN sunucusunun yönetim paneline bağlanmasını sağlar. Yenileme eski kimliği geçersiz kılar. Yeni ayarı sunucuya uygulayana kadar durum ve yönetim iletişimi durur. VPN erişim anahtarları ayrı bilgilerdir.")}</div></details>});
 		view!{<tr><td><strong>{server.name}</strong><span class="table-sub"><bdi dir="auto">{tr(&server.seen)}</bdi></span></td><td>{server.group.unwrap_or_else(||tr("Grupsuz"))}</td><td><span class="badge" class:online=server.online>{tr(&server.status)}</span></td><td><bdi dir="ltr">{server.cpu}</bdi></td><td><bdi dir="ltr">{server.memory}</bdi></td><td><bdi dir="ltr">{server.sessions}</bdi></td><td>{controls}</td></tr>}
 	}).collect_view();
 	view!{<div class="section-heading"><div><h2>{tr("Kendi sunucularınızı yönetin")}{help("Sunucu yönetimi", "Her sunucu yalnız kendi çalışma alanınıza aittir. Önce sunucuyu kaydedin, ardından oluşturulan bağlantı ayarını VPN sunucusuna uygulayın. Çevrimiçi durumu son 90 saniyedeki bildirimlere göre belirlenir.")}</h2><p class="muted">{tr("Her sunucu yalnızca çalışma alanınıza aittir.")}</p></div><form method="get" class="search"><input type="search" name="q" value=data.query placeholder=tr("Sunucu ara") aria-label=tr("Sunucu ara")/><button class="button ghost" type="submit">{tr("Ara")}</button></form></div><section class="card table-wrap"><table><thead><tr><th>{tr("Sunucu")}</th><th>{tr("Grup")}</th><th>{tr("Durum")}</th><th>{tr("CPU")}</th><th>{tr("Bellek")}</th><th>{tr("Oturum")}</th><th>{tr("Yönetim")}</th></tr></thead><tbody>{rows}</tbody></table></section>{user.can_write().then(||view!{<div class="form-grid"><section class="card"><span class="eyebrow">{tr("YENİ SUNUCU")}</span><h2>{tr("Sunucu ekle")}</h2><form method="post" action="/manage/servers" class="stack">{csrf(&user.csrf)}<label for="server-name">{tr("Sunucu adı")}</label><input id="server-name" name="name" required maxlength="120" placeholder=tr("Örn. İstanbul 01")/><label for="server-host">{tr("VPN adresi (DNS veya IP)")}{help("VPN bağlantı adresi", "VPN istemcilerinin bağlanacağı sunucunun dış IP adresini veya DNS adını yazın. Bu alan yönetim panelinin adresi değildir. TCP portu VPN sunucusunun dinlediği ve güvenlik duvarında açılmış port olmalıdır.")}</label><input id="server-host" name="host" required maxlength="253" placeholder=tr("vpn.ornek.com")/><label for="server-port">{tr("TCP portu")}</label><input id="server-port" type="number" name="port" value="443" min="1" max="65535" required/><label>{tr("Sunucu grubu")}{farm_select(farm_options,String::new())}</label><button class="button primary" type="submit">{tr("Sunucuyu kaydet")}</button><p class="small muted">{tr("Kayıttan sonra sunucunuza ekleyeceğiniz bağlantı ayarları gösterilir.")}</p></form></section><section class="card"><span class="eyebrow">{tr("DÜZENLEME")}</span><h2>{tr("Sunucu grubu oluştur")}{help("Sunucu grupları", "Gruplar sunucuları bölge veya amaca göre düzenler. Şu anda grup oluşturmak yük dağıtımını etkinleştirmez ve sunucuyu başka kiracılarla paylaşmaz.")}</h2><p class="muted">{tr("Sunucularınızı bölge veya kullanım amacına göre gruplandırın.")}</p><form method="post" action="/manage/farms" class="stack">{csrf(&user.csrf)}<label for="farm-name">{tr("Grup adı")}</label><input id="farm-name" name="name" required maxlength="120" placeholder=tr("Örn. Türkiye")/><button class="button secondary" type="submit">{tr("Grup oluştur")}</button></form></section></div>})}}.into_any()

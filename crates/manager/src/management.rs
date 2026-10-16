@@ -31,20 +31,106 @@ pub fn valid_name(value: &str) -> Result<String> {
 	);
 	Ok(value.into())
 }
-pub fn make_config(host: &str, port: u16) -> Result<Value> {
-	ensure!(port > 0, "Port geçersiz.");
+pub fn normalize_host(host: &str) -> Result<String> {
+	let host = host.trim();
 	let ip = host.parse::<std::net::IpAddr>().ok();
 	ensure!(
 		host.len() <= 253
 			&& !host.is_empty()
 			&& (ip.is_some()
-				|| host.split('.').all(|p| !p.is_empty()
-					&& p.len() <= 63
-					&& !p.starts_with('-')
-					&& !p.ends_with('-')
-					&& p.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-'))),
+				|| host.split('.').all(|part| !part.is_empty()
+					&& part.len() <= 63
+					&& !part.starts_with('-')
+					&& !part.ends_with('-')
+					&& part.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-'))),
 		"DNS/IP adresi geçersiz."
 	);
+	let parts = host.split('.').collect::<Vec<_>>();
+	ensure!(
+		ip.is_some()
+			|| parts.len() != 4
+			|| !parts
+				.iter()
+				.all(|part| part.bytes().all(|b| b.is_ascii_digit())),
+		"IPv4 adresi geçersiz."
+	);
+	Ok(ip
+		.map(|ip| ip.to_string())
+		.unwrap_or_else(|| host.to_ascii_lowercase()))
+}
+pub fn endpoint(config: &Value) -> Result<(String, u16)> {
+	let token = &config["publicServerToken"];
+	// Sanal TLS adı ile istemcinin bağlandığı genel IP farklı olabilir.
+	if token["isv"].as_bool() == Some(false)
+		&& let Some(address) = token["ep"]
+			.as_array()
+			.and_then(|values| values.first())
+			.and_then(Value::as_str)
+			.and_then(|value| value.parse::<std::net::SocketAddr>().ok())
+	{
+		return Ok((address.ip().to_string(), address.port()));
+	}
+	let host = token["hname"]
+		.as_str()
+		.ok_or_else(|| anyhow::anyhow!("Sunucu adresi eksik."))?;
+	let port = token["hport"]
+		.as_u64()
+		.and_then(|v| u16::try_from(v).ok())
+		.filter(|v| *v > 0)
+		.ok_or_else(|| anyhow::anyhow!("Sunucu portu eksik."))?;
+	Ok((host.into(), port))
+}
+pub fn update_endpoint(config: &mut Value, host: &str, port: u16) -> Result<bool> {
+	let host = normalize_host(host)?;
+	ensure!(port > 0, "Port geçersiz.");
+	let (old_host, old_port) = endpoint(config)?;
+	if host == old_host && port == old_port {
+		return Ok(false);
+	}
+	let listeners = if port != old_port {
+		let current = config["tcpEndPoints"]
+			.as_array()
+			.ok_or_else(|| anyhow::anyhow!("TCP dinleyicileri eksik."))?;
+		Some(
+			current
+				.iter()
+				.map(|value| -> Result<Value> {
+					let mut listener: std::net::SocketAddr = value
+						.as_str()
+						.ok_or_else(|| anyhow::anyhow!("TCP dinleyicisi geçersiz."))?
+						.parse()?;
+					if listener.port() == old_port {
+						listener.set_port(port);
+					}
+					Ok(listener.to_string().into())
+				})
+				.collect::<Result<Vec<_>>>()?,
+		)
+	} else {
+		None
+	};
+	let ip = host.parse::<std::net::IpAddr>().ok();
+	let token = &mut config["publicServerToken"];
+	token["hname"] = host.into();
+	token["hport"] = port.into();
+	token["isv"] = ip.is_none().into();
+	token["ep"] = json!(
+		ip.map(|ip| std::net::SocketAddr::new(ip, port).to_string())
+			.into_iter()
+			.collect::<Vec<_>>()
+	);
+	token["ep_st"] = json!(if ip.is_some() { 4 } else { 3 });
+	token["ct"] = json!(Utc::now());
+	if let Some(listeners) = listeners {
+		config["tcpEndPoints"] = listeners.into();
+	}
+	Ok(true)
+}
+pub fn make_config(host: &str, port: u16) -> Result<Value> {
+	let host = normalize_host(host)?;
+	let host = host.as_str();
+	ensure!(port > 0, "Port geçersiz.");
+	let ip = host.parse::<std::net::IpAddr>().ok();
 	let key = PKey::from_rsa(Rsa::generate(3072)?)?;
 	let mut name = X509NameBuilder::new()?;
 	name.append_entry_by_text("CN", host)?;
@@ -167,4 +253,77 @@ pub async fn create_tokens(
 		keys.push((id, token_name, token.to_access_key()?));
 	}
 	Ok(keys)
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	#[test]
+	fn endpoint_change_preserves_identity_and_other_settings() {
+		let mut config = make_config("192.0.2.10", 443).unwrap();
+		config["tcpEndPoints"]
+			.as_array_mut()
+			.unwrap()
+			.push(json!("127.0.0.1:2443"));
+		config["udpEndPoints"] = json!(["0.0.0.0:5555"]);
+		config["customPolicy"] = json!({"keep":true});
+		let before = config.clone();
+		assert!(update_endpoint(&mut config, " VPN.Example.COM ", 8443).unwrap());
+		assert_eq!(endpoint(&config).unwrap(), ("vpn.example.com".into(), 8443));
+		assert_eq!(
+			config["tcpEndPoints"],
+			json!(["0.0.0.0:8443", "[::]:8443", "127.0.0.1:2443"])
+		);
+		for field in [
+			"serverSecret",
+			"certificates",
+			"udpEndPoints",
+			"quicEndPoints",
+			"customPolicy",
+		] {
+			assert_eq!(config[field], before[field]);
+		}
+		for field in ["sec", "ch"] {
+			assert_eq!(
+				config["publicServerToken"][field],
+				before["publicServerToken"][field]
+			);
+		}
+		assert_eq!(config["publicServerToken"]["ep"], json!([]));
+		assert!(!update_endpoint(&mut config, "vpn.example.com", 8443).unwrap());
+		assert!(update_endpoint(&mut config, "2001:db8::10", 9443).unwrap());
+		assert_eq!(
+			config["publicServerToken"]["ep"],
+			json!(["[2001:db8::10]:9443"])
+		);
+	}
+	#[test]
+	fn endpoint_uses_public_ip_when_tls_name_is_virtual() {
+		let mut config = json!({"publicServerToken":{"hname":"virtual.invalid","hport":443,"isv":false,"ep":["192.0.2.15:8443"]},"tcpEndPoints":["0.0.0.0:8443"]});
+		let before = config.clone();
+		assert_eq!(endpoint(&config).unwrap(), ("192.0.2.15".into(), 8443));
+		assert!(!update_endpoint(&mut config, "192.0.2.15", 8443).unwrap());
+		assert_eq!(config, before);
+		config["publicServerToken"]["isv"] = true.into();
+		assert_eq!(endpoint(&config).unwrap(), ("virtual.invalid".into(), 443));
+	}
+	#[test]
+	fn invalid_endpoint_cannot_mutate_configuration() {
+		let mut config = make_config("192.0.2.10", 443).unwrap();
+		let before = config.clone();
+		for host in [
+			"",
+			"https://vpn.example.com",
+			"vpn.example.com/path",
+			"999.1.2.3",
+			"-bad.example",
+			"bad..example",
+			"bad host",
+		] {
+			assert!(update_endpoint(&mut config, host, 443).is_err());
+			assert_eq!(config, before);
+		}
+		assert!(update_endpoint(&mut config, "vpn.example.com", 0).is_err());
+		assert_eq!(config, before);
+	}
 }

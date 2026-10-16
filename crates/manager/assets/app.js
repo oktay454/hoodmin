@@ -119,33 +119,35 @@ confirmDialog?.addEventListener("close", () => {
 	});
 });
 
-// Tema değişimi form verilerini korur; JavaScript kapalıyken standart form çalışır.
+// Tema düğmesi form verilerini korur; JavaScript kapalıyken standart form çalışır.
 document.querySelectorAll(".theme-switch").forEach(form => {
-	const select = form.querySelector("select");
+	const button = form.querySelector(".theme-toggle");
 	let saving = false;
 	form.addEventListener("submit", async event => {
 		event.preventDefault();
 		if (saving) return;
 		saving = true;
-		const previous = document.documentElement.dataset.theme;
-		const requested = select.value;
+		const requested = form.elements.theme.value;
+		const hadFocus = document.activeElement === button;
 		const feedback = form.querySelector(".theme-feedback");
 		feedback.textContent = "";
-		select.disabled = true;
+		button.disabled = true;
 		try {
 			const query = new URLSearchParams({theme: requested, return_to: form.elements.return_to.value});
 			const response = await fetch(form.action + "?" + query, {headers: {Accept: "application/json"}, redirect: "error", cache: "no-store"});
 			if (!response.ok) throw new Error("Theme preference failed");
 			document.documentElement.dataset.theme = requested;
 			document.querySelector('meta[name="color-scheme"]').content = requested;
+			form.elements.theme.value = requested === "dark" ? "light" : "dark";
+			const label = requested === "dark" ? document.documentElement.dataset.themeLight : document.documentElement.dataset.themeDark;
+			button.title = label;
+			button.setAttribute("aria-label", label);
 		} catch {
-			select.value = previous;
 			feedback.textContent = document.documentElement.dataset.themeError;
 		} finally {
-			select.disabled = false;
+			button.disabled = false;
 			saving = false;
+			if (hadFocus) button.focus({preventScroll: true});
 		}
 	});
-	select.addEventListener("change", () => form.requestSubmit());
-	form.classList.add("enhanced");
 });

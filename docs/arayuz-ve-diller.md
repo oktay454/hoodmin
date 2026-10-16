@@ -40,3 +40,11 @@ Tema, `__Host-vhm_theme` tercih çereziyle bir yıl saklanır (Secure, HttpOnly,
 JavaScript çalışırken tema seçimi aynı kaynak üzerindeki `/theme` tercih uç noktasından 204 yanıtıyla kaydedilir; sayfa yenilenmez ve form verileri korunur. Hata halinde önceki seçim korunup yerelleştirilmiş hata gösterilir. JavaScript kapalıyken standart GET formu ve uygula düğmesi çalışır. Yardım ve kimlik yenileme onay akışları korunmuştur.
 
 `tests/test_preferences.py` kimliksiz, gerçek HTTPS üzerinde tema/dil tercihlerini sınar; herhangi bir sunucu veya erişim anahtarını değiştirmez.
+
+## Sunucu adresi düzenleme ve tema simgesi — 16 Ekim 2026
+
+Sunucular → Düzenle alanında kayıtlı IP/FQDN ve TCP portu değiştirilebilir. Sanal TLS adı kullanılan kayıtlarda bağlanılan gerçek IP gösterilir. Mevcut kayıt yeniden oluşturulmaz; yönetim kimliği, sunucu sırrı ve sertifikası korunur. Yeni adres/port, doğrulama sonrası kiracı bağlamında satır kilidi altında şifrelenerek kaydedilir; yeni `configCode` sunucunun sonraki bildiriminde yeniden yapılandırmayı tetikler. Değişmeyen adres sürüm üretmez; geçersiz değerler işlemi geri alır.
+
+Port değişiminde yalnız eski genel portla eşleşen TCP dinleyicilerinin portları değiştirilir; diğer dinleyiciler, UDP/QUIC ve ek politikalar korunur. Yeni erişim anahtarları güncel adresi taşır. Önceden paylaşılan statik erişim anahtarlarının adresi otomatik güncellenmez; bu sınırlama formda açıklanır.
+
+Tema artık yazısız tek güneş/ay düğmesidir. Simge ve erişilebilir açıklama gidilecek temayı gösterir. Koyu görünümde güneşle açığa, açık görünümde ayla koyuya geçilir. Açıklamalar üç dilde yerelleştirilir. Anlık geçiş, kalıcı tercih, form verilerinin korunması ve JavaScript olmadan çalışma sürer. Klavye odağı düğmede kalır.

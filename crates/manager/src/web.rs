@@ -560,6 +560,8 @@ async fn rotate_credential(
 struct EditServerForm {
 	csrf: String,
 	name: String,
+	host: Option<String>,
+	port: Option<u16>,
 	#[serde(default)]
 	farm: String,
 	#[serde(default)]
@@ -574,6 +576,39 @@ async fn edit_server(
 	let user = require(&state, &headers, Some(&form.csrf), Permission::Write).await?;
 	let name = management::valid_name(&form.name).map_err(|_| bad("Sunucu adı geçersiz."))?;
 	let mut tx = state.store.begin(user.tenant).await?;
+	let encrypted: Vec<u8> =
+		query_scalar("SELECT configuration FROM servers WHERE tenant_id=$1 AND id=$2 FOR UPDATE")
+			.bind(user.tenant)
+			.bind(id)
+			.fetch_optional(&mut *tx)
+			.await?
+			.ok_or(PanelError(StatusCode::NOT_FOUND, "Sunucu bulunamadı."))?;
+	let context = format!("{}:{id}:config", user.tenant);
+	let mut config: serde_json::Value =
+		serde_json::from_slice(&state.store.vault.open(&encrypted, &context)?)
+			.map_err(anyhow::Error::from)?;
+	let (old_host, old_port) = management::endpoint(&config)?;
+	let endpoint_changed = management::update_endpoint(
+		&mut config,
+		form.host.as_deref().unwrap_or(&old_host),
+		form.port.unwrap_or(old_port),
+	)
+	.map_err(|_| bad("DNS/IP veya port geçersiz."))?;
+	if endpoint_changed {
+		let code = Uuid::new_v4().to_string();
+		config["configCode"] = code.clone().into();
+		let sealed = state.store.vault.seal(
+			&serde_json::to_vec(&config).map_err(anyhow::Error::from)?,
+			&context,
+		)?;
+		query("UPDATE servers SET configuration=$3,config_code=$4 WHERE tenant_id=$1 AND id=$2")
+			.bind(user.tenant)
+			.bind(id)
+			.bind(sealed)
+			.bind(code)
+			.execute(&mut *tx)
+			.await?;
+	}
 	if let Some(farm) = optional_uuid(&form.farm)? {
 		let owned: bool =
 			query_scalar("SELECT EXISTS(SELECT FROM farms WHERE tenant_id=$1 AND id=$2)")

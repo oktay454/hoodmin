@@ -153,12 +153,16 @@ small,.small { font-size:12px; }
 .account-link bdi { display:block; max-width:185px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:10px; color:var(--muted); margin-top:2px; }
 .role-pill { padding:5px 7px; font-size:10px; border:1px solid var(--line); border-radius:4px; background:var(--raised); color:var(--muted); }
 .language-switch,.theme-switch { display:flex; align-items:center; gap:5px; position:relative; }
-.language-switch label,.theme-switch label { display:flex; align-items:center; gap:6px; }
-.language-label,.preference-label { font-size:10px; color:var(--muted); }
-.language-switch select,.theme-switch select { width:100px; font-size:12px; padding:7px 8px; }
-.theme-switch select { width:103px; }
-.language-apply,.preference-apply { min-height:31px!important; padding:5px 7px!important; }
-.enhanced>.language-apply,.enhanced>.preference-apply { display:none; }
+.language-switch label { display:flex; align-items:center; gap:6px; }
+.language-label { font-size:10px; color:var(--muted); }
+.language-switch select { width:100px; font-size:12px; padding:7px 8px; }
+.button.theme-toggle { width:34px; height:34px; padding:7px; gap:0; }
+.theme-toggle svg { width:18px; height:18px; flex-shrink:0; }
+.theme-toggle .sun-icon { color:var(--warm); }
+.theme-toggle .moon-icon { color:var(--accent-text); }
+:root[data-theme=light] .theme-toggle .sun-icon,:root[data-theme=dark] .theme-toggle .moon-icon { display:none; }
+.language-apply { min-height:31px!important; padding:5px 7px!important; }
+.enhanced>.language-apply { display:none; }
 .theme-feedback:not(:empty) { position:absolute; inset-block-start:100%; inset-inline-end:0; width:210px; z-index:40; margin-top:6px; padding:10px; border:1px solid var(--danger-line); border-radius:4px; background:var(--danger-bg); color:var(--danger-text); font-size:12px; }
 .appearance-controls { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:12px; margin-bottom:24px; }
 .page-content { padding:24px; max-width:1680px; margin-inline:auto; }
@@ -295,7 +299,7 @@ footer { padding:13px 24px 24px; color:var(--muted); font-size:10px; }
 	.topbar { flex-wrap:wrap; }
 	.profile { gap:8px; }
 	.role-pill { display:none; }
-	.language-label,.preference-label { display:none; }
+	.language-label { display:none; }
 	.form-fields { grid-template-columns:repeat(2,minmax(0,1fr)); }
 	.dashboard-grid { grid-template-columns:minmax(0,1fr) 280px; }
 }
@@ -320,7 +324,6 @@ footer { padding:13px 24px 24px; color:var(--muted); font-size:10px; }
 	.account-link { flex:1 1 150px; min-width:0; }
 	.account-link bdi { max-width:160px; }
 	.language-switch select { width:95px; }
-	.theme-switch select { width:95px; }
 	.page-content { padding:18px 14px; }
 	.overview-toolbar { flex-wrap:wrap; gap:13px; }
 	.overview-toolbar h2 { font-size:19px; }

@@ -72,3 +72,11 @@ Kullanım ve uygulama notları: `docs/arayuz-ve-diller.md`. Yeni paket/bağıml�
 - 390 piksel genişlikte Türkçe açık Genel bakış ile Arapça açık/koyu Sunucular görünümünde gövde yatay taşmıyor. Yardım penceresi açık temada çalışıyor. Geçici görünüm boyutu sıfırlandı.
 - Tema/dil tercihi dışında mevcut sunucu veya anahtarlar değiştirilmedi. Yeni paket kurulmadı.
 - Son ekran kanıtları Codex çıktılarında: `vhm-acik-tema.jpg`, `vhm-koyu-tema.jpg`, `vhm-koyu-arapca-mobil.jpg`. Panel Türkçe/açık tema ile açık bırakıldı.
+
+## Adres düzenleme ve güneş/ay — 16 Ekim 2026
+
+- Clippy uyarısız, çalışma alanındaki 13 test başarılı. Yeni testler IPv4/FQDN/IPv6 geçişini, geçersiz girişte değişmezliği, sertifika/sır korunmasını ve sanal TLS adından gerçek IP'nin ayrılmasını kapsıyor.
+- Gerçek HTTPS/PostgreSQL/.NET panel sınaması ayrı kiracılarla başarılı. Adres ve port kaydı, yeni configCode'un agent'a iletilmesi, TCP portları, geçersiz girişte geri alma, başka kiracıya erişim engeli, güncel adresli yeni anahtar ve mevcut sertifika/sır korunumu doğrulandı. Eski erişim anahtarıyla .NET oturumu açılabildi.
+- Tarayıcıda mevcut Sınama B yalnız görüntülendi; IP/FQDN `10.0.3.220`, port `2443` ile dolduruluyor. Mevcut kayıt üzerinde Kaydet veya kimlik yenileme yapılmadı.
+- Tek tema düğmesinde görünür yazı yok; güneş/ay dönüşüyor, açıklama güncelleniyor, odak korunuyor. SVG genişliği 18 piksel doğrulandı. Son CSS/JavaScript HTTPS üzerinden SHA-256 ile kaynakla eşleştirildi.
+- Son ekran kanıtı Codex çıktılarında `vhm-adres-duzenleme.jpg`.
