@@ -219,6 +219,7 @@ small,.small {
 }
 
 .profile {
+	min-width:0;
 	display:flex;
 	align-items:center;
 	gap:12px;
@@ -610,6 +611,21 @@ tbody tr:hover {
 	font-size:12px;
 }
 
+.edit-details[open] {
+	width:300px;
+	max-width:75vw;
+	white-space:normal;
+	overflow-wrap:anywhere;
+}
+
+.edit-details label:not(.checkbox) {
+	display:block;
+}
+
+.edit-details label:not(.checkbox)>input {
+	display:block;
+}
+
 .edit-details summary {
 	cursor:pointer;
 	font-size:11px;
@@ -618,7 +634,7 @@ tbody tr:hover {
 }
 
 .compact-form {
-	min-width:240px;
+	min-width:0;
 	padding:12px 0;
 }
 
