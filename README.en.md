@@ -12,6 +12,13 @@ The protocol core and tenant panel work. Compatibility with VpnHood **9.0.856** 
 
 ## Available features
 
+- Official prebuilt Linux/Windows install commands; password/private-key SSH install/reinstall with pinned host keys and job logs.
+- All 47 editable source-defined server settings; reusable server templates and atomic tenant-scoped bulk application.
+- Access profiles, upload/download limits, total/cycle quotas, lifetime from first use, trial/reward plans and device policies.
+- Group access, location/capacity routing, encrypted server-address publishing and access codes.
+- Password-protected PFX import, certificate pinning and expiring HTTP-01 responses; automatic CA issuance/renewal remains unfinished.
+- Time/server-filtered CPU, memory, session and transfer-speed charts; reported devices by country; key metadata and downloads.
+
 - Turkish, Arabic and English interface; Arabic RTL layout; light/dark themes with a sun/moon button.
 - Overview, servers, access keys, VPN sessions, panel users, audit trail and account settings.
 - Admin, operator and viewer roles; user/password management and protection of the last active administrator.
@@ -59,15 +66,15 @@ Create the initial account with the local `create-account` command or `scripts/b
 
 ## Limitations and remaining work
 
-- Apply the server connection configuration manually; SSH automation and a persistent job queue are absent.
-- Groups currently organize servers; load balancing, group access keys and token URLs are absent.
-- IP/FQDN edits do not update previously distributed static keys. Newly generated keys use the current address.
-- ACME automation, plan/profile and speed-limit UI, bot API keys, Debian packaging and production backup/key-rotation procedures remain unfinished.
-- Tenant creation is a local CLI operation. There is no public signup or platform administration UI. The schema allows multiple memberships, but the panel uses the account's default tenant.
-- Usage reports lack a unique report identifier. Interruptions can cause undercounting; exactly-once accounting is not guaranteed. Quota enforcement depends on reporting intervals.
-- The remote connection probe uses `NullVpnAdapter`; actual VPN traffic, OS routing, sustained load and performance have not been validated.
+- Real DNS/automatic certificate validation awaits a separate VPN server. HTTP-01 relay is not an automatic certificate service.
+- Address publishing supports HTTPS GET. External POST/PUT publishing jobs, a shared farm certificate store, five-role equivalence and bot management APIs remain unfinished.
+- Client policies are advertised; closed-source commercial country-plan decisions are not claimed to be identical. Rewarded ads require a trusted server verifier, not an unverified client report or direct ad-network integration.
+- Debian packaging, production backup/restore and master-key rotation are unfinished. Job states persist, but interrupted installations are not retried automatically.
+- Tenant creation uses CLI; public signup/platform administration is absent.
+- Usage deltas lack report IDs; exactly-once accounting under interruptions is not guaranteed.
+- Actual TCP/QUIC payloads, 1 Mbps download shaping and network blocking were checked. OS VPN routing, UDP payloads, sustained load and every kernel-dependent setting need separate validation.
 
-The [comparison document](docs/console-karsilastirmasi.md) distinguishes console features, architectural requirements and optional improvements. Listing a feature does not authorize its implementation.
+See the current [protocol compatibility record](docs/protokol-uyumlulugu.md). Console comparison documents retain their historical observations.
 
 ## Naming and installation compatibility
 

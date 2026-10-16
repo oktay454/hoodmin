@@ -1,0 +1,1225 @@
+{
+  "note": "HTTP camelCase; explicit JsonPropertyName preserved. Inheritance is listed in separate classes. Derived getters are excluded.",
+  "classes": {
+    "AppSettings": {
+      "source": "src/Apps/Server/AppSettings.cs",
+      "sha256": "a00b1f31c78e1eeff2c60dabe84cf9171783b73ad5b3655d041e39fad6308fee",
+      "fields": [
+        {
+          "name": "httpAccessManager",
+          "type": "HttpAccessManagerOptions?",
+          "line": 34
+        },
+        {
+          "name": "fileAccessManager",
+          "type": "FileAccessManagerOptions?",
+          "line": 37
+        },
+        {
+          "name": "serverConfig",
+          "type": "ServerConfig?",
+          "line": 40
+        },
+        {
+          "name": "allowAnonymousTracker",
+          "type": "bool",
+          "line": 43
+        },
+        {
+          "name": "downloadsPath",
+          "type": "string?",
+          "line": 45
+        },
+        {
+          "name": "managementSecret",
+          "type": "string?",
+          "line": 47
+        },
+        {
+          "name": "logLevel",
+          "type": "LogLevel",
+          "line": 48
+        }
+      ]
+    },
+    "AccessDevice": {
+      "source": "src/Core/VpnHood.Core.Common/Messaging/AccessDevice.cs",
+      "sha256": "7daeb1052676e41205df979d7d6ce36d14889f0a5a52a4eb6b76e6ad02f0c10d",
+      "fields": [
+        {
+          "name": "lastUsedTime",
+          "type": "DateTime",
+          "line": 4
+        },
+        {
+          "name": "operatingSystem",
+          "type": "string?",
+          "line": 5
+        },
+        {
+          "name": "ipAddress",
+          "type": "string?",
+          "line": 6
+        }
+      ]
+    },
+    "AccessDevicesSummary": {
+      "source": "src/Core/VpnHood.Core.Common/Messaging/AccessDevicesInfo.cs",
+      "sha256": "d93402e2db66c1e08d2fc976aad6de1e83e04c08cb4eb5580d89b5f1d4c77832",
+      "fields": [
+        {
+          "name": "deviceCount",
+          "type": "int",
+          "line": 4
+        },
+        {
+          "name": "hasMoreDevices",
+          "type": "bool",
+          "line": 5
+        },
+        {
+          "name": "devices",
+          "type": "AccessDevice[]?",
+          "line": 6
+        }
+      ]
+    },
+    "AccessInfo": {
+      "source": "src/Core/VpnHood.Core.Common/Messaging/AccessInfo.cs",
+      "sha256": "f033ff69caffb626d0c8da01d79b632630d0e9f928995243b717c7db3e0f4efe",
+      "fields": [
+        {
+          "name": "isNew",
+          "type": "bool",
+          "line": 4
+        },
+        {
+          "name": "createdTime",
+          "type": "DateTime",
+          "line": 5
+        },
+        {
+          "name": "lastUsedTime",
+          "type": "DateTime",
+          "line": 6
+        },
+        {
+          "name": "expirationTime",
+          "type": "DateTime?",
+          "line": 7
+        },
+        {
+          "name": "isPremium",
+          "type": "bool",
+          "line": 8
+        },
+        {
+          "name": "maxCycleTraffic",
+          "type": "long",
+          "line": 9
+        },
+        {
+          "name": "maxTotalTraffic",
+          "type": "long",
+          "line": 10
+        },
+        {
+          "name": "maxDeviceCount",
+          "type": "int",
+          "line": 11
+        },
+        {
+          "name": "maxSpeedMbps",
+          "type": "Traffic?",
+          "line": 12
+        },
+        {
+          "name": "deviceLifeSpan",
+          "type": "int",
+          "line": 13
+        },
+        {
+          "name": "devicesSummary",
+          "type": "AccessDevicesSummary?",
+          "line": 14
+        }
+      ]
+    },
+    "AccessUsage": {
+      "source": "src/Core/VpnHood.Core.Common/Messaging/AccessUsage.cs",
+      "sha256": "d6e1ecd9257a4edc9483833ad2487ca153e928408351c933e2c0381e453c1a07",
+      "fields": [
+        {
+          "name": "canExtendByRewardedAd",
+          "type": "bool",
+          "line": 6
+        },
+        {
+          "name": "isUserReviewRecommended",
+          "type": "bool",
+          "line": 8
+        },
+        {
+          "name": "userReviewRecommended",
+          "type": "int",
+          "line": 12
+        },
+        {
+          "name": "isPremium",
+          "type": "bool",
+          "line": 15
+        },
+        {
+          "name": "cycleTraffic",
+          "type": "Traffic",
+          "line": 17
+        },
+        {
+          "name": "totalTraffic",
+          "type": "Traffic",
+          "line": 18
+        },
+        {
+          "name": "maxTraffic",
+          "type": "long",
+          "line": 19
+        },
+        {
+          "name": "expirationTime",
+          "type": "DateTime?",
+          "line": 20
+        },
+        {
+          "name": "activeClientCount",
+          "type": "int?",
+          "line": 21
+        }
+      ]
+    },
+    "ClientInfo": {
+      "source": "src/Core/VpnHood.Core.Common/Messaging/ClientInfo.cs",
+      "sha256": "2aaea1f9de85f1924f079e3ced0765cbeb67f241b68b509fe78f7aa890ccfae0",
+      "fields": [
+        {
+          "name": "clientId",
+          "type": "string",
+          "line": 4
+        },
+        {
+          "name": "clientVersion",
+          "type": "string",
+          "line": 5
+        },
+        {
+          "name": "minProtocolVersion",
+          "type": "int",
+          "line": 6
+        },
+        {
+          "name": "maxProtocolVersion",
+          "type": "int",
+          "line": 7
+        },
+        {
+          "name": "userAgent",
+          "type": "string",
+          "line": 8
+        }
+      ]
+    },
+    "ClientRequestEx": {
+      "source": "src/Core/VpnHood.Core.Common/Messaging/ClientRequestEx.cs",
+      "sha256": "c587a6b09ae071282a8559ce68f01dab042377317bf18aea403c9ada75974105",
+      "fields": [
+        {
+          "name": "request",
+          "type": "ClientRequest",
+          "line": 4
+        },
+        {
+          "name": "postBuffer",
+          "type": "ReadOnlyMemory<byte>",
+          "line": 5
+        }
+      ]
+    },
+    "SessionResponse": {
+      "source": "src/Core/VpnHood.Core.Common/Messaging/SessionResponse.cs",
+      "sha256": "e160d74d2d6ec40bc59d2c3f4495ab8051fcaebd7cdbe34d69a562a836692a58",
+      "fields": [
+        {
+          "name": "errorCode",
+          "type": "SessionErrorCode",
+          "line": 9
+        },
+        {
+          "name": "errorMessage",
+          "type": "string?",
+          "line": 10
+        },
+        {
+          "name": "accessUsage",
+          "type": "AccessUsage?",
+          "line": 13
+        },
+        {
+          "name": "suppressedBy",
+          "type": "SessionSuppressType",
+          "line": 16
+        },
+        {
+          "name": "redirectHostEndPoint",
+          "type": "IPEndPoint?",
+          "line": 19
+        },
+        {
+          "name": "redirectServerTokens",
+          "type": "ServerToken[]?",
+          "line": 24
+        },
+        {
+          "name": "redirectHostEndPoints",
+          "type": "IPEndPoint[]?",
+          "line": 26
+        },
+        {
+          "name": "accessKey",
+          "type": "string?",
+          "line": 31
+        },
+        {
+          "name": "clientCountry",
+          "type": "string?",
+          "line": 34
+        },
+        {
+          "name": "clientPublicAddress",
+          "type": "IPAddress?",
+          "line": 37
+        },
+        {
+          "name": "revision",
+          "type": "long",
+          "line": 43
+        }
+      ]
+    },
+    "UserReview": {
+      "source": "src/Core/VpnHood.Core.Common/Messaging/UserReview.cs",
+      "sha256": "700b4e6f55674a8f4690e8a59352b6bdf4d3d1229b4a3a671284e2d57f595a07",
+      "fields": [
+        {
+          "name": "rating",
+          "type": "int",
+          "line": 9
+        },
+        {
+          "name": "time",
+          "type": "DateTime",
+          "line": 11
+        },
+        {
+          "name": "appVersion",
+          "type": "Version",
+          "line": 12
+        }
+      ]
+    },
+    "ClientPolicy": {
+      "source": "src/Core/VpnHood.Core.Common/Tokens/ClientPolicy.cs",
+      "sha256": "bead88c1d5353461bf31da1d6e04be6cc3a6602338efe2e62cd8bd080e29e3b8",
+      "fields": [
+        {
+          "name": "ccs",
+          "type": "string[]",
+          "line": 7
+        },
+        {
+          "name": "free",
+          "type": "string[]?",
+          "line": 9
+        },
+        {
+          "name": "ao",
+          "type": "bool",
+          "line": 12
+        },
+        {
+          "name": "uo",
+          "type": "bool",
+          "line": 15
+        },
+        {
+          "name": "n",
+          "type": "int?",
+          "line": 18
+        },
+        {
+          "name": "nbr",
+          "type": "int?",
+          "line": 23
+        },
+        {
+          "name": "pbt",
+          "type": "int?",
+          "line": 25
+        },
+        {
+          "name": "pbtdl",
+          "type": "TimeSpan?",
+          "line": 30
+        },
+        {
+          "name": "pbr",
+          "type": "int?",
+          "line": 33
+        },
+        {
+          "name": "pbe",
+          "type": "bool",
+          "line": 36
+        },
+        {
+          "name": "pbp",
+          "type": "bool",
+          "line": 39
+        },
+        {
+          "name": "pbc",
+          "type": "bool",
+          "line": 42
+        },
+        {
+          "name": "pur_url",
+          "type": "Uri?",
+          "line": 52
+        }
+      ]
+    },
+    "EndPointStrategyConverter": {
+      "source": "src/Core/VpnHood.Core.Common/Tokens/EndPointStrategy.cs",
+      "sha256": "ace0432b39ac0f760d36ef278b98e5afac30b9d296581e046b313fc4a67dbd8f",
+      "fields": []
+    },
+    "ServerLocationInfo": {
+      "source": "src/Core/VpnHood.Core.Common/Tokens/ServerLocationInfo.cs",
+      "sha256": "ffee593956c127f0ace38acb6219f0e52bb83f687b7a3b5df1770d23d9c096b0",
+      "fields": [
+        {
+          "name": "countryCode",
+          "type": "string",
+          "line": 8
+        },
+        {
+          "name": "regionName",
+          "type": "string",
+          "line": 9
+        },
+        {
+          "name": "tags",
+          "type": "string[]?",
+          "line": 10
+        }
+      ]
+    },
+    "ServerToken": {
+      "source": "src/Core/VpnHood.Core.Common/Tokens/ServerToken.cs",
+      "sha256": "250f7aa3aefa59e0163022b3d8659b6769b153001cefb8a3fb66304cfc8e5a79",
+      "fields": [
+        {
+          "name": "ct",
+          "type": "DateTime",
+          "line": 11
+        },
+        {
+          "name": "hname",
+          "type": "string",
+          "line": 13
+        },
+        {
+          "name": "hport",
+          "type": "int",
+          "line": 17
+        },
+        {
+          "name": "isv",
+          "type": "bool",
+          "line": 21
+        },
+        {
+          "name": "sec",
+          "type": "byte[]?",
+          "line": 25
+        },
+        {
+          "name": "ch",
+          "type": "byte[]?",
+          "line": 28
+        },
+        {
+          "name": "urls",
+          "type": "string[]?",
+          "line": 41
+        },
+        {
+          "name": "ep",
+          "type": "IPEndPoint[]?",
+          "line": 44
+        },
+        {
+          "name": "path",
+          "type": "string?",
+          "line": 48
+        },
+        {
+          "name": "ep_st",
+          "type": "EndPointStrategy",
+          "line": 52
+        },
+        {
+          "name": "loc2",
+          "type": "string[]?",
+          "line": 61
+        }
+      ]
+    },
+    "Token": {
+      "source": "src/Core/VpnHood.Core.Common/Tokens/Token.cs",
+      "sha256": "23df35a70ba8de696667de853a9fff5eb9ec7c2a18c4bfd170f036f16584ac01",
+      "fields": [
+        {
+          "name": "name",
+          "type": "string?",
+          "line": 14
+        },
+        {
+          "name": "sid",
+          "type": "string?",
+          "line": 18
+        },
+        {
+          "name": "tid",
+          "type": "string",
+          "line": 22
+        },
+        {
+          "name": "iat",
+          "type": "DateTime",
+          "line": 26
+        },
+        {
+          "name": "sec",
+          "type": "byte[]",
+          "line": 31
+        },
+        {
+          "name": "ser",
+          "type": "ServerToken",
+          "line": 35
+        },
+        {
+          "name": "tags",
+          "type": "string[]",
+          "line": 38
+        },
+        {
+          "name": "ispub",
+          "type": "bool",
+          "line": 41
+        },
+        {
+          "name": "cpols",
+          "type": "ClientPolicy[]?",
+          "line": 45
+        }
+      ]
+    },
+    "CertificateData": {
+      "source": "src/Core/VpnHood.Core.Server.Access/Configurations/CertificateData.cs",
+      "sha256": "dc6ee904201ad150c468fece81afae0d95bbd95b91b18ee33f3005b273867631",
+      "fields": [
+        {
+          "name": "commonName",
+          "type": "string",
+          "line": 4
+        },
+        {
+          "name": "rawData",
+          "type": "byte[]",
+          "line": 5
+        }
+      ]
+    },
+    "NetFilterOptions": {
+      "source": "src/Core/VpnHood.Core.Server.Access/Configurations/NetFilterOptions.cs",
+      "sha256": "fef2d71ed495687893395a3ad180e778e4926cf4b5baf84db49f19b8307d5091",
+      "fields": [
+        {
+          "name": "networkIsolation",
+          "type": "bool?",
+          "line": 8
+        },
+        {
+          "name": "includeLocalNetwork",
+          "type": "bool?",
+          "line": 9
+        },
+        {
+          "name": "vpnAdapterIncludeIpRanges",
+          "type": "IpRange[]?",
+          "line": 10
+        },
+        {
+          "name": "vpnAdapterExcludeIpRanges",
+          "type": "IpRange[]?",
+          "line": 11
+        },
+        {
+          "name": "includeIpRanges",
+          "type": "IpRange[]?",
+          "line": 12
+        },
+        {
+          "name": "excludeIpRanges",
+          "type": "IpRange[]?",
+          "line": 13
+        },
+        {
+          "name": "blockIpV6",
+          "type": "bool?",
+          "line": 14
+        }
+      ]
+    },
+    "ServerConfig": {
+      "source": "src/Core/VpnHood.Core.Server.Access/Configurations/ServerConfig.cs",
+      "sha256": "383f2ede4b4d57bf203929cdc85199a6d5608ebc29ce72e636cb232fbd9946c3",
+      "fields": [
+        {
+          "name": "Tracking",
+          "type": "TrackingOptions",
+          "line": 9
+        },
+        {
+          "name": "Session",
+          "type": "SessionOptions",
+          "line": 11
+        },
+        {
+          "name": "NetFilter",
+          "type": "NetFilterOptions",
+          "line": 14
+        },
+        {
+          "name": "tcpEndPoints",
+          "type": "IPEndPoint[]?",
+          "line": 17
+        },
+        {
+          "name": "udpEndPoints",
+          "type": "IPEndPoint[]?",
+          "line": 20
+        },
+        {
+          "name": "quicEndPoints",
+          "type": "IPEndPoint[]?",
+          "line": 23
+        },
+        {
+          "name": "dnsServers",
+          "type": "IPAddress[]?",
+          "line": 26
+        },
+        {
+          "name": "updateStatusInterval",
+          "type": "TimeSpan?",
+          "line": 29
+        },
+        {
+          "name": "logAnonymizer",
+          "type": "bool?",
+          "line": 32
+        },
+        {
+          "name": "serverSecret",
+          "type": "byte[]?",
+          "line": 34
+        },
+        {
+          "name": "configCode",
+          "type": "string",
+          "line": 35
+        },
+        {
+          "name": "minCompletionPortThreads",
+          "type": "int?",
+          "line": 36
+        },
+        {
+          "name": "maxCompletionPortThreads",
+          "type": "int?",
+          "line": 37
+        },
+        {
+          "name": "swapMemorySizeMb",
+          "type": "int?",
+          "line": 38
+        },
+        {
+          "name": "addListenerIpsToNetwork",
+          "type": "string?",
+          "line": 39
+        },
+        {
+          "name": "certificates",
+          "type": "CertificateData[]",
+          "line": 40
+        },
+        {
+          "name": "tcpCongestionControl",
+          "type": "string?",
+          "line": 41
+        },
+        {
+          "name": "enableHttp01Challenge",
+          "type": "bool?",
+          "line": 42
+        }
+      ]
+    },
+    "SessionOptions": {
+      "source": "src/Core/VpnHood.Core.Server.Access/Configurations/SessionOptions.cs",
+      "sha256": "25f56ccca13a5e9ddd8c5bf7b95f4ac50fa496c9a0b1ac3222ac00d8ba4b1f26",
+      "fields": [
+        {
+          "name": "timeout",
+          "type": "TimeSpan?",
+          "line": 8
+        },
+        {
+          "name": "udpTimeout",
+          "type": "TimeSpan?",
+          "line": 10
+        },
+        {
+          "name": "tcpTimeout",
+          "type": "TimeSpan?",
+          "line": 13
+        },
+        {
+          "name": "icmpTimeout",
+          "type": "TimeSpan?",
+          "line": 16
+        },
+        {
+          "name": "syncInterval",
+          "type": "TimeSpan?",
+          "line": 19
+        },
+        {
+          "name": "syncCacheSize",
+          "type": "long?",
+          "line": 22
+        },
+        {
+          "name": "maxPacketChannelCount",
+          "type": "int?",
+          "line": 24
+        },
+        {
+          "name": "maxUdpClientCount",
+          "type": "int?",
+          "line": 25
+        },
+        {
+          "name": "maxIcmpClientCount",
+          "type": "int?",
+          "line": 26
+        },
+        {
+          "name": "tcpKernelBufferSize",
+          "type": "TransferBufferSize?",
+          "line": 27
+        },
+        {
+          "name": "streamProxyBufferSize",
+          "type": "TransferBufferSize?",
+          "line": 28
+        },
+        {
+          "name": "udpProxyBufferSize",
+          "type": "TransferBufferSize?",
+          "line": 29
+        },
+        {
+          "name": "udpChannelBufferSize",
+          "type": "TransferBufferSize?",
+          "line": 30
+        },
+        {
+          "name": "tcpConnectTimeout",
+          "type": "TimeSpan?",
+          "line": 31
+        },
+        {
+          "name": "channelIdleTimeout",
+          "type": "TimeSpan?",
+          "line": 32
+        },
+        {
+          "name": "maxTcpConnectWaitCount",
+          "type": "int?",
+          "line": 33
+        },
+        {
+          "name": "maxTcpChannelCount",
+          "type": "int?",
+          "line": 34
+        },
+        {
+          "name": "netScanLimit",
+          "type": "int?",
+          "line": 35
+        },
+        {
+          "name": "netScanTimeout",
+          "type": "TimeSpan?",
+          "line": 36
+        },
+        {
+          "name": "allowTcpProxy",
+          "type": "bool?",
+          "line": 37
+        },
+        {
+          "name": "allowTcpPacket",
+          "type": "bool?",
+          "line": 38
+        }
+      ]
+    },
+    "TrackingOptions": {
+      "source": "src/Core/VpnHood.Core.Server.Access/Configurations/TrackingOptions.cs",
+      "sha256": "10ad535a2159838c023b8a6f02d3395db4279664b8417efabd3cf3560781e730",
+      "fields": [
+        {
+          "name": "trackClientIp",
+          "type": "bool?",
+          "line": 6
+        },
+        {
+          "name": "trackLocalPort",
+          "type": "bool?",
+          "line": 7
+        },
+        {
+          "name": "trackDestinationIp",
+          "type": "bool?",
+          "line": 8
+        },
+        {
+          "name": "trackDestinationPort",
+          "type": "bool?",
+          "line": 9
+        },
+        {
+          "name": "trackUdp",
+          "type": "bool?",
+          "line": 10
+        },
+        {
+          "name": "trackTcp",
+          "type": "bool?",
+          "line": 11
+        },
+        {
+          "name": "trackIcmp",
+          "type": "bool?",
+          "line": 12
+        }
+      ]
+    },
+    "SessionRequestEx": {
+      "source": "src/Core/VpnHood.Core.Server.Access/Messaging/SessionRequestEx.cs",
+      "sha256": "bcf386d468c90d2ee818779247ddc13e2b5580339882fadf3c75aff6a1e75370",
+      "fields": [
+        {
+          "name": "tokenId",
+          "type": "string",
+          "line": 10
+        },
+        {
+          "name": "clientInfo",
+          "type": "ClientInfo",
+          "line": 11
+        },
+        {
+          "name": "encryptedClientId",
+          "type": "byte[]",
+          "line": 12
+        },
+        {
+          "name": "clientCountry",
+          "type": "string?",
+          "line": 13
+        },
+        {
+          "name": "extraData",
+          "type": "string?",
+          "line": 14
+        },
+        {
+          "name": "serverLocation",
+          "type": "string?",
+          "line": 15
+        },
+        {
+          "name": "planId",
+          "type": "ConnectPlanId",
+          "line": 16
+        },
+        {
+          "name": "allowRedirect",
+          "type": "bool",
+          "line": 17
+        },
+        {
+          "name": "isIpV6Supported",
+          "type": "bool?",
+          "line": 18
+        },
+        {
+          "name": "protocolVersion",
+          "type": "int",
+          "line": 19
+        },
+        {
+          "name": "accessCode",
+          "type": "string?",
+          "line": 20
+        },
+        {
+          "name": "userReview",
+          "type": "UserReview?",
+          "line": 21
+        },
+        {
+          "name": "allowAnonymousTracker",
+          "type": "bool",
+          "line": 22
+        },
+        {
+          "name": "hostEndPoint",
+          "type": "IPEndPoint",
+          "line": 23
+        },
+        {
+          "name": "remoteEndPoint",
+          "type": "IPEndPoint?",
+          "line": 26
+        },
+        {
+          "name": "clientIp",
+          "type": "IPAddress?",
+          "line": 29
+        }
+      ]
+    },
+    "SessionResponseEx": {
+      "source": "src/Core/VpnHood.Core.Server.Access/Messaging/SessionResponseEx.cs",
+      "sha256": "5dbd5a057ee3c655bbdf337e9b7eabec71f560fcc4c4345db85eb218eea12a06",
+      "fields": [
+        {
+          "name": "protocolVersion",
+          "type": "int",
+          "line": 7
+        },
+        {
+          "name": "extraData",
+          "type": "string?",
+          "line": 8
+        },
+        {
+          "name": "gaMeasurementId",
+          "type": "string?",
+          "line": 9
+        },
+        {
+          "name": "createdTime",
+          "type": "DateTime?",
+          "line": 10
+        },
+        {
+          "name": "sessionId",
+          "type": "ulong",
+          "line": 11
+        },
+        {
+          "name": "sessionKey",
+          "type": "byte[]",
+          "line": 12
+        },
+        {
+          "name": "serverLocation",
+          "type": "string?",
+          "line": 13
+        },
+        {
+          "name": "serverTags",
+          "type": "string[]",
+          "line": 14
+        },
+        {
+          "name": "accessInfo",
+          "type": "AccessInfo?",
+          "line": 15
+        },
+        {
+          "name": "adRequirement",
+          "type": "AdRequirement",
+          "line": 16
+        },
+        {
+          "name": "suppressedTo",
+          "type": "SessionSuppressType",
+          "line": 19
+        }
+      ]
+    },
+    "SessionUsage": {
+      "source": "src/Core/VpnHood.Core.Server.Access/Messaging/SessionUsage.cs",
+      "sha256": "b190648e4c35ec200cfd952e2c5dbb92bc3226bc9d60c2b6e3987c2c128c5648",
+      "fields": [
+        {
+          "name": "sessionId",
+          "type": "ulong",
+          "line": 7
+        },
+        {
+          "name": "closed",
+          "type": "bool",
+          "line": 8
+        },
+        {
+          "name": "errorCode",
+          "type": "SessionErrorCode",
+          "line": 12
+        },
+        {
+          "name": "sent",
+          "type": "long",
+          "line": 15
+        },
+        {
+          "name": "received",
+          "type": "long",
+          "line": 18
+        },
+        {
+          "name": "adData",
+          "type": "string?",
+          "line": 21
+        }
+      ]
+    },
+    "ServerCommand": {
+      "source": "src/Core/VpnHood.Core.Server.Access/ServerCommand.cs",
+      "sha256": "87416dce02df725d97947539918fdc214880e36dae3fa36a62110f87657af4b2",
+      "fields": [
+        {
+          "name": "configCode",
+          "type": "string",
+          "line": 6
+        }
+      ]
+    },
+    "ServerHostEndPointStatus": {
+      "source": "src/Core/VpnHood.Core.Server.Access/ServerHostEndPointStatus.cs",
+      "sha256": "0fef66d85bf0424a6bed8ba95c8d6a0a2834f206d3e613540af3819cbc45bfcb",
+      "fields": [
+        {
+          "name": "protocol",
+          "type": "ChannelProtocol",
+          "line": 10
+        },
+        {
+          "name": "endPoint",
+          "type": "IPEndPoint",
+          "line": 11
+        },
+        {
+          "name": "error",
+          "type": "ApiError?",
+          "line": 16
+        }
+      ]
+    },
+    "ServerInfo": {
+      "source": "src/Core/VpnHood.Core.Server.Access/ServerInfo.cs",
+      "sha256": "854af665c289187bebb248dcd998dd4ab8459db7435126ed1a80947670c4b568",
+      "fields": [
+        {
+          "name": "version",
+          "type": "Version",
+          "line": 8
+        },
+        {
+          "name": "environmentVersion",
+          "type": "Version",
+          "line": 10
+        },
+        {
+          "name": "privateIpAddresses",
+          "type": "IPAddress[]",
+          "line": 13
+        },
+        {
+          "name": "publicIpAddresses",
+          "type": "IPAddress[]",
+          "line": 16
+        },
+        {
+          "name": "status",
+          "type": "ServerStatus",
+          "line": 19
+        },
+        {
+          "name": "osInfo",
+          "type": "string?",
+          "line": 21
+        },
+        {
+          "name": "osVersion",
+          "type": "string?",
+          "line": 22
+        },
+        {
+          "name": "totalMemory",
+          "type": "long?",
+          "line": 23
+        },
+        {
+          "name": "machineName",
+          "type": "string?",
+          "line": 24
+        },
+        {
+          "name": "logicalCoreCount",
+          "type": "int",
+          "line": 25
+        },
+        {
+          "name": "freeUdpPortV4",
+          "type": "int",
+          "line": 26
+        },
+        {
+          "name": "freeUdpPortV6",
+          "type": "int",
+          "line": 27
+        },
+        {
+          "name": "freeQuicPortV4",
+          "type": "int",
+          "line": 28
+        },
+        {
+          "name": "freeQuicPortV6",
+          "type": "int",
+          "line": 29
+        },
+        {
+          "name": "networkInterfaceNames",
+          "type": "string[]?",
+          "line": 30
+        },
+        {
+          "name": "isRestarted",
+          "type": "bool",
+          "line": 31
+        }
+      ]
+    },
+    "ServerStatus": {
+      "source": "src/Core/VpnHood.Core.Server.Access/ServerStatus.cs",
+      "sha256": "629035e396a7a89850c5994bb0b328f47a6f4e70b6e4ed6ebb3cb5e63b872616",
+      "fields": [
+        {
+          "name": "sessionCount",
+          "type": "int",
+          "line": 7
+        },
+        {
+          "name": "tcpConnectionCount",
+          "type": "int",
+          "line": 8
+        },
+        {
+          "name": "udpConnectionCount",
+          "type": "int",
+          "line": 9
+        },
+        {
+          "name": "availableMemory",
+          "type": "long?",
+          "line": 10
+        },
+        {
+          "name": "totalSwapMemory",
+          "type": "long?",
+          "line": 11
+        },
+        {
+          "name": "availableSwapMemory",
+          "type": "long?",
+          "line": 12
+        },
+        {
+          "name": "tcpCongestionControl",
+          "type": "string?",
+          "line": 13
+        },
+        {
+          "name": "cpuUsage",
+          "type": "int?",
+          "line": 14
+        },
+        {
+          "name": "usedMemory",
+          "type": "long",
+          "line": 15
+        },
+        {
+          "name": "threadCount",
+          "type": "int",
+          "line": 16
+        },
+        {
+          "name": "tunnelSpeed",
+          "type": "Traffic",
+          "line": 17
+        },
+        {
+          "name": "configCode",
+          "type": "string?",
+          "line": 18
+        },
+        {
+          "name": "configError",
+          "type": "string?",
+          "line": 19
+        },
+        {
+          "name": "endPointStatuses",
+          "type": "ServerHostEndPointStatus[]?",
+          "line": 20
+        },
+        {
+          "name": "sessionUsages",
+          "type": "SessionUsage[]",
+          "line": 21
+        }
+      ]
+    }
+  }
+}

@@ -151,3 +151,35 @@ document.querySelectorAll(".theme-switch").forEach(form => {
 		}
 	});
 });
+
+// PFX remains in this page and is posted only to the same-origin form action.
+document.querySelectorAll("[data-pfx-file]").forEach(input => {
+	input.addEventListener("change", () => {
+		const target = document.getElementById(input.dataset.pfxFile);
+		target.value = "";
+		const file = input.files[0];
+		if (!file || file.size > 256 * 1024) return;
+		const reader = new FileReader();
+		reader.addEventListener("load", () => { target.value = reader.result.split(",",2)[1]; });
+		reader.readAsDataURL(file);
+	});
+});
+
+// Refresh job results without clearing an unfinished SSH form.
+document.querySelectorAll("[data-install-job]").forEach(section => {
+	let stopped = false;
+	const poll = async () => {
+		if (stopped) return;
+		try {
+			const response = await fetch(section.dataset.installJob, {cache: "no-store"});
+			if (!response.ok) return;
+			const job = await response.json();
+			section.querySelector("[data-install-status]").textContent = job.label || job.status;
+			section.querySelector("[data-install-log]").textContent = job.log;
+			if (["Succeeded", "Failed"].includes(job.status)) return;
+		} catch { return; }
+		setTimeout(poll, 3000);
+	};
+	poll();
+	window.addEventListener("pagehide", () => { stopped = true; }, {once:true});
+});

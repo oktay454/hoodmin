@@ -1,6 +1,7 @@
 use crate::{
 	auth::nonce,
 	crypto::{Vault, random},
+	policy::AccessPolicy,
 };
 use anyhow::{Result, ensure};
 use base64::{Engine, engine::general_purpose::STANDARD};
@@ -18,7 +19,7 @@ use openssl::{
 	},
 };
 use serde_json::{Value, json};
-use sqlx_core::{query::query, query_scalar::query_scalar, transaction::Transaction};
+use sqlx_core::{query::query, query_scalar::query_scalar, row::Row, transaction::Transaction};
 use sqlx_postgres::Postgres;
 use uuid::Uuid;
 use vpnhood_protocol::{AccessToken, ServerToken};
@@ -200,8 +201,8 @@ pub async fn register(
 		&serde_json::to_vec(&config)?,
 		&format!("{tenant}:{id}:config"),
 	)?;
-	query("INSERT INTO servers(tenant_id,id,name,farm_id,credential_hash,configuration,config_code) VALUES($1,$2,$3,$4,$5,$6,$7)")
-		.bind(tenant).bind(id).bind(name).bind(farm).bind(hash).bind(encrypted).bind(code).execute(&mut **tx).await?;
+	query("INSERT INTO servers(tenant_id,id,name,farm_id,credential_hash,configuration,config_code,agent_credential) VALUES($1,$2,$3,$4,$5,$6,$7,$8)")
+		.bind(tenant).bind(id).bind(name).bind(farm).bind(hash).bind(encrypted).bind(code).bind(vault.seal(credential.as_bytes(),&format!("{tenant}:{id}:agent"))?).execute(&mut **tx).await?;
 	Ok((id, credential))
 }
 #[allow(clippy::too_many_arguments)]
@@ -215,9 +216,10 @@ pub async fn create_tokens(
 	max_clients: i32,
 	max_traffic: i64,
 	expires: Option<DateTime<Utc>>,
+	profile: Option<(Uuid, AccessPolicy)>,
 ) -> Result<Vec<(Uuid, String, String)>> {
 	ensure!(
-		(1..=100).contains(&count) && (1..=10000).contains(&max_clients) && max_traffic >= 0,
+		(1..=100).contains(&count) && (0..=10000).contains(&max_clients) && max_traffic >= 0,
 		"Kota veya adet geçersiz."
 	);
 	let config: Vec<u8> =
@@ -228,6 +230,22 @@ pub async fn create_tokens(
 			.await?;
 	let config: Value =
 		serde_json::from_slice(&vault.open(&config, &format!("{tenant}:{server}:config"))?)?;
+	let policy = profile
+		.as_ref()
+		.map(|(_, p)| p.clone())
+		.unwrap_or_else(|| AccessPolicy {
+			max_clients,
+			max_total_traffic: max_traffic,
+			..Default::default()
+		});
+	policy.validate()?;
+	let server_farm: Option<Uuid> =
+		query_scalar("SELECT farm_id FROM servers WHERE tenant_id=$1 AND id=$2")
+			.bind(tenant)
+			.bind(server)
+			.fetch_one(&mut **tx)
+			.await?;
+	let token_farm = crate::farms::token_farm(&policy, server_farm)?;
 	let mut keys = Vec::new();
 	for index in 0..count {
 		let token_name = if count > 1 {
@@ -238,10 +256,12 @@ pub async fn create_tokens(
 		let id = Uuid::new_v4();
 		let secret = random::<16>().to_vec();
 		let encrypted = vault.seal(&secret, &format!("{tenant}:{id}:token"))?;
-		query("INSERT INTO access_tokens(tenant_id,id,server_id,name,secret,max_clients,max_traffic,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8)")
-			.bind(tenant).bind(id).bind(server).bind(&token_name).bind(encrypted).bind(max_clients).bind(max_traffic).bind(expires).execute(&mut **tx).await?;
+		query("INSERT INTO access_tokens(tenant_id,id,server_id,name,secret,max_clients,max_traffic,expires_at,policy,profile_id,farm_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)")
+			.bind(tenant).bind(id).bind(server).bind(&token_name).bind(encrypted).bind(policy.max_clients).bind(policy.max_total_traffic).bind(expires).bind(serde_json::to_value(&policy)?).bind(profile.as_ref().map(|(id,_)| *id)).bind(token_farm).execute(&mut **tx).await?;
 		let token = AccessToken {
 			v: 4,
+			is_public: policy.is_public,
+			client_policies: policy.client_policies.clone(),
 			name: token_name.clone(),
 			sid: None,
 			tid: id.to_string(),
@@ -253,6 +273,42 @@ pub async fn create_tokens(
 		keys.push((id, token_name, token.to_access_key()?));
 	}
 	Ok(keys)
+}
+
+pub async fn access_key(
+	tx: &mut Transaction<'_, Postgres>,
+	vault: &Vault,
+	tenant: Uuid,
+	id: Uuid,
+) -> Result<String> {
+	let token = query("SELECT * FROM access_tokens WHERE tenant_id=$1 AND id=$2")
+		.bind(tenant)
+		.bind(id)
+		.fetch_one(&mut **tx)
+		.await?;
+	let server: Uuid = token.get("server_id");
+	let bytes: Vec<u8> =
+		query_scalar("SELECT configuration FROM servers WHERE tenant_id=$1 AND id=$2")
+			.bind(tenant)
+			.bind(server)
+			.fetch_one(&mut **tx)
+			.await?;
+	let config: Value =
+		serde_json::from_slice(&vault.open(&bytes, &format!("{tenant}:{server}:config"))?)?;
+	let policy: AccessPolicy = serde_json::from_value(token.get("policy"))?;
+	Ok(AccessToken {
+		v: 4,
+		name: token.get("name"),
+		sid: Some(token.get("support_id")),
+		tid: id.to_string(),
+		iat: token.get("created_at"),
+		sec: vault.open(token.get("secret"), &format!("{tenant}:{id}:token"))?,
+		ser: serde_json::from_value(config["publicServerToken"].clone())?,
+		tags: vec![],
+		is_public: policy.is_public,
+		client_policies: policy.client_policies,
+	}
+	.to_access_key()?)
 }
 
 #[cfg(test)]

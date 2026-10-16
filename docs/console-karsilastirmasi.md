@@ -1,5 +1,7 @@
 # Hoodmin — console.vpnhood.com karşılaştırması
 
+> Bu belge tarihsel inceleme kaydıdır. Son uygulama ve sınama durumu [protokol uyumluluğu](protokol-uyumlulugu.md) belgesindedir.
+
 Değerlendirme tarihi: 16 Ekim 2026. Bu belge geliştirme onayı veya yeni özellik uygulaması değildir.
 
 ## Sınıfların anlamı ve kanıt sınırı

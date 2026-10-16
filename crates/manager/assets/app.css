@@ -214,8 +214,8 @@ strong[data-stat] { unicode-bidi:plaintext; }
 .stack { display:flex; flex-direction:column; gap:10px; }
 .stack .button { margin-top:7px; }
 .stack label,.form-fields label { display:block; font-size:12px; font-weight:600; color:var(--text); }
-.stack label input,.stack label select { display:block; margin-top:8px; }
-.stack input,.stack select { width:100%; }
+.stack label input,.stack label select,.stack label textarea { display:block; margin-top:8px; }
+.stack input,.stack select,.stack textarea { width:100%; }
 .stack p { margin-bottom:0; }
 input,select,textarea { border:1px solid var(--line-strong); border-radius:4px; padding:10px 11px; background:var(--input); color:var(--text); font-size:13px; max-width:100%; }
 input::placeholder,textarea::placeholder { color:var(--muted); opacity:1; }
@@ -348,3 +348,11 @@ footer { padding:13px 24px 24px; color:var(--muted); font-size:10px; }
 	.login-card { margin:24px auto; padding:24px; }
 	footer { padding:14px; }
 }
+
+.config-editor { min-height: 26rem; font-family: ui-monospace, monospace; tab-size: 4; resize: vertical; line-height: 1.6; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.report-chart svg { width: 100%; min-height: 160px; display: block; }
+.report-chart h2 small { color: var(--muted); font-size: .75em; }
+
+.config-editor { font-family:ui-monospace,SFMono-Regular,Consolas,monospace; line-height:1.55; resize:vertical; tab-size:4; }

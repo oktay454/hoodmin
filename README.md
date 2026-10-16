@@ -12,6 +12,13 @@ Protokol çekirdeği ve kiracılı panel çalışıyor. VpnHood **9.0.856** ile 
 
 ## Mevcut özellikler
 
+- Resmî Linux/Windows hazır kurulum komutları; SSH parola/özel anahtar ile kurulum ve yeniden kurulum, parmak izi denetimi ve iş günlüğü.
+- Kaynak sözleşmesine göre 47 gelişmiş sunucu ayarı; tekrar kullanılabilir sunucu profilleri ve kiracı içinde toplu uygulama.
+- Erişim profilleri, ayrı yükleme/indirme hızı, toplam/dönem kotası, ilk kullanımdan başlayan ömür, deneme/ödül planları ve cihaz politikası.
+- Grup erişimi, kapasite/güce ve konuma göre yönlendirme, şifreli sunucu adresi yayımı ve erişim kodları.
+- Parolalı PFX içe aktarma, sertifika sabitleme ve süreli HTTP-01 doğrulama yanıtı. Otomatik CA alma/yenileme henüz tamamlanmadı.
+- Tarih/sunucu filtreli CPU, bellek, oturum ve hız grafikleri; ülkeye göre bildirilen cihaz sayıları. Anahtar açıklaması, müşteri/sipariş/destek kodu ve anahtar indirme.
+
 - Türkçe, Arapça ve İngilizce arayüz; Arapçada sağdan sola düzen (RTL), açık/koyu tema ve güneş/ay düğmesi.
 - Genel bakış, sunucular, erişim anahtarları, VPN oturumları, panel kullanıcıları, denetim kaydı ve hesap ayarları.
 - Yönetici (admin), işletmen (operator), gözlemci (viewer) rolleri; kullanıcı ve parola yönetimi, son etkin yönetici koruması.
@@ -51,7 +58,7 @@ cargo clippy --workspace --all-targets --locked -- -D warnings
 cargo audit --deny warnings
 ```
 
-`cargo audit` ayrıca kurulu olmalıdır. Son kayıtlarda 13 Rust testi, gerçek HTTPS/PostgreSQL/.NET panel sınaması ve 18 tema/dil HTTPS kontrolü başarılıdır; bu sonuç genel güvenlik garantisi değildir.
+`cargo audit` ayrıca kurulu olmalıdır. Son kayıtlarda 20 Rust testi, gerçek HTTPS/PostgreSQL/.NET panel/protokol/profil/rapor sınamaları ve tema/dil HTTPS kontrolleri başarılıdır; bu sonuç genel güvenlik garantisi değildir.
 
 Henüz `.deb` paketi yoktur. `scripts/setup-test-manager.sh` ve `scripts/setup-test-tls.sh` yalnız ayrılmış sınama ortamları içindir; mevcut kurulumda körlemesine yeniden çalıştırılmamalıdır. TLS betiği özel ve kısa ömürlü bir sınama CA'sı oluşturur, üretim sertifika çözümü değildir. Mevcut ters vekil düzeni için [VPS notlarını](docs/vps-ters-vekil.md) okuyun; sertifika doğrulamasını kapatmayın.
 
@@ -59,15 +66,15 @@ Henüz `.deb` paketi yoktur. `scripts/setup-test-manager.sh` ve `scripts/setup-t
 
 ## Sınırlar ve kalan işler
 
-- Sunucu bağlantı yapılandırması elle uygulanır; SSH otomasyonu ve kalıcı iş kuyruğu yoktur.
-- Gruplar düzenleme amaçlıdır; yük dağıtımı, grup anahtarı ve anahtar bağlantısı (token URL) henüz yoktur.
-- IP/FQDN değişikliği önceden dağıtılmış statik anahtarları güncellemez; yeni anahtarlar güncel adresi içerir.
-- Otomatik sertifika yönetimi (ACME), plan/profil ve hız sınırı arayüzü, bot API anahtarları, Debian paketi ve üretim yedekleme/anahtar döndürme süreçleri tamamlanmadı.
-- Kiracı oluşturma yerel komut satırındadır; herkese açık kayıt/platform yönetim ekranı yoktur. Birden çok üyelik şemada mümkün olsa da panel hesabın varsayılan kiracısında çalışır.
-- Kullanım raporlarında tekil rapor kimliği yoktur: kesintilerde eksik sayım olabilir; tam bir kez muhasebe garantisi verilmez. Kota uygulanması raporlama aralığına bağlıdır.
-- Uzak bağlantı sınaması `NullVpnAdapter` kullanır; gerçek VPN trafiği, işletim sistemi yönlendirmesi, uzun süreli yük ve başarım doğrulanmış değildir.
+- Otomatik CA sertifikası alma/yenileme ve gerçek DNS doğrulaması için ayrıca sağlanacak VPN sunucusu bekleniyor; mevcut HTTP-01 yanıtı otomatik sertifika hizmeti değildir.
+- Şifreli adres kaynağı HTTPS GET olarak çalışır. Console'daki harici POST/PUT yayım işleri, ortak çiftlik sertifika deposu, beş rolün tam karşılığı ve bot yönetim API'si tamamlanmadı.
+- `clientPolicies` istemciye duyurulur; ülke bazındaki kapalı kaynak ticari plan kararlarının birebir uygulandığı iddia edilmez. Ödüllü reklam için güvenilir sunucu doğrulayıcısı gerekir; doğrudan reklam ağı entegrasyonu yoktur.
+- `.deb`, üretim yedekleme/geri yükleme ve ana anahtar döndürme süreçleri tamamlanmadı. Kurulum işlerinin durumu kalıcıdır; kesilen işler otomatik yeniden çalıştırılmaz.
+- Kiracı oluşturma CLI'dadır; herkese açık kayıt/platform yönetim ekranı yoktur.
+- Kullanım farkları tekil rapor kimliği taşımaz; kesintilerde tam bir kez muhasebe garantisi yoktur.
+- Gerçek TCP/QUIC proxy trafiği, 1 Mbps indirme ve ağ engeli sınandı. İşletim sistemi VPN yönlendirmesi, UDP kullanıcı yükü, sürekli yük ve tüm ayarların her çekirdekte etkisi ayrıca sınanmalıdır.
 
-Kalan işlerin hangisinin console.vpnhood.com özelliği, hangisinin mimari gereklilik veya isteğe bağlı geliştirme olduğu [karşılaştırma belgesinde](docs/console-karsilastirmasi.md) açıklanır. Bu liste yeni geliştirme onayı anlamına gelmez.
+Güncel alan kataloğu, kanıtlar ve açık işler: [protokol uyumluluğu](docs/protokol-uyumlulugu.md). Console karşılaştırmaları tarihsel inceleme kayıtlarıdır; güncel uygulama durumu için bu belgeyi kullanın.
 
 ## Adlandırma ve kurulum uyumluluğu
 

@@ -60,6 +60,31 @@ if (args[0] == "check-config") {
 	Console.WriteLine("PASS: panel yapılandırması ve PKCS12 sertifikası gerçek .NET tipleriyle doğrulandı.");
 	return;
 }
+if (args[0] == "check-extended") {
+	var options = new JsonSerializerOptions(JsonSerializerDefaults.Web) { UnmappedMemberHandling = System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow };
+	var expected = JsonSerializer.Deserialize<ServerConfig>(File.ReadAllText(Path.Combine(work, "expected-settings.json")), options)!;
+	var credential = File.ReadAllText(Path.Combine(work, "server-a.credential")).Trim();
+	using var manager = new HttpAccessManager(new HttpAccessManagerOptions(new Uri("http://127.0.0.1:3080"), "Bearer " + credential));
+	using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+	var actual = await manager.Server_Configure(new ServerInfo { Version = new Version("9.0.856"), EnvironmentVersion = Environment.Version, PrivateIpAddresses = [], PublicIpAddresses = [], Status = new ServerStatus() }, deadline.Token);
+	var expectedNode = JsonSerializer.SerializeToNode(expected,options)!.AsObject();
+	var actualNode = JsonSerializer.SerializeToNode(actual,options)!.AsObject();
+	foreach (var property in JsonNode.Parse(File.ReadAllText(Path.Combine(work,"expected-settings.json")))!.AsObject())
+		Check(JsonNode.DeepEquals(expectedNode[property.Key],actualNode[property.Key]), "ServerConfig alanı .NET türüyle eşleşti: " + property.Key);
+	var response = JsonSerializer.Deserialize<SessionResponseEx>(File.ReadAllText(Path.Combine(work,"session-response.json")),new JsonSerializerOptions(JsonSerializerDefaults.Web))!;
+	Check(response.AccessInfo?.MaxSpeedMbps is { Sent: 2, Received: 3 } && response.AccessInfo.MaxCycleTraffic == 4096, "hız ve dönem kotası gerçek SessionResponseEx ile çözümlendi");
+	var token = Token.FromAccessKey(File.ReadAllText(Path.Combine(work,"token-a.vh")));
+	var refreshed = ServerToken.Decrypt(token.ServerToken.Secret!,File.ReadAllText(Path.Combine(work,"encrypted-server-token")));
+	Check(refreshed.HostName == token.ServerToken.HostName && refreshed.Urls?.Length == 1, "şifreli sunucu adresi gerçek ServerToken.Decrypt ile çözümlendi");
+	return;
+}
+if (args[0] == "make-request") {
+	var token = Token.FromAccessKey(File.ReadAllText(Path.Combine(work,"token-a.vh")));
+	var name = "request-" + Guid.NewGuid() + ".json";
+	PrivateWrite(Path.Combine(work,name),JsonSerializer.Serialize(Request(token,Guid.NewGuid().ToString()),new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+	Console.WriteLine(name);
+	return;
+}
 if (args[0] == "one-session") {
 	var credential = File.ReadAllText(Path.Combine(work, "server-a.credential")).Trim();
 	var token = Token.FromAccessKey(File.ReadAllText(Path.Combine(work, "token-a.vh")));

@@ -109,20 +109,41 @@ pub fn safe_return_to(value: &str) -> &str {
 	let path = value.split('?').next().unwrap_or("");
 	if value.len() <= 2048
 		&& !value.chars().any(char::is_control)
-		&& matches!(
-			path,
-			"/signin"
-				| "/panel" | "/panel/servers"
-				| "/panel/tokens"
-				| "/panel/sessions"
-				| "/panel/audit"
-				| "/panel/users"
-				| "/panel/account"
-		) {
+		&& (safe_management_path(path)
+			|| matches!(
+				path,
+				"/signin"
+					| "/panel" | "/panel/servers"
+					| "/panel/tokens"
+					| "/panel/sessions"
+					| "/panel/audit"
+					| "/panel/users"
+					| "/panel/account"
+			)) {
 		value
 	} else {
 		"/panel"
 	}
+}
+fn safe_management_path(path: &str) -> bool {
+	if [
+		"/manage/profiles",
+		"/manage/server-profiles",
+		"/manage/integrations",
+		"/reports",
+	]
+	.contains(&path)
+	{
+		return true;
+	}
+	let parts = path.split('/').collect::<Vec<_>>();
+	parts.len() == 5
+		&& parts[0].is_empty()
+		&& parts[1] == "manage"
+		&& uuid::Uuid::parse_str(parts[3]).is_ok()
+		&& ((parts[2] == "servers"
+			&& ["configuration", "certificates", "routing", "installation"].contains(&parts[4]))
+			|| (parts[2] == "tokens" && parts[4] == "policy"))
 }
 pub async fn middleware(request: Request, next: Next) -> Response {
 	let language = RequestLanguage {

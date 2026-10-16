@@ -1,5 +1,9 @@
 //! VpnHood 9.0.856 erişim yöneticisi (access manager) tel sözleşmesi.
-use aes::cipher::{BlockEncryptMut, KeyIvInit, block_padding::NoPadding};
+pub mod config;
+use aes::cipher::{
+	BlockEncryptMut, KeyIvInit,
+	block_padding::{NoPadding, Pkcs7},
+};
 use base64::{Engine, engine::general_purpose::STANDARD};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -69,6 +73,28 @@ pub struct ClientInfo {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionRequest {
+	#[serde(default)]
+	pub client_country: Option<String>,
+	#[serde(default)]
+	pub extra_data: Option<String>,
+	#[serde(default)]
+	pub server_location: Option<String>,
+	#[serde(default)]
+	pub plan_id: ConnectPlanId,
+	#[serde(default = "yes")]
+	pub allow_redirect: bool,
+	#[serde(default)]
+	pub is_ip_v6_supported: Option<bool>,
+	#[serde(default)]
+	pub access_code: Option<String>,
+	#[serde(default)]
+	pub user_review: Option<serde_json::Value>,
+	#[serde(default)]
+	pub allow_anonymous_tracker: bool,
+	#[serde(default)]
+	pub remote_end_point: Option<String>,
+	#[serde(default)]
+	pub client_ip: Option<std::net::IpAddr>,
 	pub token_id: String,
 	pub client_info: ClientInfo,
 	#[serde(with = "bytes")]
@@ -81,6 +107,8 @@ pub struct SessionRequest {
 #[derive(Debug, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionUsage {
+	#[serde(default)]
+	pub ad_data: Option<String>,
 	pub session_id: u64,
 	#[serde(default)]
 	pub sent: i64,
@@ -95,6 +123,12 @@ pub struct SessionUsage {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AccessUsage {
+	#[serde(default)]
+	pub can_extend_by_rewarded_ad: bool,
+	#[serde(default)]
+	pub is_user_review_recommended: bool,
+	#[serde(default)]
+	pub user_review_recommended: i32,
 	pub is_premium: bool,
 	pub cycle_traffic: Traffic,
 	pub total_traffic: Traffic,
@@ -106,6 +140,34 @@ pub struct AccessUsage {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionResponse {
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub extra_data: Option<String>,
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub ga_measurement_id: Option<String>,
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub server_location: Option<String>,
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub access_info: Option<AccessInfo>,
+	#[serde(default)]
+	pub ad_requirement: AdRequirement,
+	#[serde(default)]
+	pub suppressed_to: SessionSuppressType,
+	#[serde(default)]
+	pub suppressed_by: SessionSuppressType,
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub redirect_server_tokens: Option<Vec<ServerToken>>,
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub redirect_host_end_point: Option<String>,
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub redirect_host_end_points: Option<Vec<String>>,
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub access_key: Option<String>,
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub client_country: Option<String>,
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub client_public_address: Option<std::net::IpAddr>,
+	#[serde(default)]
+	pub revision: i64,
 	pub error_code: SessionErrorCode,
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub error_message: Option<String>,
@@ -123,6 +185,20 @@ impl SessionResponse {
 	pub fn error(code: SessionErrorCode) -> Self {
 		Self {
 			error_code: code,
+			extra_data: None,
+			ga_measurement_id: None,
+			server_location: None,
+			access_info: None,
+			ad_requirement: AdRequirement::None,
+			suppressed_to: SessionSuppressType::None,
+			suppressed_by: SessionSuppressType::None,
+			redirect_server_tokens: None,
+			redirect_host_end_point: None,
+			redirect_host_end_points: None,
+			access_key: None,
+			client_country: None,
+			client_public_address: None,
+			revision: 0,
 			error_message: None,
 			session_id: 0,
 			session_key: vec![],
@@ -170,8 +246,12 @@ pub fn validate_client_id(client_id: &str, secret: &[u8], proof: &[u8]) -> bool 
 	encrypted_client_id(client_id, secret).is_some_and(|expected| bool::from(expected.ct_eq(proof)))
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct AccessToken {
+	#[serde(default, rename = "ispub", skip_serializing_if = "is_false")]
+	pub is_public: bool,
+	#[serde(default, rename = "cpols", skip_serializing_if = "Vec::is_empty")]
+	pub client_policies: Vec<serde_json::Value>,
 	pub v: u8,
 	pub name: String,
 	pub sid: Option<String>,
@@ -182,17 +262,29 @@ pub struct AccessToken {
 	pub ser: ServerToken,
 	pub tags: Vec<String>,
 }
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ServerToken {
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub urls: Option<Vec<String>>,
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub url: Option<String>,
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub path: Option<String>,
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub loc: Option<Vec<String>>,
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub loc2: Option<Vec<String>>,
 	pub ct: DateTime<Utc>,
 	pub hname: String,
 	pub hport: u16,
 	pub isv: bool,
-	#[serde(with = "bytes")]
+	#[serde(default, with = "nullable_bytes")]
 	pub sec: Vec<u8>,
-	#[serde(with = "bytes")]
+	#[serde(default, with = "nullable_bytes")]
 	pub ch: Vec<u8>,
+	#[serde(default, deserialize_with = "nullable_vec")]
 	pub ep: Vec<String>,
+	#[serde(default, deserialize_with = "endpoint_strategy")]
 	pub ep_st: u8,
 }
 impl AccessToken {
@@ -204,9 +296,110 @@ impl AccessToken {
 	}
 }
 
+pub mod nullable_bytes {
+	use super::*;
+	pub use bytes::serialize;
+	pub fn deserialize<'de, D: serde::Deserializer<'de>>(
+		deserializer: D,
+	) -> Result<Vec<u8>, D::Error> {
+		Option::<String>::deserialize(deserializer)?
+			.map(|s| STANDARD.decode(s).map_err(serde::de::Error::custom))
+			.unwrap_or(Ok(vec![]))
+	}
+}
+fn nullable_vec<'de, D: serde::Deserializer<'de>, T: Deserialize<'de>>(
+	deserializer: D,
+) -> Result<Vec<T>, D::Error> {
+	Ok(Option::<Vec<T>>::deserialize(deserializer)?.unwrap_or_default())
+}
+fn endpoint_strategy<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<u8, D::Error> {
+	let value = serde_json::Value::deserialize(deserializer)?;
+	if let Some(n) = value.as_u64().filter(|n| *n <= 4) {
+		return Ok(n as u8);
+	}
+	match value.as_str().map(str::to_ascii_lowercase).as_deref() {
+		Some("auto") => Ok(0),
+		Some("dnsfirst") => Ok(1),
+		Some("ipfirst" | "tokenfirst") => Ok(2),
+		Some("dnsonly") => Ok(3),
+		Some("iponly" | "tokenonly") => Ok(4),
+		_ => Err(serde::de::Error::custom("Invalid endpoint strategy")),
+	}
+}
+
+fn yes() -> bool {
+	true
+}
+fn is_false(value: &bool) -> bool {
+	!*value
+}
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub enum ConnectPlanId {
+	#[default]
+	Normal,
+	NormalByRewardedAd,
+	PremiumByTrial,
+	PremiumByRewardedAd,
+	Status,
+}
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub enum AdRequirement {
+	#[default]
+	None,
+	Flexible,
+	Rewarded,
+}
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub enum SessionSuppressType {
+	#[default]
+	None,
+	YourSelf,
+	Other,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AccessInfo {
+	pub is_new: bool,
+	pub created_time: DateTime<Utc>,
+	pub last_used_time: DateTime<Utc>,
+	pub expiration_time: Option<DateTime<Utc>>,
+	pub is_premium: bool,
+	pub max_cycle_traffic: i64,
+	pub max_total_traffic: i64,
+	pub max_device_count: i32,
+	pub max_speed_mbps: Option<Traffic>,
+	pub device_life_span: i32,
+	pub devices_summary: Option<serde_json::Value>,
+}
+impl ServerToken {
+	/// .NET ServerToken.Encrypt: AES-128-CBC/PKCS7, Base64(IV).Base64(ciphertext).
+	pub fn encrypt(&self, iv: &[u8; 16]) -> Result<String, String> {
+		let cipher = cbc::Encryptor::<aes::Aes128>::new_from_slices(&self.sec, iv)
+			.map_err(|_| "ServerToken secret must be 16 bytes")?;
+		let plaintext = serde_json::to_vec(self).map_err(|e| e.to_string())?;
+		Ok(format!(
+			"{}.{}",
+			STANDARD.encode(iv),
+			STANDARD.encode(cipher.encrypt_padded_vec_mut::<Pkcs7>(&plaintext))
+		))
+	}
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
+	#[test]
+	fn nullable_server_token_and_legacy_strategy_are_supported() {
+		let value = serde_json::json!({"ct":"2026-10-16T00:00:00Z","hname":"vpn.example.com","hport":443,"isv":true,"sec":null,"ch":null,"ep":null,"ep_st":"TokenOnly"});
+		let token: ServerToken = serde_json::from_value(value).unwrap();
+		assert!(token.ch.is_empty() && token.ep.is_empty());
+		assert_eq!(token.ep_st, 4);
+		assert_eq!(serde_json::to_value(token).unwrap()["ep_st"], 4);
+		assert!(
+			config::validate_client_policies(&[serde_json::json!({"ccs":["*"],"pbtdl":3600})])
+				.is_ok()
+		);
+	}
 	#[test]
 	fn rejects_bad_proofs_without_panicking() {
 		assert!(!validate_client_id("short", &[1; 16], &[0; 16]));

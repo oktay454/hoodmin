@@ -42,6 +42,22 @@ SQL
 	then
 		runuser -u postgres -- psql -v ON_ERROR_STOP=1 -d vpnhood_manager -f "${PROJE_DIZINI}/migrations/0002_panel.sql"
 	fi
+	if [ "$(runuser -u postgres -- psql -d vpnhood_manager -Atqc "SELECT to_regclass('public.access_profiles') IS NULL")" = t ]
+	then
+		runuser -u postgres -- psql -v ON_ERROR_STOP=1 -d vpnhood_manager -f "${PROJE_DIZINI}/migrations/0003_management_contract.sql"
+	fi
+	if [ "$(runuser -u postgres -- psql -d vpnhood_manager -Atqc "SELECT to_regclass('public.ad_hooks') IS NULL")" = t ]
+	then
+		runuser -u postgres -- psql -v ON_ERROR_STOP=1 -d vpnhood_manager -f "${PROJE_DIZINI}/migrations/0004_farm_and_rewards.sql"
+	fi
+	if [ "$(runuser -u postgres -- psql -d vpnhood_manager -Atqc "SELECT to_regclass('public.install_jobs') IS NULL")" = t ]
+	then
+		runuser -u postgres -- psql -v ON_ERROR_STOP=1 -d vpnhood_manager -f "${PROJE_DIZINI}/migrations/0005_install_jobs.sql"
+	fi
+	if [ "$(runuser -u postgres -- psql -d vpnhood_manager -Atqc "SELECT to_regclass('public.server_profiles') IS NULL")" = t ]
+	then
+		runuser -u postgres -- psql -v ON_ERROR_STOP=1 -d vpnhood_manager -f "${PROJE_DIZINI}/migrations/0006_server_profiles.sql"
+	fi
 	runuser -u postgres -- psql -v ON_ERROR_STOP=1 -d vpnhood_manager <<'SQL'
 GRANT CONNECT ON DATABASE vpnhood_manager TO vhmgr;
 GRANT USAGE ON SCHEMA public TO vhmgr;

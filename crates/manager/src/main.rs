@@ -2,9 +2,14 @@
 
 mod agent;
 mod auth;
+mod certificates;
 mod crypto;
+mod farms;
 mod i18n;
+mod install;
 mod management;
+mod policy;
+mod reports;
 mod store;
 mod views;
 mod web;
@@ -191,8 +196,8 @@ async fn main() -> Result<()> {
 			.bind(format!("Kiracı {tenant}"))
 			.execute(&mut *tx)
 			.await?;
-			sqlx_core::query::query("INSERT INTO servers(tenant_id,id,name,credential_hash,configuration,config_code) VALUES($1,$2,$3,$4,$5,$6)")
-				.bind(tenant).bind(server).bind(name).bind(hash).bind(encrypted).bind(code).execute(&mut *tx).await?;
+			sqlx_core::query::query("INSERT INTO servers(tenant_id,id,name,credential_hash,configuration,config_code,agent_credential) VALUES($1,$2,$3,$4,$5,$6,$7)")
+				.bind(tenant).bind(server).bind(name).bind(hash).bind(encrypted).bind(code).bind(state.vault.seal(credential.as_bytes(),&format!("{tenant}:{server}:agent"))?).execute(&mut *tx).await?;
 			write_private(&credential_out, credential.as_bytes())?;
 			tx.commit().await?;
 			println!(
@@ -210,7 +215,7 @@ async fn main() -> Result<()> {
 			key_out,
 		} => {
 			ensure!(
-				(1..=10000).contains(&max_clients) && max_traffic >= 0,
+				(0..=10000).contains(&max_clients) && max_traffic >= 0,
 				"Kota değerleri geçersiz."
 			);
 			ensure!(
@@ -249,6 +254,7 @@ async fn main() -> Result<()> {
 				sec: secret,
 				ser: server_token,
 				tags: vec![],
+				..Default::default()
 			};
 			write_private(&key_out, token.to_access_key()?.as_bytes())?;
 			tx.commit().await?;

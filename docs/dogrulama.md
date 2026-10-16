@@ -115,3 +115,15 @@ Kullanım ve uygulama notları: `docs/arayuz-ve-diller.md`. Yeni paket/bağıml�
 - Hiçbir kayıt/kimlik/rol/sunucu/sertifika/IP değişmedi; tüm düzenleme formları CANCEL ile kapatıldı. AutoSign yalnız formda seçilip iptal edildi, imzalama başlatılmadı. Sırlar belgeye kaydedilmedi.
 - Bulgular `docs/console-menu-incelemesi.md` içinde ekran yolları ve kanıt düzeyleriyle kaydedildi. Kod değişmediği için derleme/işlev sınamaları tekrarlanmadı.
 - İnceleme sonunda çiftlik sayfası yeniden yüklendi; sertifikanın Signing değeri Manual olarak kaldığı doğrulandı.
+
+## Kaynak sözleşmesinin uygulanması — 17 Ekim 2026
+
+- `VpnHood-Current` commit `fec557a91908ffe27e238e7e6375a8ead997d2a4`: 26 türün alan kataloğu ve kaynak SHA-256 özetleri çıkarıldı. Kaynak sunucu uygulaması derlenmedi; resmi hazır 9.0.856 kullanıldı.
+- 47 gelişmiş ayar, erişim/sunucu profilleri, hız/dönem/ömür/cihaz politikaları, farm yönlendirme, kapasite/konum, şifreli token URL, erişim kodu, SSV ödül doğrulama, PFX/HTTP01, SSH kurulum işi, grafikler/ülke cihaz raporu ve anahtar bilgileri/indirme eklendi.
+- `cargo fmt`, `cargo clippy --all-targets --locked -- -D warnings`, 20 Rust testi, `cargo build --release --locked`, 326 bağımlılık için `cargo audit --deny warnings` başarılı. `test_panel`, `test_contract_features`, `test_farm_rewards`, `test_profiles_reports`, `test_preferences` HTTPS/PostgreSQL/.NET ile geçti.
+- Gerçek SSH anahtar ve parola+sudo kurulumları tamamlandı. Anahtar uyuşmazlığı bağlantıdan önce reddedildi; iş günlüğünde sır olmadığı ve geçici çalışma dosyalarının silindiği sınandı. Geçici kullanıcı, sudo kuralı, root yetkili anahtarı ve ayrı SSH dinleyicisi kaldırıldı.
+- Yeni PFX hazır sunucunun TLS bağlantısındaki sertifikayla birebir karşılaştırıldı. HTTP01 yanıtı gerçek HTTP80 üzerinden doğrulandı; bilinmeyen token 404. Otomatik CA üretimi/yenilemesi bununla tamamlanmış sayılmaz.
+- TCP proxy üzerinden 12 MiB ve QUIC üzerinden 256 KiB içerik doğrulandı. 10 MiB başlangıç toleransını aşan son 2 MiB indirme 1 Mbps sınırında 16,72 saniye sürdü. Aynı gerçek hedef sonradan ağ filtresiyle engellendi; yeni hedef bağlantısı kurulmadı. Sınama sonrası HTTP80 ve özel ağ erişimi kapatıldı.
+- Debian önceliği korundu: iki kapsayıcıya Microsoft deposundan `libmsquic 2.6.3` ve Debian'dan `libnuma1`; vpnhood kapsayıcısına ayrıca Debian'dan `sudo` kuruldu.
+- Yeni ekranlar tarayıcıda Türkçe/İngilizce/Arapça kontrol edildi. JSON düzenleyicilerinin genişliği ve sayfa boşlukları görsel kontrolde düzeltilmiştir.
+- Kapsam matrisi ve doğrulanmamış işler `docs/protokol-uyumlulugu.md` içinde ayrıdır. Tam kapalı kaynak Console eşdeğerliği veya üretime hazır paket iddiası yoktur.

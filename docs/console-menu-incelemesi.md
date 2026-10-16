@@ -1,5 +1,7 @@
 # Hoodmin — canlı Console menü incelemesi
 
+> Bu belge tarihsel inceleme kaydıdır. Son uygulama ve sınama durumu [protokol uyumluluğu](protokol-uyumlulugu.md) belgesindedir.
+
 İnceleme tarihi: 16 Ekim 2026. Bu çalışma yalnız karşılaştırma ve belgelendirmedir; yeni işlev geliştirme onayı değildir.
 
 ## Kapsam ve kanıt düzeyi
