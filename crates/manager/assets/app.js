@@ -36,11 +36,11 @@ document.querySelectorAll("[data-copy]").forEach(button => {
 		const feedback = document.getElementById("copy-feedback");
 		try {
 			await navigator.clipboard.writeText(source.value);
-			feedback.textContent = "Kopyalandı.";
+			feedback.textContent = document.documentElement.dataset.copySuccess;
 		} catch {
 			source.focus();
 			source.select();
-			feedback.textContent = "Metin seçildi. Kopyalama kısayolunu kullanabilirsiniz.";
+			feedback.textContent = document.documentElement.dataset.copyFallback;
 		}
 	});
 });
@@ -61,3 +61,59 @@ if (document.querySelector("[data-stat]")) {
 	});
 	window.addEventListener("pagehide", () => source.close(), {once: true});
 }
+
+// Dil değişimi güvenli, aynı kaynak üzerindeki tercih uç noktasına gider.
+document.querySelectorAll(".language-switch select").forEach(select => {
+	select.addEventListener("change", () => select.form.requestSubmit());
+});
+
+const helpDialog = document.getElementById("help-dialog");
+let helpTrigger;
+document.querySelectorAll("[data-help-title]").forEach(button => {
+	button.addEventListener("click", event => {
+		event.preventDefault();
+		helpTrigger = button;
+		document.getElementById("help-title").textContent = button.dataset.helpTitle;
+		document.getElementById("help-body").textContent = button.dataset.helpBody;
+		helpDialog.showModal();
+	});
+});
+helpDialog?.addEventListener("close", () => helpTrigger?.focus());
+
+const confirmDialog = document.getElementById("confirm-dialog");
+const confirmedForms = new WeakSet();
+let pendingForm;
+let confirmTrigger;
+document.querySelectorAll("form[data-confirm]").forEach(form => {
+	form.addEventListener("submit", event => {
+		if (event.defaultPrevented) return;
+		if (confirmedForms.delete(form)) return;
+		event.preventDefault();
+		pendingForm = form;
+		confirmTrigger = document.activeElement;
+		document.getElementById("confirm-body").textContent = form.dataset.confirm;
+		confirmDialog.showModal();
+	});
+});
+document.getElementById("confirm-cancel")?.addEventListener("click", () => confirmDialog.close());
+document.getElementById("confirm-proceed")?.addEventListener("click", () => {
+	const form = pendingForm;
+	if (!form) return;
+	pendingForm = null;
+	confirmedForms.add(form);
+	confirmDialog.close();
+	form.requestSubmit();
+});
+confirmDialog?.addEventListener("close", () => {
+	pendingForm = null;
+	confirmTrigger?.focus();
+});
+
+[helpDialog, confirmDialog].forEach(dialog => {
+	dialog?.addEventListener("click", event => {
+		const bounds = dialog.getBoundingClientRect();
+		if (event.target === dialog && (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom)) {
+			dialog.close();
+		}
+	});
+});

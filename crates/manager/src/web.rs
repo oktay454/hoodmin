@@ -1,6 +1,6 @@
 use crate::{
 	auth::{self, User},
-	management,
+	i18n, management,
 	store::Store,
 	views,
 };
@@ -15,6 +15,7 @@ use axum::{
 	},
 	routing::{get, post},
 };
+use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
 use serde_json::json;
@@ -44,13 +45,17 @@ pub fn router(state: WebState) -> Router {
 	Router::new()
 		.route("/", get(|| async { Redirect::to("/panel") }))
 		.route("/signin", get(signin).post(login))
+		.route("/language", get(i18n::change))
 		.route("/logout", post(logout))
 		.route("/panel", get(dashboard))
 		.route("/panel/{page}", get(page))
 		.route("/manage/farms", post(add_farm))
 		.route("/manage/servers", post(add_server))
 		.route("/manage/servers/{id}", post(edit_server))
-		.route("/manage/servers/{id}/credential", post(rotate_credential))
+		.route(
+			"/manage/servers/{id}/credential",
+			get(confirm_credential).post(rotate_credential),
+		)
 		.route("/manage/tokens", post(add_tokens))
 		.route("/manage/tokens/bulk", post(bulk_tokens))
 		.route("/manage/sessions/{id}/close", post(close_session))
@@ -80,6 +85,7 @@ pub fn router(state: WebState) -> Router {
 		)
 		.layer(DefaultBodyLimit::max(64 * 1024))
 		.layer(middleware::from_fn(security))
+		.layer(middleware::from_fn(i18n::middleware))
 		.with_state(state)
 }
 async fn security(request: axum::extract::Request, next: Next) -> Response {
@@ -464,25 +470,73 @@ async fn add_server(
 	let settings=serde_json::to_string_pretty(&json!({"HttpAccessManager":{"BaseUrl":state.origin,"Authorization":format!("Bearer {credential}")},"AllowAnonymousTracker":false,"LogLevel":"Information"})).map_err(anyhow::Error::from)?;
 	Ok(views::secret(&user,"Sunucu bağlantısı hazır","Aşağıdaki ayarları sunucunun storage/appsettings.json dosyasına kaydedin. Kimlik bilgisi yalnızca bu ekranda gösterilir.",&settings).into_response())
 }
+fn rotation_confirmation(hash: &[u8], csrf: &str) -> String {
+	let mut digest = Sha256::new();
+	digest.update(b"vhm-confirm-rotation-v1:");
+	digest.update(hash);
+	digest.update(csrf.as_bytes());
+	URL_SAFE_NO_PAD.encode(digest.finalize())
+}
+async fn confirm_credential(
+	State(state): State<WebState>,
+	headers: HeaderMap,
+	Path(id): Path<Uuid>,
+) -> Result<Response, PanelError> {
+	let user = require(&state, &headers, None, Permission::Write).await?;
+	let mut tx = state.store.begin(user.tenant).await?;
+	let row = query("SELECT name,credential_hash FROM servers WHERE tenant_id=$1 AND id=$2")
+		.bind(user.tenant)
+		.bind(id)
+		.fetch_optional(&mut *tx)
+		.await?
+		.ok_or(PanelError(StatusCode::NOT_FOUND, "Sunucu bulunamadı."))?;
+	let proof = rotation_confirmation(&row.get::<Vec<u8>, _>("credential_hash"), &user.csrf);
+	Ok(views::confirm_credential(&user, id, &row.get::<String, _>("name"), &proof).into_response())
+}
+#[derive(Deserialize)]
+struct RotateCredentialForm {
+	csrf: String,
+	#[serde(default)]
+	confirmed: bool,
+	#[serde(default)]
+	confirmation: String,
+}
 async fn rotate_credential(
 	State(state): State<WebState>,
 	headers: HeaderMap,
 	Path(id): Path<Uuid>,
-	Form(form): Form<CsrfForm>,
+	Form(form): Form<RotateCredentialForm>,
 ) -> Result<Response, PanelError> {
 	let user = require(&state, &headers, Some(&form.csrf), Permission::Write).await?;
-	let credential = format!("{}.{id}.{}", user.tenant, auth::nonce());
+	if !form.confirmed {
+		return Err(bad(
+			"Kimliği yenilemek için etkilerini okuyup onay kutusunu işaretleyin.",
+		));
+	}
 	let mut tx = state.store.begin(user.tenant).await?;
-	let affected = query("UPDATE servers SET credential_hash=$3 WHERE tenant_id=$1 AND id=$2")
+	let hash: Vec<u8> =
+		query_scalar("SELECT credential_hash FROM servers WHERE tenant_id=$1 AND id=$2 FOR UPDATE")
+			.bind(user.tenant)
+			.bind(id)
+			.fetch_optional(&mut *tx)
+			.await?
+			.ok_or(PanelError(StatusCode::NOT_FOUND, "Sunucu bulunamadı."))?;
+	if !auth::same_token(
+		&form.confirmation,
+		&rotation_confirmation(&hash, &user.csrf),
+	) {
+		return Err(PanelError(
+			StatusCode::CONFLICT,
+			"Onay formu artık geçerli değil. Sunucu sayfasından yeniden açın.",
+		));
+	}
+	let credential = format!("{}.{id}.{}", user.tenant, auth::nonce());
+	query("UPDATE servers SET credential_hash=$3 WHERE tenant_id=$1 AND id=$2")
 		.bind(user.tenant)
 		.bind(id)
 		.bind(Sha256::digest(credential.as_bytes()).to_vec())
 		.execute(&mut *tx)
-		.await?
-		.rows_affected();
-	if affected != 1 {
-		return Err(PanelError(StatusCode::NOT_FOUND, "Sunucu bulunamadı."));
-	}
+		.await?;
 	auth::audit(
 		&mut tx,
 		&user,
@@ -500,6 +554,7 @@ async fn rotate_credential(
 	)
 	.into_response())
 }
+
 #[derive(Deserialize)]
 struct EditServerForm {
 	csrf: String,
@@ -916,7 +971,7 @@ async fn export_csv(
 	let user = require(&state, &headers, None, Permission::Read).await?;
 	let mut tx = state.store.begin(user.tenant).await?;
 	let rows=query("SELECT t.name,s.name AS server,t.sent,t.received,t.max_traffic,t.revoked FROM access_tokens t JOIN servers s ON s.tenant_id=t.tenant_id AND s.id=t.server_id WHERE t.tenant_id=$1 ORDER BY t.name LIMIT 10000").bind(user.tenant).fetch_all(&mut *tx).await?;
-	let mut csv = String::from("Anahtar,Sunucu,Gönderilen bayt,Alınan bayt,Kota bayt,İptal\r\n");
+	let mut csv = i18n::tr("Anahtar,Sunucu,Gönderilen bayt,Alınan bayt,Kota bayt,İptal") + "\r\n";
 	for row in rows {
 		csv += &format!(
 			"{},{},{},{},{},{}\r\n",

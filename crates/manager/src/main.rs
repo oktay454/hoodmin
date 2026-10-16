@@ -3,6 +3,7 @@
 mod agent;
 mod auth;
 mod crypto;
+mod i18n;
 mod management;
 mod store;
 mod views;

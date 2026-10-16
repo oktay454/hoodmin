@@ -19,8 +19,8 @@ import urllib.request
 import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
-BASE = "https://yapayzeka:3443"
-CONTEXT = ssl.create_default_context(cafile="/etc/vpnhood-manager/tls/ca.crt")
+BASE = os.environ.get("VHM_TEST_ORIGIN", "https://vhm-test.oktayaktogan.com.tr")
+CONTEXT = ssl.create_default_context(cafile=os.environ.get("VHM_TEST_CA"))
 BINARY = "/usr/lib/vpnhood-manager/vpnhood-manager"
 ENV = dict(os.environ, DATABASE_URL="postgresql:///vpnhood_manager?host=/var/run/postgresql&user=vhmgr", VHM_MASTER_KEY_FILE="/var/lib/vpnhood-manager/master.key")
 WORK = Path(tempfile.mkdtemp(prefix="panel-test.", dir=ROOT / "work"))
@@ -36,6 +36,7 @@ class Fields(html.parser.HTMLParser):
 	def __init__(self, content):
 		super().__init__()
 		self.csrf = None
+		self.confirmation = None
 		self.output = ""
 		self.in_output = False
 		self.feed(content)
@@ -43,6 +44,8 @@ class Fields(html.parser.HTMLParser):
 		attrs = dict(attrs)
 		if tag == "input" and attrs.get("name") == "csrf":
 			self.csrf = attrs.get("value")
+		if tag == "input" and attrs.get("name") == "confirmation":
+			self.confirmation = attrs.get("value")
 		if tag == "textarea" and attrs.get("id") == "secret-output":
 			self.in_output = True
 	def handle_endtag(self, tag):
@@ -150,6 +153,8 @@ server_a, credential_a, settings = server(admin, "QA kendi sunucum", 2444)
 server_b, _, _ = server(other, "QA başka kiracının sunucusu", 2445)
 check(admin.post(f"/manage/servers/{server_b}", name="No", farm="")[0] == 404, "Başka kiracının sunucusu düzenlenemedi")
 check("QA başka kiracının sunucusu" not in admin.request("/panel/servers")[1], "Başka kiracının sunucusu listelenmedi")
+check(admin.request(f"/manage/servers/{server_b}/credential")[0] == 404, "Başka kiracının kimlik onayı açılamadı")
+check(viewer.request(f"/manage/servers/{server_a}/credential")[0] == 403, "Salt okunur rol kimlik onayını açamadı")
 check(admin.post("/manage/tokens", server=server_b, name="No", count=1, max_clients=1, max_gib=1, expires="")[0] == 404, "Başka kiracının sunucusuna anahtar üretilemedi")
 code, body, _ = admin.post("/manage/tokens", server=server_a, name="=1+1", count=3, max_clients=2, max_gib=1, expires="")
 keys = re.findall(r"vh://[A-Za-z0-9+/=]+", Fields(body).output)
@@ -186,6 +191,17 @@ check(operator.login(operator_email, NEW_PASSWORD)[0] == 303, "Yeni parola ile g
 operator.request("/panel")
 check(operator.post("/logout")[0] == 303 and operator.request("/panel")[0] == 303, "Çıkış sunucu oturumunu geçersizleştirdi")
 
+# Dil tercihi ve yönlendirme güvenliği.
+for language, direction, heading in [("en", "ltr", "Servers"), ("ar", "rtl", "الخوادم"), ("tr", "ltr", "Sunucular")]:
+	code, _, headers = admin.request("/language?lang=" + language + "&return_to=%2Fpanel%2Fservers%3Fq%3DQA")
+	check(code == 303 and headers["Location"] == "/panel/servers?q=QA", "Dil değişimi aramayı ve yolu koruyor: " + language)
+	code, html, _ = admin.request("/panel/servers")
+	check(code == 200 and f'lang="{language}"' in html and f'dir="{direction}"' in html and heading in html, "Sunucu tarafı dil ve yön doğru: " + language)
+	check("QA kendi sunucum" in html, "Kullanıcı verisi çevrilmedi: " + language)
+check(admin.request("/language?lang=de")[0] == 400, "Desteklenmeyen dil reddedildi")
+code, _, headers = admin.request("/language?lang=tr&return_to=https%3A%2F%2Fevil.invalid")
+check(code == 303 and headers["Location"] == "/panel", "Dil tercihi açık yönlendirmeye izin vermiyor")
+
 # .NET tarafında gerçek SessionRequestEx üretip bildirim yolunu sınar.
 for filename, content in [("server-a.credential", credential_a), ("token-a.vh", keys[0])]:
 	file = WORK / filename
@@ -215,8 +231,16 @@ with admin.open.open(request, timeout=20) as response:
 result = subprocess.run(["runuser", "-u", "vhmgr", "--", "psql", "-d", "vpnhood_manager", "-c", "DELETE FROM audit_events"], capture_output=True, text=True)
 check(result.returncode != 0, "Uygulama veri tabanı rolü denetim kayıtlarını silemedi")
 
-code, body, _ = admin.post(f"/manage/servers/{server_a}/credential")
-check(code == 200, "Sunucu bağlantı kimliği yenilenebildi")
+check(admin.post(f"/manage/servers/{server_a}/credential")[0] == 400, "Onaysız doğrudan kimlik yenileme reddedildi")
+check("configCode" in agent(credential_a, "status", {}), "Reddedilen işlem eski kimliği korudu")
+code, confirmation_page, _ = admin.request(f"/manage/servers/{server_a}/credential")
+check(code == 200 and "Eski bağlantı kimliği hemen geçersizleşir." in confirmation_page, "Kimlik onayı etkiyi ve hedefi açıklıyor")
+proof = Fields(confirmation_page).confirmation
+check(bool(proof), "Güncel kimliğe bağlı onay kanıtı oluşturuldu")
+check(admin.post(f"/manage/servers/{server_a}/credential", confirmed="true", confirmation="invalid")[0] == 409, "Geçersiz onay kanıtı reddedildi")
+check("configCode" in agent(credential_a, "status", {}), "Geçersiz kanıt eski kimliği korudu")
+code, body, _ = admin.post(f"/manage/servers/{server_a}/credential", confirmed="true", confirmation=proof)
+check(code == 200, "Açık onayla sunucu bağlantı kimliği yenilenebildi")
 settings = json.loads(Fields(body).output)
 new_credential = settings["HttpAccessManager"]["Authorization"].removeprefix("Bearer ")
 try:
@@ -225,6 +249,8 @@ try:
 except urllib.error.HTTPError as error:
 	check(error.code == 401, "Önceki sunucu kimliği anında geçersizleşti")
 check("configCode" in agent(new_credential, "status", {}), "Yeni sunucu kimliği geçerli")
+check(admin.post(f"/manage/servers/{server_a}/credential", confirmed="true", confirmation=proof)[0] == 409, "Aynı onay formuyla ikinci yenileme engellendi")
+check("configCode" in agent(new_credential, "status", {}), "Tekrarlanan gönderim yeni kimliği bozmadı")
 (WORK / "server-a.credential").write_text(new_credential)
 # Gerçek uzak sunucu sınamasında kullanılacak özel dosyalar Git dışında kalır.
 (WORK / "server-settings.json").write_text(json.dumps(settings))

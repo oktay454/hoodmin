@@ -6,4 +6,4 @@
 - Panel kullanıcıları ile VPN erişim anahtarı sahipleri açıkça ayrılacak.
 - Sunucu düzenleme formundaki taşma ve dar ekran davranışı düzeltilecek.
 
-Bu kayıt tasarım tercihidir. Kapsamlı yeni tasarım ve menü düzeni önce somut bir öneri olarak sunulacak; kullanıcı onayından sonra uygulanacak. Bildirilen görünüm hatasının giderilmesi ayrıca istenmiştir.
+Son kullanıcı talebiyle Proxmox/FortiGate benzeri belirgin hatlar, dolgun kumanda öğeleri, simgeli menü, görünür Hesabım düğmesi, bağlamsal yardım ve üç dil doğrudan uygulanmıştır. Ayrıntılar `docs/arayuz-ve-diller.md` dosyasındadır. Önceki ürün incelemesindeki kapsamlı sunucu profili, ağ politikaları ve benzeri yeni işlevlerin onay süreci bundan ayrıdır.

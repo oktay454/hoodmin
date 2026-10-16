@@ -49,3 +49,15 @@ Gerçek Leptos SSR çıktıları parola/oturum çerezi taşımadan, CSRF değerl
 ConnectionProbe NullVpnAdapter kullanır; işletim sistemi VPN yönlendirmesini, tünelden kullanıcı trafiğini veya yük altında başarımı sınamaz. Cihaz sınırı yeni oturum kabulünde uygulanır. Kullanım sözleşmesi kesintilerde tam bir kez muhasebe garantisi sağlamaz.
 
 SSH otomasyonu, kalıcı işler, ACME, grup yönlendirmesi/yük dağıtımı, Debian paketleme, üretim yedekleme/anahtar döndürme sonraki aşamadadır. Sınama servisleri ve kayıtlar ayrılmış kapsayıcılarda bırakıldı. Özel anahtarlar, erişim anahtarları ve parolalar `work` altında veya kapsayıcıdaki özel sistem dizinlerindedir; Git'e eklenmez.
+
+## Füme arayüz, yardım ve dil desteği — 16 Ekim 2026
+
+- Son sürüm `https://vhm-test.oktayaktogan.com.tr` üzerinde çalışıyor. CSS ve JavaScript dosyaları HTTPS'ten alınarak kaynaklarıyla SHA-256 üzerinden birebir karşılaştırıldı.
+- Clippy uyarısız; çalışma alanında 10 test ve gerçek HTTPS/PostgreSQL/.NET panel sınaması başarılı. Kimlik yenilemede açık onay, eski onayın tekrar reddi, tenant/rol ayrımı ve eski/yeni agent kimlikleri doğrulandı.
+- Türkçe, İngilizce ve Arapça tarayıcıda seçildi. Dil ve yön nitelikleri, çeviriler, kullanıcı adlarının değişmemesi ve desteklenmeyen dil hatasının üç dilde gösterimi doğrulandı.
+- Arapça masaüstünde menü sağda; sayısal birimler ve e-posta soldan sağa. 390 piksel genişlikte Arapça Sunucular ve Türkçe Genel bakış sayfalarında gövde yatay taşmıyor. Geçici görünüm boyutu sıfırlandı.
+- Yardım penceresi açıldı, Escape ile kapatıldı, odak açan düğmeye döndü. VPN adresinin yanındaki yardım da çalışıyor.
+- Mevcut Sınama B için yalnız GET onay sayfası açıldı ve Vazgeç ile dönüldü; kimliği değiştirilmedi. Gerçek yenileme sınamaları ayrı test kiracılarına ait sunucularda yapıldı.
+- Ekran kanıtları Codex çıktılarında `vhm-fume-panel.jpg`, `vhm-yardim-fume.jpg`, `vhm-kimlik-onayi.jpg`, `vhm-arapca.jpg` ve `vhm-arapca-mobil.jpg`.
+
+Kullanım ve uygulama notları: `docs/arayuz-ve-diller.md`. Yeni paket/bağımlılık kurulmadı.
