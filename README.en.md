@@ -10,12 +10,16 @@ Each organization brings its own servers (BYOS). Each server belongs to exactly 
 
 The protocol core and tenant panel work. Compatibility with VpnHood **9.0.856** has been checked using real .NET contracts and a remote client connection. Production distribution and full feature parity with the closed-source Manager are unfinished. See the [validation record, in Turkish](docs/dogrulama.md).
 
+See the [pause and continuation record](docs/calisma-durumu.md) for the latest milestone and pending work.
+
 ## Available features
 
 - Official prebuilt Linux/Windows install commands; password/private-key SSH install/reinstall with pinned host keys and job logs.
 - All 47 editable source-defined server settings; reusable server templates and atomic tenant-scoped bulk application.
 - Access profiles, upload/download limits, total/cycle quotas, lifetime from first use, trial/reward plans and device policies.
 - Group access, location/capacity routing, encrypted server-address publishing and access codes.
+- Group refresh URLs recover from an unreachable bootstrap address by selecting a live member; verified with .NET and a real client connection.
+- Shared farm PFX storage and distribution to existing, new and reassigned members, preserving VPN addresses and server secrets.
 - Password-protected PFX import, certificate pinning and expiring HTTP-01 responses; automatic CA issuance/renewal remains unfinished.
 - Time/server-filtered CPU, memory, session and transfer-speed charts; reported devices by country; key metadata and downloads.
 
@@ -69,7 +73,7 @@ Create the initial account with the local `create-account` command or `scripts/b
 ## Limitations and remaining work
 
 - Real DNS/automatic certificate validation awaits a separate VPN server. HTTP-01 relay is not an automatic certificate service.
-- Address publishing supports HTTPS GET. External POST/PUT publishing jobs, the complete shared farm certificate workflow remain unfinished.
+- Encrypted server/group address publishing supports HTTPS GET. External POST/PUT publishing jobs and automatic propagation through farm-level server profile assignment remain unimplemented.
 - Client policies are advertised; closed-source commercial country-plan decisions are not claimed to be identical. Rewarded ads require a trusted server verifier, not an unverified client report or direct ad-network integration.
 - Debian packaging, production backup/restore and master-key rotation are unfinished. Job states persist, but interrupted installations are not retried automatically.
 - Tenant creation uses CLI; public signup/platform administration is absent.

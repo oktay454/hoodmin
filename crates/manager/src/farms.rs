@@ -278,6 +278,125 @@ pub fn apply_advertisement(config: &mut Value, settings: &Value) -> Result<()> {
 	Ok(())
 }
 
+/// Farm keys use a farm-specific URL; ordinary single-server keys retain their own URL.
+pub async fn advertised_token(
+	tx: &mut Transaction<'_, Postgres>,
+	tenant: Uuid,
+	server: Uuid,
+	farm: Option<Uuid>,
+	config: &Value,
+) -> Result<ServerToken> {
+	let mut token: ServerToken = serde_json::from_value(config["publicServerToken"].clone())?;
+	if let Some(farm) = farm {
+		let origin: Option<String> = sqlx_core::query_scalar::query_scalar(
+			"SELECT publication_origin FROM farms WHERE tenant_id=$1 AND id=$2",
+		)
+		.bind(tenant)
+		.bind(farm)
+		.fetch_one(&mut **tx)
+		.await?;
+		if let Some(origin) = origin {
+			let member: bool = sqlx_core::query_scalar::query_scalar(
+				"SELECT EXISTS(SELECT FROM servers WHERE tenant_id=$1 AND id=$2 AND farm_id=$3)",
+			)
+			.bind(tenant)
+			.bind(server)
+			.bind(farm)
+			.fetch_one(&mut **tx)
+			.await?;
+			ensure!(
+				member,
+				"Anahtarın ilk sunucusu artık grubunda değil; anahtarı yeniden oluşturun"
+			);
+			token.urls = Some(vec![format!("{origin}/f/{tenant}/{farm}/{server}")]);
+			token.url = None;
+		}
+	}
+	Ok(token)
+}
+/// Select a bootstrap endpoint; the authenticated session decision still enforces plan/location/capacity.
+pub async fn publication_target(
+	tx: &mut Transaction<'_, Postgres>,
+	tenant: Uuid,
+	farm: Uuid,
+) -> Result<Option<Uuid>> {
+	let rows=query("SELECT id,paused,management,last_seen,heartbeat_seconds,status FROM servers WHERE tenant_id=$1 AND farm_id=$2 ORDER BY id").bind(tenant).bind(farm).fetch_all(&mut **tx).await?;
+	let mut candidates = Vec::new();
+	for row in rows {
+		let policy: ServerPolicy = serde_json::from_value(row.get("management"))?;
+		if row.get::<bool, _>("paused")
+			|| !policy.enabled
+			|| !policy.allow_auto_select
+			|| row
+				.get::<Option<DateTime<Utc>>, _>("last_seen")
+				.is_none_or(|t| {
+					t < Utc::now()
+						- chrono::Duration::seconds(i64::from(
+							row.get::<i32, _>("heartbeat_seconds"),
+						))
+				}) {
+			continue;
+		}
+		let status: Option<Value> = row.get("status");
+		if status
+			.as_ref()
+			.is_some_and(|v| v["configError"].as_str().is_some_and(|s| !s.is_empty()))
+		{
+			continue;
+		}
+		let load = status
+			.as_ref()
+			.and_then(|v| v["sessionCount"].as_f64())
+			.filter(|v| v.is_finite() && *v >= 0.0)
+			.unwrap_or(0.0)
+			/ policy.power.max(1.0);
+		candidates.push((load, row.get::<Uuid, _>("id")));
+	}
+	candidates.sort_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)));
+	Ok(candidates.first().map(|v| v.1))
+}
+
+pub async fn load_certificates(
+	tx: &mut Transaction<'_, Postgres>,
+	vault: &crate::crypto::Vault,
+	tenant: Uuid,
+	farm: Option<Uuid>,
+) -> Result<Option<Value>> {
+	let Some(farm) = farm else {
+		return Ok(None);
+	};
+	let bytes: Option<Vec<u8>> = sqlx_core::query_scalar::query_scalar(
+		"SELECT certificates FROM farms WHERE tenant_id=$1 AND id=$2 FOR SHARE",
+	)
+	.bind(tenant)
+	.bind(farm)
+	.fetch_one(&mut **tx)
+	.await?;
+	bytes
+		.map(|b| {
+			Ok(serde_json::from_slice(
+				&vault.open(&b, &format!("{tenant}:{farm}:certificates"))?,
+			)?)
+		})
+		.transpose()
+}
+pub fn apply_certificates(config: &mut Value, shared: &Value) -> Result<()> {
+	let entries = shared
+		.as_array()
+		.ok_or_else(|| anyhow::anyhow!("Grup sertifika listesi geçersiz"))?;
+	for entry in entries {
+		crate::certificates::attach(
+			config,
+			entry["certificate"].clone(),
+			entry["hash"]
+				.as_str()
+				.ok_or_else(|| anyhow::anyhow!("Sertifika parmak izi eksik"))?,
+			entry["default"].as_bool().unwrap_or(false),
+		)?;
+	}
+	Ok(())
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;

@@ -101,7 +101,8 @@ Console'da görünen UseUdpProxy2, bu kaynakta ve hazır sunucunun son uygulanan
 | Erişim profilleri | Hız, kota/dönem, ömür, cihazlar, deneme/reklam politikası | HTTPS/PostgreSQL/.NET; dönem sıfırlama ve toplamın korunması |
 | Sunucu profilleri | Ayar ve kapasite şablonu; seçili sunuculara tek işlemde uygulama | Çapraz kiracı toplu işlem bütünüyle reddedildi; kimlik/PFX korundu; eski sürüm 409 |
 | Farm/Power/Location | Aynı kiracı grubunda uygun konuma ve göreli yüke yönlendirme | Grup dışı erişim, kapasite, farklı hedef sertifikası ve ortak kota sınamaları |
-| Token URL | HTTPS GET üzerinden .NET uyumlu AES-CBC şifreli ServerToken | Gerçek .NET Decrypt; eski anahtara URL sonradan kendiliğinden eklenmez |
+| Token URL | Sunucu ve grup HTTPS GET üzerinden .NET uyumlu AES-CBC şifreli ServerToken | Ulaşılamayan başlangıç adresinden canlı üyeye yenileme ve gerçek bağlantı; eski anahtara URL sonradan kendiliğinden eklenmez |
+| Grup PFX deposu | Şifreli ortak depo; mevcut/yeni/taşınan üyelere dağıtım | Yanlış parola 400, eski sürüm 409; VPN adresi/sır koruma; gerçek TLS ve istemci bağlantısı |
 | PFX | Parolalı dosya denetimi, şifreli saklama, açık varsayılan onayı | Yanlış parola/eskimiş form reddi; hazır sunucunun TLS bağlantısında yeni DER sertifikası doğrulandı |
 | HTTP-01 | Kiracı/sunucu kapsamlı, süreli yanıt | Hazır VPN sunucusunun HTTP80 yolu gerçek yanıt verdi; bilinmeyen token 404 |
 | Gerçek trafik | TCP proxy ve QUIC stream | TCP 12 MiB veri doğrulandı; 10 MiB ısınmadan sonraki 2 MiB, 1 Mbps sınırında 16,72 sn; QUIC 256 KiB |
@@ -115,7 +116,7 @@ Console'da görünen UseUdpProxy2, bu kaynakta ve hazır sunucunun son uygulanan
 ### Açık kalan işler
 
 - Kullanıcının ayrıca vereceği DNS/TCP80 erişimli VPN sunucusunda otomatik CA üretimi ve yenileme; mevcut HTTP-01 köprüsü bunun tamamı değildir.
-- Console'un harici POST/PUT token yayımı ve çiftlik ortak sertifika deposu.
+- Console'un harici POST/PUT token yayımı ve grup düzeyinde sunucu profili atama/otomatik yayma.
 - Beş ekip rolü ve bağımsız bot yönetim API'si son aşamada eklendi; Console'un özel yönetim API sözleşmesiyle birebir aynı olduğu iddia edilmez.
 - İstemci politikalarının (`cpols`) ülkeye göre ticari karar kuralları. Kaynak, bu kararların kapalı kaynak sunucu tarafındaki anlamını bütünüyle tanımlamaz; root politika süreleri Hoodmin'de açıkça seçilir.
 - Locked IPs kaydının çalışma etkisi, bulut IP siparişi ve markalama bu kaynak sözleşmesinden çıkarılamaz; gözlenmeyen davranış uydurulmadı.
@@ -129,3 +130,17 @@ Sınama için yalnız ayrılmış kapsayıcının `/opt/VpnHoodServer` kurulumu 
 Beş rol eklendi; mevcut hesaplar kendiliğinden yükseltilmedi. Sahip ataması yalnız sahip tarafından yapılabilir; son etkin sahip ve yönetici korunur. Anahtar yazarı sunucu ayarı değiştiremez. Botlar rol ve son tarihle oluşturulur; anahtar özeti saklanır, parola girişi kapalıdır, insan üye yolundan sahip rolü alamazlar.
 
 `tests/test_team_bots.py` gerçek HTTPS/PostgreSQL ile olumlu ve olumsuz yetki sınamalarını geçti: eski ayar 409, bozuk/geçersiz/iptal edilmiş/süresi dolmuş bot 401, başka kiracının botu 404, salt okunur sır indirme ve yetki yükseltme 403. Bot anahtarıyla toplu VPN anahtarı ve sunucu oluşturma, JSON ayarı kaydetme doğrulandı. Panel, sözleşme, farm/ödül, profil/rapor ve tema/dil sınamaları bu değişiklikten sonra yeniden geçti. API girişleri panelin aynı işlevlerini kullanır; alanlar ve durum kodları [API belgesinde](yonetim-api.md) listelenmiştir.
+
+## İlk sunucuya ulaşılamadığında grup adresini yenileme
+
+Kaynak `VpnProfileService.UpdateServerTokenByUrl`, eski ServerToken.Secret ile yeni hedef belirtecini çözer; `IsTokenUpdated` denetiminden sonra profilini günceller. `VpnHoodApp`, bağlantı hatasında bu yolu deneyip yeniden bağlanır. Bu nedenle yalnız çalışan ilk sunucunun RedirectHost yanıtını uygulamak, ilk adrese ulaşılamayan durumu kapsamıyordu.
+
+Hoodmin'e ayrı grup URL yolu eklendi: `/f/{tenant}/{farm}/{seed}`. Yalnız yayımı açık grupların grup erişimli yeni anahtarlarında kullanılır. Yanıt, başlangıç sunucusunun sırrıyla şifrelenir; içerik uygun canlı hedefin kendi adresi, sertifika parmak izi ve sırrıdır. Hedefin sonraki yenileme URL'si de hedef sırrına göre değişir. Tek sunucu anahtarları kendiliğinden başka sunucuya yönlendirilmez. Kimlik, sertifika veya kiracı ortaklaştırılmaz.
+
+`tests/test_farm_publication.py` geçti: kullanılmayan TCP2999 başlangıç adresine erişilemediği doğrulandı; gerçek hazır TCP2550 hedefi aynı kiracının geçici grubundayken .NET eski sırla hedefi çözdü, hedefin kendi sertifika/sır/adresini karşılaştırdı ve yenilenen anahtarla gerçek VpnHood istemcisi bağlandı. Hedefin önceki grup üyeliği geri yüklendi. Başlangıç hizmetinin önce çalışıp sonra çöktüğü veya tam mobil uygulamanın profil deposu/UI akışının çalıştırıldığı iddia edilmez; gerçek bağlantı ve kaynak yenileme sözleşmesi sınandı.
+
+## Ortak grup PFX deposu — 17 Ekim 2026
+
+PFX özel anahtarı kiracı/grup bağlamına bağlı AES-256-GCM ile saklanır. Açık onayla mevcut üyelere tek veritabanı işlemi içinde dağıtılır; yeni kaydedilen ve gruba taşınan sunucular da sertifikayı devralır. VPN bağlantı adresi ve her sunucunun kendi sırrı korunur. Sürüm denetimi eski formları reddeder. Grup üyeliğini kaldırmak, daha önce dağıtılmış özel anahtarı o sunucudan kendiliğinden geri çekmez.
+
+`tests/test_farm_certificates.py` geçti: yanlış parola 400, eski form 409; mevcut/yeni/taşınan üyede PFX, sunucu sırrı ve DNS adresi korundu. Hazır 9.0.856 sunucusu eski bağlantı adı/SNI ile yeni sertifikayı sundu; DER ve erişim anahtarı parmak izi karşılaştırıldı, gerçek istemci bağlandı. Aynı X509 DNS adı farklı arayüz etiketiyle yenilenince yerel TLS seçicisinde mükerrer kayıt oluşmadı. Sınama hedefinin önceki şifreli yapılandırması ve grup üyeliği geri yüklendi. Otomatik CA hizmeti ve harici POST/PUT yayımı bu çalışmanın parçası değildir.

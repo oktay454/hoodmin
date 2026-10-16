@@ -144,6 +144,7 @@ fn safe_management_path(path: &str) -> bool {
 		&& uuid::Uuid::parse_str(parts[3]).is_ok()
 		&& ((parts[2] == "servers"
 			&& ["configuration", "certificates", "routing", "installation"].contains(&parts[4]))
+			|| (parts[2] == "farms" && ["publication", "certificates"].contains(&parts[4]))
 			|| (parts[2] == "tokens" && parts[4] == "policy"))
 }
 pub async fn middleware(request: Request, next: Next) -> Response {

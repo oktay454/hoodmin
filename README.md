@@ -8,7 +8,7 @@ Her kuruluş kendi sunucularını getirir (bring your own server, BYOS). Bir sun
 
 ## Durum
 
-Protokol çekirdeği ve kiracılı panel çalışıyor. VpnHood **9.0.856** ile gerçek .NET sözleşmesi ve uzak istemci bağlantısı doğrulandı. Üretime hazır dağıtım ve kapalı kaynak Manager ile tam özellik eşdeğerliği henüz tamamlanmadı. Çalışma ayrıntıları: [doğrulama kaydı](docs/dogrulama.md).
+Protokol çekirdeği ve kiracılı panel çalışıyor. VpnHood **9.0.856** ile gerçek .NET sözleşmesi ve uzak istemci bağlantısı doğrulandı. Üretime hazır dağıtım ve kapalı kaynak Manager ile tam özellik eşdeğerliği henüz tamamlanmadı. Çalışma ayrıntıları: [doğrulama kaydı](docs/dogrulama.md). Son tamamlanan iş ve devam sınırı: [duraklama kaydı](docs/calisma-durumu.md).
 
 ## Mevcut özellikler
 
@@ -16,6 +16,8 @@ Protokol çekirdeği ve kiracılı panel çalışıyor. VpnHood **9.0.856** ile 
 - Kaynak sözleşmesine göre 47 gelişmiş sunucu ayarı; tekrar kullanılabilir sunucu profilleri ve kiracı içinde toplu uygulama.
 - Erişim profilleri, ayrı yükleme/indirme hızı, toplam/dönem kotası, ilk kullanımdan başlayan ömür, deneme/ödül planları ve cihaz politikası.
 - Grup erişimi, kapasite/güce ve konuma göre yönlendirme, şifreli sunucu adresi yayımı ve erişim kodları.
+- Grup adres yenileme bağlantısıyla ulaşılamayan başlangıç sunucusundan uygun canlı üyeye geçiş; .NET ve gerçek istemci bağlantısıyla doğrulandı.
+- Grup PFX deposu; mevcut/yeni/gruba taşınan üyelere dağıtım, VPN adresi ve sunucu sırrını koruma.
 - Parolalı PFX içe aktarma, sertifika sabitleme ve süreli HTTP-01 doğrulama yanıtı. Otomatik CA alma/yenileme henüz tamamlanmadı.
 - Tarih/sunucu filtreli CPU, bellek, oturum ve hız grafikleri; ülkeye göre bildirilen cihaz sayıları. Anahtar açıklaması, müşteri/sipariş/destek kodu ve anahtar indirme.
 
@@ -69,7 +71,7 @@ Henüz `.deb` paketi yoktur. `scripts/setup-test-manager.sh` ve `scripts/setup-t
 ## Sınırlar ve kalan işler
 
 - Otomatik CA sertifikası alma/yenileme ve gerçek DNS doğrulaması için ayrıca sağlanacak VPN sunucusu bekleniyor; mevcut HTTP-01 yanıtı otomatik sertifika hizmeti değildir.
-- Şifreli adres kaynağı HTTPS GET olarak çalışır. Console'daki harici POST/PUT yayım işleri, ortak çiftlik sertifika deposunun tam iş akışı tamamlanmadı.
+- Şifreli sunucu/grup adres kaynağı HTTPS GET olarak çalışır. Console'daki harici POST/PUT yayım işleri ve gruba sunucu profili atayarak otomatik yayma henüz uygulanmadı.
 - `clientPolicies` istemciye duyurulur; ülke bazındaki kapalı kaynak ticari plan kararlarının birebir uygulandığı iddia edilmez. Ödüllü reklam için güvenilir sunucu doğrulayıcısı gerekir; doğrudan reklam ağı entegrasyonu yoktur.
 - `.deb`, üretim yedekleme/geri yükleme ve ana anahtar döndürme süreçleri tamamlanmadı. Kurulum işlerinin durumu kalıcıdır; kesilen işler otomatik yeniden çalıştırılmaz.
 - Kiracı oluşturma CLI'dadır; herkese açık kayıt/platform yönetim ekranı yoktur.

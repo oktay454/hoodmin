@@ -46,6 +46,8 @@ POST işlemleri paneldeki aynı işlevleri, kilitleri, denetim kaydını ve doğ
 | `/servers/{id}/credential` | `confirmation`, `confirmed:true`; kimlik yenilenince hedef ayarı da güncellenmeli |
 | `/servers/{id}/installation` | `host`, `port`, `username`, `fingerprint`, `password` **veya** `private_key`; gerekirse `sudo_password`, eski kayıtta `credential`; `confirmed:true` |
 | `/farms` | `name` |
+| `/farms/{id}/publication` | `version`, `confirmed:true`; grup anahtarları için adres yenilemeyi açar |
+| `/farms/{id}/certificates` | `base_code` = grup `version`, `pfx` Base64, `password`, `tls_name`, `make_default`, `confirmed:true`; mevcut/yeni üyelere ortak PFX dağıtır |
 | `/tokens` | `server`, `name`, `count` 1–100, `max_clients` 0–10000, `max_gib`, isteğe bağlı `profile`, RFC3339 `expires`; yanıt `keys:[{id,name,key}]` |
 | `/tokens/bulk` | boşlukla ayrılmış `ids`, `action` revoke/enable/quota/expiry; işlemine göre `max_gib`, `max_clients`, `expires` |
 | `/tokens/{id}/policy` | `policy`, `confirmed:true`; etkin oturumları kapatır |

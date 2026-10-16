@@ -60,6 +60,19 @@ if (args[0] == "check-config") {
 	Console.WriteLine("PASS: panel yapılandırması ve PKCS12 sertifikası gerçek .NET tipleriyle doğrulandı.");
 	return;
 }
+if(args[0]=="check-farm-token"){
+	var original=Token.FromAccessKey(File.ReadAllText(Path.Combine(work,"token-a.vh")));
+	var updated=ServerToken.Decrypt(original.ServerToken.Secret!,File.ReadAllText(Path.Combine(work,"encrypted-farm-token")));
+	var expected=JsonSerializer.Deserialize<ServerToken>(File.ReadAllText(Path.Combine(work,"expected-farm-target.json")))!;
+	if(!updated.Secret!.SequenceEqual(expected.Secret!) || !updated.CertificateHash!.SequenceEqual(expected.CertificateHash!) || !updated.HostEndPoints!.SequenceEqual(expected.HostEndPoints!))
+		throw new InvalidOperationException("Grup yayımı doğru hedef kimliğini taşımadı.");
+	if(!original.ServerToken.IsTokenUpdated(updated) || updated.Urls?.Length!=1 || !updated.Urls[0].Contains("/f/"))
+		throw new InvalidOperationException("Grup yayımı istemci yenileme sözleşmesine uymadı.");
+	original.ServerToken=updated;
+	PrivateWrite(Path.Combine(work,"updated-farm-token.vh"),original.ToAccessKey());
+	Console.WriteLine("PASS: .NET eski sunucu sırrıyla farklı sertifikalı hedefi çözdü ve güncel erişim anahtarını oluşturdu.");
+	return;
+}
 if (args[0] == "check-extended") {
 	var options = new JsonSerializerOptions(JsonSerializerDefaults.Web) { UnmappedMemberHandling = System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow };
 	var expected = JsonSerializer.Deserialize<ServerConfig>(File.ReadAllText(Path.Combine(work, "expected-settings.json")), options)!;

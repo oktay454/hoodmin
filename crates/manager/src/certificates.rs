@@ -62,3 +62,73 @@ pub fn describe(config: &Value) -> Vec<(String, String, String)> {
 		})
 		.collect()
 }
+
+pub fn dns_name(value: &Value) -> Option<String> {
+	let raw = STANDARD.decode(value["rawData"].as_str()?).ok()?;
+	let parsed = Pkcs12::from_der(&raw).ok()?.parse2("").ok()?;
+	let cert = parsed.cert?;
+	cert.subject_alt_names()
+		.and_then(|names| {
+			names
+				.iter()
+				.find_map(|name| name.dnsname().map(str::to_owned))
+		})
+		.or_else(|| {
+			cert.subject_name()
+				.entries_by_nid(openssl::nid::Nid::COMMONNAME)
+				.next()
+				.and_then(|entry| entry.data().to_string().ok())
+		})
+}
+fn certificate_hash(value: &Value) -> Option<String> {
+	let raw = STANDARD.decode(value["rawData"].as_str()?).ok()?;
+	let cert = Pkcs12::from_der(&raw).ok()?.parse2("").ok()?.cert?;
+	Some(STANDARD.encode(cert.digest(MessageDigest::sha1()).ok()?))
+}
+/// Native TLS listeners select an exact X509 DNS name, then fall back to the first certificate.
+/// Preserve the VPN connection address when replacing the default certificate.
+pub fn attach(
+	config: &mut Value,
+	certificate: Value,
+	hash: &str,
+	make_default: bool,
+) -> Result<()> {
+	let hostname = config["publicServerToken"]["hname"]
+		.as_str()
+		.unwrap_or_default()
+		.to_owned();
+	let advertised_hash = config["publicServerToken"]["ch"]
+		.as_str()
+		.unwrap_or_default()
+		.to_owned();
+	let certificate_dns =
+		dns_name(&certificate).ok_or_else(|| anyhow::anyhow!("Sertifika DNS adı okunamadı"))?;
+	let items = config["certificates"]
+		.as_array_mut()
+		.ok_or_else(|| anyhow::anyhow!("Sertifika listesi eksik"))?;
+	let replacing = items.iter().any(|old| {
+		dns_name(old).is_some_and(|dns| dns.eq_ignore_ascii_case(&certificate_dns))
+			&& certificate_hash(old).as_deref() == Some(advertised_hash.as_str())
+	});
+	let make_default = make_default || replacing;
+	items.retain(|old| {
+		let old_dns = dns_name(old);
+		old["commonName"] != certificate["commonName"]
+			&& old_dns.as_ref().is_none_or(|dns| {
+				!dns.eq_ignore_ascii_case(&certificate_dns)
+					&& !(make_default && dns.eq_ignore_ascii_case(&hostname))
+			})
+	});
+	ensure!(items.len() < 16, "En fazla 16 sertifika yüklenebilir");
+	if make_default {
+		items.insert(0, certificate);
+	} else {
+		items.push(certificate);
+	}
+	if make_default || certificate_dns.eq_ignore_ascii_case(&hostname) {
+		config["publicServerToken"]["ch"] = hash.into();
+		config["publicServerToken"]["ct"] = json!(chrono::Utc::now());
+		config["publicServerToken"]["isv"] = false.into();
+	}
+	Ok(())
+}

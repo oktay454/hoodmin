@@ -53,6 +53,15 @@ pub fn router(state: WebState) -> Router {
 		.route("/manage/bots", get(bots).post(create_bot))
 		.route("/manage/bots/{id}/revoke", post(revoke_bot))
 		.route("/manage/farms", post(add_farm))
+		.route(
+			"/manage/farms/{id}/publication",
+			get(farm_publication).post(enable_farm_publication),
+		)
+		.route(
+			"/manage/farms/{id}/certificates",
+			get(farm_certificates).post(upload_farm_certificate),
+		)
+		.route("/f/{tenant}/{farm}/{seed}", get(published_farm_token))
 		.route("/manage/servers", post(add_server))
 		.route("/manage/servers/{id}", post(edit_server))
 		.route(
@@ -655,24 +664,51 @@ async fn edit_server(
 	let user = require(&state, &headers, Some(&form.csrf), Permission::Write).await?;
 	let name = management::valid_name(&form.name).map_err(|_| bad("Sunucu adı geçersiz."))?;
 	let mut tx = state.store.begin(user.tenant).await?;
-	let encrypted: Vec<u8> =
-		query_scalar("SELECT configuration FROM servers WHERE tenant_id=$1 AND id=$2 FOR UPDATE")
+	let destination = optional_uuid(&form.farm)?;
+	if let Some(farm) = destination {
+		let owned: bool =
+			query_scalar("SELECT EXISTS(SELECT FROM farms WHERE tenant_id=$1 AND id=$2)")
+				.bind(user.tenant)
+				.bind(farm)
+				.fetch_one(&mut *tx)
+				.await?;
+		if !owned {
+			return Err(PanelError(
+				StatusCode::NOT_FOUND,
+				"Sunucu grubu bulunamadı.",
+			));
+		}
+	}
+	let shared =
+		crate::farms::load_certificates(&mut tx, &state.store.vault, user.tenant, destination)
+			.await?;
+	let row =
+		query("SELECT configuration,farm_id FROM servers WHERE tenant_id=$1 AND id=$2 FOR UPDATE")
 			.bind(user.tenant)
 			.bind(id)
 			.fetch_optional(&mut *tx)
 			.await?
 			.ok_or(PanelError(StatusCode::NOT_FOUND, "Sunucu bulunamadı."))?;
+	let encrypted: Vec<u8> = row.get("configuration");
+	let old_farm: Option<Uuid> = row.get("farm_id");
 	let context = format!("{}:{id}:config", user.tenant);
 	let mut config: serde_json::Value =
 		serde_json::from_slice(&state.store.vault.open(&encrypted, &context)?)
 			.map_err(anyhow::Error::from)?;
 	let (old_host, old_port) = management::endpoint(&config)?;
-	let endpoint_changed = management::update_endpoint(
+	let mut endpoint_changed = management::update_endpoint(
 		&mut config,
 		form.host.as_deref().unwrap_or(&old_host),
 		form.port.unwrap_or(old_port),
 	)
 	.map_err(|_| bad("DNS/IP veya port geçersiz."))?;
+	if old_farm != destination
+		&& let Some(shared) = shared
+	{
+		crate::farms::apply_certificates(&mut config, &shared)
+			.map_err(|_| bad("Grup sertifikası uygulanamadı."))?;
+		endpoint_changed = true;
+	}
 	if endpoint_changed {
 		let code = Uuid::new_v4().to_string();
 		config["configCode"] = code.clone().into();
@@ -2040,25 +2076,8 @@ async fn upload_certificate(
 			.open(&row.get::<Vec<u8>, _>("configuration"), &context)?,
 	)
 	.map_err(anyhow::Error::from)?;
-	let items = config["certificates"]
-		.as_array_mut()
-		.ok_or(bad("Sertifika dizisi eksik."))?;
-	items.retain(|c| c["commonName"] != certificate["commonName"]);
-	if items.len() >= 16 {
-		return Err(bad("En fazla 16 sertifika yüklenebilir."));
-	}
-	if form.make_default {
-		items.insert(0, certificate.clone());
-	} else {
-		items.push(certificate.clone());
-	}
-	if form.make_default {
-		config["publicServerToken"]["ch"] = hash.into();
-		config["publicServerToken"]["ct"] = json!(Utc::now());
-		// Pin the replacement certificate; no implicit transition to CA trust.
-		config["publicServerToken"]["isv"] = false.into();
-		config["publicServerToken"]["hname"] = certificate["commonName"].clone();
-	}
+	crate::certificates::attach(&mut config, certificate, &hash, form.make_default)
+		.map_err(|_| bad("Sertifika listesi veya sınırı geçersiz."))?;
 	let code = Uuid::new_v4().to_string();
 	config["configCode"] = code.clone().into();
 	query("UPDATE servers SET configuration=$3,config_code=$4 WHERE tenant_id=$1 AND id=$2")
@@ -2651,6 +2670,18 @@ macro_rules! json_read {
 }
 json_write!(api_add_server, ServerForm, add_server);
 json_write!(api_add_farm, FarmForm, add_farm);
+json_write!(
+	api_farm_publication,
+	Uuid,
+	FarmPublicationForm,
+	enable_farm_publication
+);
+json_write!(
+	api_farm_certificates,
+	Uuid,
+	CertificateForm,
+	upload_farm_certificate
+);
 json_write!(api_edit_server, Uuid, EditServerForm, edit_server);
 json_write!(
 	api_configuration,
@@ -2749,6 +2780,8 @@ fn management_api() -> Router<WebState> {
 		)
 		.route("/install-jobs/{id}", get(api_install_status))
 		.route("/farms", get(api_farms).post(api_add_farm))
+		.route("/farms/{id}/publication", post(api_farm_publication))
+		.route("/farms/{id}/certificates", post(api_farm_certificates))
 		.route("/tokens", get(api_tokens).post(api_add_tokens))
 		.route("/tokens/bulk", post(api_bulk_tokens))
 		.route("/tokens/{id}/policy", post(api_token_policy))
@@ -2828,7 +2861,7 @@ async fn api_list_result(
 			"SELECT jsonb_build_object('id',id,'name',name,'settings',settings,'management',management,'version',version) AS item FROM server_profiles WHERE tenant_id=$1 ORDER BY id LIMIT 101 OFFSET $2"
 		}
 		"farms" => {
-			"SELECT jsonb_build_object('id',id,'name',name,'management',management) AS item FROM farms WHERE tenant_id=$1 ORDER BY id LIMIT 101 OFFSET $2"
+			"SELECT jsonb_build_object('id',id,'name',name,'management',management,'publication_origin',publication_origin,'version',version) AS item FROM farms WHERE tenant_id=$1 ORDER BY id LIMIT 101 OFFSET $2"
 		}
 		"bots" => {
 			"SELECT jsonb_build_object('id',b.id,'name',b.name,'role',m.role,'revoked',b.revoked,'expires_at',b.expires_at) AS item FROM bots b JOIN memberships m ON m.tenant_id=b.tenant_id AND m.account_id=b.id WHERE b.tenant_id=$1 ORDER BY b.id LIMIT 101 OFFSET $2"
@@ -2849,6 +2882,283 @@ async fn api_list_result(
 	let more = rows.len() > 100;
 	rows.truncate(100);
 	Ok(axum::Json(json!({"items":rows,"page":filter.p,"hasMore":more})).into_response())
+}
+
+async fn farm_publication(
+	State(state): State<WebState>,
+	headers: HeaderMap,
+	Path(id): Path<Uuid>,
+) -> Result<Response, PanelError> {
+	let user = require(&state, &headers, None, Permission::Read).await?;
+	let mut tx = state.store.begin(user.tenant).await?;
+	let row =
+		query("SELECT name,publication_origin,version FROM farms WHERE tenant_id=$1 AND id=$2")
+			.bind(user.tenant)
+			.bind(id)
+			.fetch_optional(&mut *tx)
+			.await?
+			.ok_or(PanelError(
+				StatusCode::NOT_FOUND,
+				"Sunucu grubu bulunamadı.",
+			))?;
+	Ok(views::farm_publication(
+		&user,
+		id,
+		&row.get::<String, _>("name"),
+		row.get::<Option<String>, _>("publication_origin").is_some(),
+		row.get("version"),
+	)
+	.into_response())
+}
+#[derive(Deserialize)]
+struct FarmPublicationForm {
+	#[serde(default)]
+	csrf: String,
+	version: Uuid,
+	#[serde(default)]
+	confirmed: bool,
+}
+async fn enable_farm_publication(
+	State(state): State<WebState>,
+	headers: HeaderMap,
+	Path(id): Path<Uuid>,
+	Form(form): Form<FarmPublicationForm>,
+) -> Result<Response, PanelError> {
+	let user = require(&state, &headers, Some(&form.csrf), Permission::Write).await?;
+	if !form.confirmed {
+		return Err(bad("Grup adresi yayımını onaylayın."));
+	}
+	let mut tx = state.store.begin(user.tenant).await?;
+	let version: Uuid =
+		query_scalar("SELECT version FROM farms WHERE tenant_id=$1 AND id=$2 FOR UPDATE")
+			.bind(user.tenant)
+			.bind(id)
+			.fetch_optional(&mut *tx)
+			.await?
+			.ok_or(PanelError(
+				StatusCode::NOT_FOUND,
+				"Sunucu grubu bulunamadı.",
+			))?;
+	if version != form.version {
+		return Err(PanelError(
+			StatusCode::CONFLICT,
+			"Grup değişti. Sayfayı yenileyin.",
+		));
+	}
+	query("UPDATE farms SET publication_origin=$3,version=$4 WHERE tenant_id=$1 AND id=$2")
+		.bind(user.tenant)
+		.bind(id)
+		.bind(&state.origin)
+		.bind(Uuid::new_v4())
+		.execute(&mut *tx)
+		.await?;
+	auth::audit(
+		&mut tx,
+		&user,
+		"Grup adresi yayımı etkinleştirildi",
+		&id.to_string(),
+	)
+	.await?;
+	tx.commit().await?;
+	Ok(Redirect::to(&format!("/manage/farms/{id}/publication")).into_response())
+}
+async fn published_farm_token(
+	State(state): State<WebState>,
+	Path((tenant, farm, seed)): Path<(Uuid, Uuid, Uuid)>,
+) -> Result<Response, PanelError> {
+	let mut tx = state.store.begin(tenant).await?;
+	let seed_bytes:Vec<u8>=query_scalar("SELECT s.configuration FROM servers s JOIN farms f ON f.tenant_id=s.tenant_id AND f.id=s.farm_id WHERE s.tenant_id=$1 AND s.id=$2 AND s.farm_id=$3 AND f.publication_origin IS NOT NULL").bind(tenant).bind(seed).bind(farm).fetch_optional(&mut *tx).await?.ok_or(PanelError(StatusCode::NOT_FOUND,"Yayımlama kapalı."))?;
+	let seed_config: serde_json::Value = serde_json::from_slice(
+		&state
+			.store
+			.vault
+			.open(&seed_bytes, &format!("{tenant}:{seed}:config"))?,
+	)
+	.map_err(anyhow::Error::from)?;
+	let original: vpnhood_protocol::ServerToken =
+		serde_json::from_value(seed_config["publicServerToken"].clone())
+			.map_err(anyhow::Error::from)?;
+	let target = crate::farms::publication_target(&mut tx, tenant, farm)
+		.await?
+		.ok_or(PanelError(
+			StatusCode::SERVICE_UNAVAILABLE,
+			"Uygun grup sunucusu yok.",
+		))?;
+	let target_bytes: Vec<u8> = query_scalar(
+		"SELECT configuration FROM servers WHERE tenant_id=$1 AND id=$2 AND farm_id=$3",
+	)
+	.bind(tenant)
+	.bind(target)
+	.bind(farm)
+	.fetch_one(&mut *tx)
+	.await?;
+	let config: serde_json::Value = serde_json::from_slice(
+		&state
+			.store
+			.vault
+			.open(&target_bytes, &format!("{tenant}:{target}:config"))?,
+	)
+	.map_err(anyhow::Error::from)?;
+	let mut token =
+		crate::farms::advertised_token(&mut tx, tenant, target, Some(farm), &config).await?;
+	token.ct = Utc::now();
+	let encrypted = token
+		.encrypt_for(&original.sec, &crate::crypto::random::<16>())
+		.map_err(anyhow::Error::msg)?;
+	Ok((
+		[(header::CONTENT_TYPE, "text/plain; charset=utf-8")],
+		encrypted,
+	)
+		.into_response())
+}
+
+async fn farm_certificates(
+	State(state): State<WebState>,
+	headers: HeaderMap,
+	Path(id): Path<Uuid>,
+) -> Result<Response, PanelError> {
+	let user = require(&state, &headers, None, Permission::Read).await?;
+	let mut tx = state.store.begin(user.tenant).await?;
+	let row = query("SELECT name,version,certificates FROM farms WHERE tenant_id=$1 AND id=$2")
+		.bind(user.tenant)
+		.bind(id)
+		.fetch_optional(&mut *tx)
+		.await?
+		.ok_or(PanelError(
+			StatusCode::NOT_FOUND,
+			"Sunucu grubu bulunamadı.",
+		))?;
+	let shared: serde_json::Value = match row.get::<Option<Vec<u8>>, _>("certificates") {
+		Some(bytes) => serde_json::from_slice(
+			&state
+				.store
+				.vault
+				.open(&bytes, &format!("{}:{id}:certificates", user.tenant))?,
+		)
+		.map_err(anyhow::Error::from)?,
+		None => json!([]),
+	};
+	let config = json!({"certificates":shared.as_array().into_iter().flatten().map(|e|e["certificate"].clone()).collect::<Vec<_>>()});
+	Ok(views::farm_certificates(
+		&user,
+		id,
+		&row.get::<String, _>("name"),
+		row.get("version"),
+		crate::certificates::describe(&config),
+	)
+	.into_response())
+}
+async fn upload_farm_certificate(
+	State(state): State<WebState>,
+	headers: HeaderMap,
+	Path(id): Path<Uuid>,
+	Form(form): Form<CertificateForm>,
+) -> Result<Response, PanelError> {
+	let user = require(&state, &headers, Some(&form.csrf), Permission::Write).await?;
+	if !form.confirmed {
+		return Err(bad("Grup üyelerine sertifika dağıtımını onaylayın."));
+	}
+	let name = management::normalize_host(&form.tls_name).map_err(|_| bad("TLS adı geçersiz."))?;
+	let version = Uuid::parse_str(&form.base_code).map_err(|_| bad("Grup sürümü geçersiz."))?;
+	let (certificate, hash) = tokio::task::spawn_blocking(move || {
+		crate::certificates::import_pfx(&form.pfx, &form.password, &name)
+	})
+	.await
+	.map_err(|_| bad("PFX işlenemedi."))?
+	.map_err(|_| bad("PFX, parola, özel anahtar veya sertifika zamanı geçersiz."))?;
+	let mut tx = state.store.begin(user.tenant).await?;
+	let row =
+		query("SELECT version,certificates FROM farms WHERE tenant_id=$1 AND id=$2 FOR UPDATE")
+			.bind(user.tenant)
+			.bind(id)
+			.fetch_optional(&mut *tx)
+			.await?
+			.ok_or(PanelError(
+				StatusCode::NOT_FOUND,
+				"Sunucu grubu bulunamadı.",
+			))?;
+	if row.get::<Uuid, _>("version") != version {
+		return Err(PanelError(
+			StatusCode::CONFLICT,
+			"Grup değişti. Sayfayı yenileyin.",
+		));
+	}
+	let context = format!("{}:{id}:certificates", user.tenant);
+	let mut shared: serde_json::Value = match row.get::<Option<Vec<u8>>, _>("certificates") {
+		Some(bytes) => serde_json::from_slice(&state.store.vault.open(&bytes, &context)?)
+			.map_err(anyhow::Error::from)?,
+		None => json!([]),
+	};
+	let entries = shared
+		.as_array_mut()
+		.ok_or(bad("Grup sertifikası uygulanamadı."))?;
+	let dns = crate::certificates::dns_name(&certificate);
+	let same = |entry: &serde_json::Value| {
+		entry["certificate"]["commonName"] == certificate["commonName"]
+			|| (dns.is_some() && crate::certificates::dns_name(&entry["certificate"]) == dns)
+	};
+	let default = form.make_default || entries.iter().any(|e| same(e) && e["default"] == true);
+	entries.retain(|e| !same(e));
+	if entries.len() >= 16 {
+		return Err(bad("En fazla 16 sertifika yüklenebilir."));
+	}
+	if default {
+		for entry in entries.iter_mut() {
+			entry["default"] = false.into();
+		}
+	}
+	entries.push(json!({"certificate":certificate,"hash":hash,"default":default}));
+	let servers = query(
+		"SELECT id,configuration FROM servers WHERE tenant_id=$1 AND farm_id=$2 ORDER BY id FOR UPDATE",
+	)
+	.bind(user.tenant)
+	.bind(id)
+	.fetch_all(&mut *tx)
+	.await?;
+	for row in servers {
+		let server: Uuid = row.get("id");
+		let context = format!("{}:{server}:config", user.tenant);
+		let mut config: serde_json::Value = serde_json::from_slice(
+			&state
+				.store
+				.vault
+				.open(&row.get::<Vec<u8>, _>("configuration"), &context)?,
+		)
+		.map_err(anyhow::Error::from)?;
+		crate::farms::apply_certificates(&mut config, &shared)
+			.map_err(|_| bad("Grup sertifikası uygulanamadı."))?;
+		let code = Uuid::new_v4().to_string();
+		config["configCode"] = json!(code);
+		query("UPDATE servers SET configuration=$3,config_code=$4 WHERE tenant_id=$1 AND id=$2")
+			.bind(user.tenant)
+			.bind(server)
+			.bind(state.store.vault.seal(
+				&serde_json::to_vec(&config).map_err(anyhow::Error::from)?,
+				&context,
+			)?)
+			.bind(code)
+			.execute(&mut *tx)
+			.await?;
+	}
+	query("UPDATE farms SET certificates=$3,version=$4 WHERE tenant_id=$1 AND id=$2")
+		.bind(user.tenant)
+		.bind(id)
+		.bind(state.store.vault.seal(
+			&serde_json::to_vec(&shared).map_err(anyhow::Error::from)?,
+			&context,
+		)?)
+		.bind(Uuid::new_v4())
+		.execute(&mut *tx)
+		.await?;
+	auth::audit(
+		&mut tx,
+		&user,
+		"Grup sertifikası üyelere dağıtıldı",
+		&id.to_string(),
+	)
+	.await?;
+	tx.commit().await?;
+	Ok(Redirect::to(&format!("/manage/farms/{id}/certificates")).into_response())
 }
 
 #[cfg(test)]

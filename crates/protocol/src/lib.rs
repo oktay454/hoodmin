@@ -374,7 +374,11 @@ pub struct AccessInfo {
 impl ServerToken {
 	/// .NET ServerToken.Encrypt: AES-128-CBC/PKCS7, Base64(IV).Base64(ciphertext).
 	pub fn encrypt(&self, iv: &[u8; 16]) -> Result<String, String> {
-		let cipher = cbc::Encryptor::<aes::Aes128>::new_from_slices(&self.sec, iv)
+		self.encrypt_for(&self.sec, iv)
+	}
+	/// A URL update is encrypted for the previous token, and may contain a different target secret.
+	pub fn encrypt_for(&self, key: &[u8], iv: &[u8; 16]) -> Result<String, String> {
+		let cipher = cbc::Encryptor::<aes::Aes128>::new_from_slices(key, iv)
 			.map_err(|_| "ServerToken secret must be 16 bytes")?;
 		let plaintext = serde_json::to_vec(self).map_err(|e| e.to_string())?;
 		Ok(format!(

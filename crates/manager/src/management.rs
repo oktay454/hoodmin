@@ -22,7 +22,7 @@ use serde_json::{Value, json};
 use sqlx_core::{query::query, query_scalar::query_scalar, row::Row, transaction::Transaction};
 use sqlx_postgres::Postgres;
 use uuid::Uuid;
-use vpnhood_protocol::{AccessToken, ServerToken};
+use vpnhood_protocol::AccessToken;
 
 pub fn valid_name(value: &str) -> Result<String> {
 	let value = value.trim();
@@ -192,6 +192,9 @@ pub async fn register(
 	mut config: Value,
 ) -> Result<(Uuid, String)> {
 	use sha2::{Digest, Sha256};
+	if let Some(shared) = crate::farms::load_certificates(tx, vault, tenant, farm).await? {
+		crate::farms::apply_certificates(&mut config, &shared)?;
+	}
 	let id = Uuid::new_v4();
 	let code = Uuid::new_v4().to_string();
 	config["configCode"] = code.clone().into();
@@ -246,6 +249,8 @@ pub async fn create_tokens(
 			.fetch_one(&mut **tx)
 			.await?;
 	let token_farm = crate::farms::token_farm(&policy, server_farm)?;
+	let advertised =
+		crate::farms::advertised_token(tx, tenant, server, token_farm, &config).await?;
 	let mut keys = Vec::new();
 	for index in 0..count {
 		let token_name = if count > 1 {
@@ -267,7 +272,7 @@ pub async fn create_tokens(
 			tid: id.to_string(),
 			iat: Utc::now(),
 			sec: secret,
-			ser: serde_json::from_value::<ServerToken>(config["publicServerToken"].clone())?,
+			ser: advertised.clone(),
 			tags: vec![],
 		};
 		keys.push((id, token_name, token.to_access_key()?));
@@ -296,6 +301,8 @@ pub async fn access_key(
 	let config: Value =
 		serde_json::from_slice(&vault.open(&bytes, &format!("{tenant}:{server}:config"))?)?;
 	let policy: AccessPolicy = serde_json::from_value(token.get("policy"))?;
+	let advertised =
+		crate::farms::advertised_token(tx, tenant, server, token.get("farm_id"), &config).await?;
 	Ok(AccessToken {
 		v: 4,
 		name: token.get("name"),
@@ -303,7 +310,7 @@ pub async fn access_key(
 		tid: id.to_string(),
 		iat: token.get("created_at"),
 		sec: vault.open(token.get("secret"), &format!("{tenant}:{id}:token"))?,
-		ser: serde_json::from_value(config["publicServerToken"].clone())?,
+		ser: advertised,
 		tags: vec![],
 		is_public: policy.is_public,
 		client_policies: policy.client_policies,

@@ -62,6 +62,10 @@ SQL
 	then
 		runuser -u postgres -- psql -v ON_ERROR_STOP=1 -d vpnhood_manager -f "${PROJE_DIZINI}/migrations/0007_team_bots.sql"
 	fi
+	if [ "$(runuser -u postgres -- psql -d vpnhood_manager -Atqc "SELECT count(*) FROM information_schema.columns WHERE table_name='farms' AND column_name='publication_origin'")" -eq 0 ]
+	then
+		runuser -u postgres -- psql -v ON_ERROR_STOP=1 -d vpnhood_manager -f "${PROJE_DIZINI}/migrations/0008_farm_publication.sql"
+	fi
 	runuser -u postgres -- psql -v ON_ERROR_STOP=1 -d vpnhood_manager <<'SQL'
 GRANT CONNECT ON DATABASE vpnhood_manager TO vhmgr;
 GRANT USAGE ON SCHEMA public TO vhmgr;

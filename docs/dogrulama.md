@@ -134,3 +134,12 @@ Kullanım ve uygulama notları: `docs/arayuz-ve-diller.md`. Yeni paket/bağıml�
 - Süreli ve iptal edilebilir bot anahtarları, yalnız özet saklama, parola girişini kapatma, kiracı sınırı ve JSON yönetim API'si uygulandı. API, panelin doğrulama/kilit/denetim işlevlerini paylaşır.
 - `test_team_bots.py` geçti; diğer beş bütünleşim dizisi rol/kimlik değişikliğinden sonra yeniden geçti. Clippy, 20 Rust testi ve release derlemesi başarılı.
 - Veritabanı ve önceki ikili dosya 0007 şema değişikliğinden önce özel sınama yedeğine alındı. Üç dil çevirileri ve API belgesi eklendi.
+
+## Grup adres yenilemesi ve ortak PFX — 17 Ekim 2026
+
+- Şifreli grup URL'si ulaşılamayan TCP2999 başlangıç adresinden gerçek TCP2550 sunucusuna geçişi sağladı. Gerçek .NET eski sırla yeni hedef belirtecini çözdü; yenilenen anahtarla gerçek VpnHood istemcisi bağlandı. Tam mobil uygulamanın profil ekranı çalıştırılmış sayılmaz.
+- Ortak grup PFX deposu mevcut/yeni/gruba taşınan üyeye dağıtıldı; DNS bağlantı adresi ve sunucu sırrı korundu. Yanlış parola 400, onaysız dağıtım 400, gözlemci 403, başka kiracı 404, eski sürüm 409 doğrulandı. Yerel TLS seçicisindeki aynı DNS adı çakışması önlendi. Sınama hedefinin önceki şifreli yapılandırması/grubu geri yüklendi.
+- Son derleme: `cargo fmt --check`, uyarısız Clippy, 20 Rust testi ve kilitli release derlemesi başarılı. Panel, sözleşme, farm/ödül, profiller/raporlar, tercihler, ekip/bot, grup yayımı, grup PFX ve native özellikler olmak üzere dokuz bütünleşim dizisi geçti. Katalog yeniden üretildi ve gömülü katalogla aynı bulundu; upstream kaynak ağacı değişmedi.
+- Tam native özellik dizisi tekrar geçti: PFX/TLS, gerçek HTTP01/404, TCP 12 MiB, QUIC 256 KiB, 1 Mbps sınırı ve aynı hedefi engelleme. Son 2 MiB indirme 16,70 saniye sürdü. Son yapılandırma uygulanmış; HTTP01 ve özel ağ erişimi kapalı. Kullanıcının eski `vpnhood-test` kaydı değiştirilmedi.
+- Grup sertifikası/yayım sayfalarında üç dil ve RTL/LTR HTTPS ile kontrol edildi. Bot ekranı mevcut kullanıcı oturumuyla salt okunur incelendi; ekran kaydı `hoodmin-bot-yonetimi.jpg`. Üç benioku bağlantısı, çeviri anahtarları ve Git boşluk/sır taraması başarılı. Yeni sistem paketi kurulmadı.
+- Kullanıcının isteğiyle bu kilometre taşından sonra duraklanır. Harici POST/PUT yayımı ve sonraki işler başlatılmadı; devam noktası [çalışma durumu](calisma-durumu.md).
