@@ -39,7 +39,7 @@ VPS'teki Let's Encrypt sertifikasından ayrı olarak arka uçta bir sınama CA's
 - Kapsayıcıya VPS'in kesin IP adresi için güven eklendi; Nginx yapılandırma sınaması başarılı.
 - Dağıtılan açık CA kopyası kaynak sertifikayla SHA-256 üzerinden eşleşiyor; arka uç sertifikasının `yapayzeka` adı doğrulandı.
 - VPS sunucu bloğu geçici loopback portları, mevcut sınama sertifikaları ve yerel arka uç adresiyle Nginx 1.26.3 üzerinde sınandı. TLS doğrulaması açıkken ters vekilden `/healthz` başarılı; HTTP yönlendirmesi yolu ve sorguyu koruyor.
-- VPS'in gerçek sertifikası ve genel DNS'i henüz doğrulanmadı. `VHM_PUBLIC_ORIGIN` değişikliği VPS devreye alınana kadar bekliyor.
+- VPS devreye alındı. Genel DNS ve güvenilir HTTPS bağlantısı doğrulandı; `VHM_PUBLIC_ORIGIN=https://vhm-test.oktayaktogan.com.tr` uygulandı. Eski panel yönlendirmesi yeni alan adına geçirildi; `/api/agent/` eski yerel adresinde korunuyor.
 
 ## Devreye alma doğrulaması
 
@@ -52,3 +52,12 @@ curl --fail --show-error https://vhm-test.oktayaktogan.com.tr/healthz
 Ardından tarayıcıda `/panel` üzerinden giriş, form kaynak doğrulaması ve canlı olay akışı sınanır. VPS'in gerçek sertifikası ve DNS kaydı bu aşamada doğrulanır.
 
 Yönergeler: [Nginx vekil modülü](https://nginx.org/en/docs/http/ngx_http_proxy_module.html).
+
+## Tamamlanan geçiş sınaması — 16 Ekim 2026
+
+- Uygulama içi tarayıcıda sertifika uyarısı olmadan sınama hesabıyla oturum açıldı.
+- Yeni kaynak (Origin) ile giriş başarılı; eski IP kaynağı 403 ile reddediliyor. Oturum çerezinin `__Host`, `Secure`, `HttpOnly`, `SameSite=Strict` ve kök yol özellikleri doğrulandı.
+- VPS üzerinden iki ardışık canlı sayaç (SSE) bildirimi alındı. HTTP sınama oturumu kapatıldı; kullanıcıya gösterilen tarayıcı oturumu açık bırakıldı.
+- Sunucular, erişim anahtarları, VPN oturumları, denetim kaydı ve panel kullanıcıları tarayıcıda gezildi. Sunucu formu 300 piksel genişliğinde; ad kutusu formun içinde ve etiketi üstünde. Masaüstünde sayfa yatay taşmıyor.
+- Hizmetin canlı bağlantılar nedeniyle kapanışta uzun beklemesini sınırlamak için dağıtım ek ayarına (drop-in) `TimeoutStopSec=15s` eklendi.
+- Mevcut “Sınama B” kaydı çevrimdışı; canlı sayaç akışının çalışması VPN sunucusunun çevrimiçi olduğu anlamına gelmez.

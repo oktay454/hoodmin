@@ -36,4 +36,4 @@ Cihaz sayımı ve oturum açma aynı anahtar satırı kilidi altında yapılır.
 
 ## Sınama yerleşimi
 
-`yapayzeka` (10.0.3.236): araç zinciri, PostgreSQL, Rust yönetici ve Nginx. Panel `https://yapayzeka:3443`; Rust `127.0.0.1:3080`. `vpnhood` (10.0.3.220): mevcut gerçek VpnHood sunucusu port 2443, panelden oluşturulan ayrı sınama sunucusu port 2444. Ağ lxcbr0. Mevcut Nginx port 80 ile çakışma yoktur. Ek kapsayıcı henüz gerekmemiştir.
+`yapayzeka` (10.0.3.236): araç zinciri, PostgreSQL, Rust yönetici ve Nginx. Panel `https://vhm-test.oktayaktogan.com.tr`; VPS Nginx (`43.229.92.120`), `https://46.196.34.83:40443` üzerinden kapsayıcı Nginx'ine bağlanır. Rust `127.0.0.1:3080`. Eski `https://yapayzeka:3443/api/agent/` sınama sunucuları için korunur. Geçiş ayrıntıları `docs/vps-ters-vekil.md` içindedir. `vpnhood` (10.0.3.220): mevcut gerçek VpnHood sunucusu port 2443, panelden oluşturulan ayrı sınama sunucusu port 2444. Ağ lxcbr0. Mevcut Nginx port 80 ile çakışma yoktur. Ek kapsayıcı henüz gerekmemiştir.
