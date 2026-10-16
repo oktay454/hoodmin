@@ -21,12 +21,14 @@ The protocol core and tenant panel work. Compatibility with VpnHood **9.0.856** 
 
 - Turkish, Arabic and English interface; Arabic RTL layout; light/dark themes with a sun/moon button.
 - Overview, servers, access keys, VPN sessions, panel users, audit trail and account settings.
-- Admin, operator and viewer roles; user/password management and protection of the last active administrator.
+- Owner, admin, operator, access token writer and viewer roles; user/password management and protection of the last active administrator.
 - Server/group registration; editable name, IP/FQDN, TCP port and group; maintenance mode. Credential rotation requires explicit confirmation and rejects stale confirmation reuse.
 - VpnHood-compatible `vh://` keys; create 1–100 keys per operation; bulk revoke/enable/quota/expiry updates, search and pagination.
 - Traffic, device and expiry limits; session termination decisions persist until the server acknowledges them.
 - Live summary counters through SSE, server status, CSV usage export and contextual help dialogs.
 - PostgreSQL FORCE RLS, tenant-aware foreign keys and append-only auditing; Argon2id, AES-256-GCM, CSRF/Origin checks and login attempt limits.
+
+Bots have expiring/revocable API keys and a JSON management API using the panel's authorization checks. [API documentation](docs/yonetim-api.md).
 
 ## Architecture and repository
 
@@ -67,7 +69,7 @@ Create the initial account with the local `create-account` command or `scripts/b
 ## Limitations and remaining work
 
 - Real DNS/automatic certificate validation awaits a separate VPN server. HTTP-01 relay is not an automatic certificate service.
-- Address publishing supports HTTPS GET. External POST/PUT publishing jobs, a shared farm certificate store, five-role equivalence and bot management APIs remain unfinished.
+- Address publishing supports HTTPS GET. External POST/PUT publishing jobs, the complete shared farm certificate workflow remain unfinished.
 - Client policies are advertised; closed-source commercial country-plan decisions are not claimed to be identical. Rewarded ads require a trusted server verifier, not an unverified client report or direct ad-network integration.
 - Debian packaging, production backup/restore and master-key rotation are unfinished. Job states persist, but interrupted installations are not retried automatically.
 - Tenant creation uses CLI; public signup/platform administration is absent.

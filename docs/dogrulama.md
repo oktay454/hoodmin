@@ -127,3 +127,10 @@ Kullanım ve uygulama notları: `docs/arayuz-ve-diller.md`. Yeni paket/bağıml�
 - Debian önceliği korundu: iki kapsayıcıya Microsoft deposundan `libmsquic 2.6.3` ve Debian'dan `libnuma1`; vpnhood kapsayıcısına ayrıca Debian'dan `sudo` kuruldu.
 - Yeni ekranlar tarayıcıda Türkçe/İngilizce/Arapça kontrol edildi. JSON düzenleyicilerinin genişliği ve sayfa boşlukları görsel kontrolde düzeltilmiştir.
 - Kapsam matrisi ve doğrulanmamış işler `docs/protokol-uyumlulugu.md` içinde ayrıdır. Tam kapalı kaynak Console eşdeğerliği veya üretime hazır paket iddiası yoktur.
+
+## Ekip rolleri ve bot API — 17 Ekim 2026
+
+- Owner/admin/operator/token_writer/viewer yetki sınırları ve son sahip koruması eklendi. Mevcut roller otomatik değiştirilmedi.
+- Süreli ve iptal edilebilir bot anahtarları, yalnız özet saklama, parola girişini kapatma, kiracı sınırı ve JSON yönetim API'si uygulandı. API, panelin doğrulama/kilit/denetim işlevlerini paylaşır.
+- `test_team_bots.py` geçti; diğer beş bütünleşim dizisi rol/kimlik değişikliğinden sonra yeniden geçti. Clippy, 20 Rust testi ve release derlemesi başarılı.
+- Veritabanı ve önceki ikili dosya 0007 şema değişikliğinden önce özel sınama yedeğine alındı. Üç dil çevirileri ve API belgesi eklendi.

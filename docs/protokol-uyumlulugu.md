@@ -116,10 +116,16 @@ Console'da görünen UseUdpProxy2, bu kaynakta ve hazır sunucunun son uygulanan
 
 - Kullanıcının ayrıca vereceği DNS/TCP80 erişimli VPN sunucusunda otomatik CA üretimi ve yenileme; mevcut HTTP-01 köprüsü bunun tamamı değildir.
 - Console'un harici POST/PUT token yayımı ve çiftlik ortak sertifika deposu.
-- Beş ekip rolünün ayrıntılı karşılığı ve bot yönetim API'si. Mevcut üç rol ve agent API bunların yerine geçmiş sayılmaz.
+- Beş ekip rolü ve bağımsız bot yönetim API'si son aşamada eklendi; Console'un özel yönetim API sözleşmesiyle birebir aynı olduğu iddia edilmez.
 - İstemci politikalarının (`cpols`) ülkeye göre ticari karar kuralları. Kaynak, bu kararların kapalı kaynak sunucu tarafındaki anlamını bütünüyle tanımlamaz; root politika süreleri Hoodmin'de açıkça seçilir.
 - Locked IPs kaydının çalışma etkisi, bulut IP siparişi ve markalama bu kaynak sözleşmesinden çıkarılamaz; gözlenmeyen davranış uydurulmadı.
 - UDP kullanıcı yükü, işletim sistemi VPN yönlendirmesi, kesinti ve uzun süreli yük; her kernel ayarının desteklenmeyen LXC yetkileriyle çalıştığı iddia edilmez.
 - Debian paketi ve üretim kurtarma/ana anahtar döndürme işleri ayrıca tamamlanacak.
 
 Sınama için yalnız ayrılmış kapsayıcının `/opt/VpnHoodServer` kurulumu değiştirildi; kullanıcının eski `vpnhood-test` hizmeti ve kaynak ağacındaki sunucu uygulaması yeniden derlenmedi. Yeni sertifika yalnız bu sınama kaydındadır. Geçici SSH hesabı/anahtarı, özel ağ erişimi ve HTTP80 dinleyicisi sınama sonunda kapatıldı.
+
+## Ekip ve bot API doğrulaması — 17 Ekim 2026
+
+Beş rol eklendi; mevcut hesaplar kendiliğinden yükseltilmedi. Sahip ataması yalnız sahip tarafından yapılabilir; son etkin sahip ve yönetici korunur. Anahtar yazarı sunucu ayarı değiştiremez. Botlar rol ve son tarihle oluşturulur; anahtar özeti saklanır, parola girişi kapalıdır, insan üye yolundan sahip rolü alamazlar.
+
+`tests/test_team_bots.py` gerçek HTTPS/PostgreSQL ile olumlu ve olumsuz yetki sınamalarını geçti: eski ayar 409, bozuk/geçersiz/iptal edilmiş/süresi dolmuş bot 401, başka kiracının botu 404, salt okunur sır indirme ve yetki yükseltme 403. Bot anahtarıyla toplu VPN anahtarı ve sunucu oluşturma, JSON ayarı kaydetme doğrulandı. Panel, sözleşme, farm/ödül, profil/rapor ve tema/dil sınamaları bu değişiklikten sonra yeniden geçti. API girişleri panelin aynı işlevlerini kullanır; alanlar ve durum kodları [API belgesinde](yonetim-api.md) listelenmiştir.

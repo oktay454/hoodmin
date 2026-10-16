@@ -130,6 +130,7 @@ fn safe_management_path(path: &str) -> bool {
 		"/manage/profiles",
 		"/manage/server-profiles",
 		"/manage/integrations",
+		"/manage/bots",
 		"/reports",
 	]
 	.contains(&path)

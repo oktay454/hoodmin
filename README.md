@@ -21,12 +21,14 @@ Protokol çekirdeği ve kiracılı panel çalışıyor. VpnHood **9.0.856** ile 
 
 - Türkçe, Arapça ve İngilizce arayüz; Arapçada sağdan sola düzen (RTL), açık/koyu tema ve güneş/ay düğmesi.
 - Genel bakış, sunucular, erişim anahtarları, VPN oturumları, panel kullanıcıları, denetim kaydı ve hesap ayarları.
-- Yönetici (admin), işletmen (operator), gözlemci (viewer) rolleri; kullanıcı ve parola yönetimi, son etkin yönetici koruması.
+- Sahip (owner), yönetici (admin), işletmen (operator), erişim anahtarı yazarı (token_writer), gözlemci (viewer) rolleri; kullanıcı ve parola yönetimi, son etkin yönetici koruması.
 - Sunucu/grup kaydı; ad, IP/FQDN, TCP portu ve grup düzenleme; bakım modu. Bağlantı kimliği yenilemede açık onay ve eski onayın tekrar kullanımına karşı koruma.
 - VpnHood istemcileriyle uyumlu `vh://` erişim anahtarları; işlem başına 1–100 anahtar üretimi, toplu iptal/etkinleştirme/kota/süre güncelleme, arama ve sayfalama.
 - Trafik, cihaz ve son kullanma sınırları; oturum sonlandırma kararının sunucu onayına kadar yeniden iletilmesi.
 - Canlı özet sayaçları (SSE), sunucu durumu ve CSV kullanım raporu; kısa yardım pencereleri.
 - PostgreSQL zorunlu satır düzeyi güvenliği (FORCE RLS), kiracılı dış anahtarlar, yalnız eklenebilir denetim kaydı; Argon2id, AES-256-GCM, CSRF/Origin denetimi ve giriş denemesi sınırlaması.
+
+Botlar için süreli/iptal edilebilir anahtar ve panelle aynı yetki denetimini kullanan JSON yönetim API'si vardır. [API belgesi](docs/yonetim-api.md).
 
 ## Mimari ve çalışma alanı
 
@@ -67,7 +69,7 @@ Henüz `.deb` paketi yoktur. `scripts/setup-test-manager.sh` ve `scripts/setup-t
 ## Sınırlar ve kalan işler
 
 - Otomatik CA sertifikası alma/yenileme ve gerçek DNS doğrulaması için ayrıca sağlanacak VPN sunucusu bekleniyor; mevcut HTTP-01 yanıtı otomatik sertifika hizmeti değildir.
-- Şifreli adres kaynağı HTTPS GET olarak çalışır. Console'daki harici POST/PUT yayım işleri, ortak çiftlik sertifika deposu, beş rolün tam karşılığı ve bot yönetim API'si tamamlanmadı.
+- Şifreli adres kaynağı HTTPS GET olarak çalışır. Console'daki harici POST/PUT yayım işleri, ortak çiftlik sertifika deposunun tam iş akışı tamamlanmadı.
 - `clientPolicies` istemciye duyurulur; ülke bazındaki kapalı kaynak ticari plan kararlarının birebir uygulandığı iddia edilmez. Ödüllü reklam için güvenilir sunucu doğrulayıcısı gerekir; doğrudan reklam ağı entegrasyonu yoktur.
 - `.deb`, üretim yedekleme/geri yükleme ve ana anahtar döndürme süreçleri tamamlanmadı. Kurulum işlerinin durumu kalıcıdır; kesilen işler otomatik yeniden çalıştırılmaz.
 - Kiracı oluşturma CLI'dadır; herkese açık kayıt/platform yönetim ekranı yoktur.

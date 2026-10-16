@@ -22,13 +22,20 @@ pub struct User {
 	pub tenant_name: String,
 	pub role: String,
 	pub csrf: String,
+	pub bot: bool,
 }
 impl User {
 	pub fn can_write(&self) -> bool {
-		self.role == "admin" || self.role == "operator"
+		self.is_admin() || self.role == "operator"
 	}
 	pub fn is_admin(&self) -> bool {
-		self.role == "admin"
+		matches!(self.role.as_str(), "admin" | "owner")
+	}
+	pub fn can_tokens(&self) -> bool {
+		self.can_write() || self.role == "token_writer"
+	}
+	pub fn is_owner(&self) -> bool {
+		self.role == "owner"
 	}
 }
 pub fn nonce() -> String {
@@ -93,6 +100,9 @@ pub fn email(value: &str) -> Result<String> {
 	Ok(value)
 }
 pub async fn user(store: &Store, headers: &HeaderMap) -> Result<Option<User>> {
+	if headers.contains_key("authorization") {
+		return bot_user(store, headers).await;
+	}
 	let Some(token) = cookie(headers, COOKIE) else {
 		return Ok(None);
 	};
@@ -117,6 +127,44 @@ pub async fn user(store: &Store, headers: &HeaderMap) -> Result<Option<User>> {
 		tenant_name: membership.get("name"),
 		role: membership.get("role"),
 		csrf: session.get("csrf"),
+		bot: false,
+	}))
+}
+pub async fn bot_user(store: &Store, headers: &HeaderMap) -> Result<Option<User>> {
+	let Some(key) = headers
+		.get("authorization")
+		.and_then(|h| h.to_str().ok())
+		.and_then(|h| h.strip_prefix("Bearer "))
+		.filter(|k| k.len() <= 200)
+	else {
+		return Ok(None);
+	};
+	let parts = key.split('.').collect::<Vec<_>>();
+	if parts.len() != 4 || parts[0] != "hmb" {
+		return Ok(None);
+	}
+	let (Ok(tenant), Ok(id)) = (Uuid::parse_str(parts[1]), Uuid::parse_str(parts[2])) else {
+		return Ok(None);
+	};
+	let mut tx = store.begin(tenant).await?;
+	let row=query("SELECT b.credential_hash,a.email,m.role,t.name FROM bots b JOIN accounts a ON a.id=b.id JOIN memberships m ON m.tenant_id=b.tenant_id AND m.account_id=b.id JOIN tenants t ON t.id=b.tenant_id WHERE b.tenant_id=$1 AND b.id=$2 AND NOT b.revoked AND b.expires_at>now() AND a.active").bind(tenant).bind(id).fetch_optional(&mut *tx).await?;
+	let Some(row) = row else {
+		return Ok(None);
+	};
+	if !bool::from(
+		row.get::<Vec<u8>, _>("credential_hash")
+			.ct_eq(Sha256::digest(key.as_bytes()).as_slice()),
+	) {
+		return Ok(None);
+	}
+	Ok(Some(User {
+		id,
+		tenant,
+		email: row.get("email"),
+		tenant_name: row.get("name"),
+		role: row.get("role"),
+		csrf: String::new(),
+		bot: true,
 	}))
 }
 pub async fn create_account(
@@ -128,7 +176,7 @@ pub async fn create_account(
 	role: &str,
 ) -> Result<Uuid> {
 	ensure!(
-		["admin", "operator", "viewer"].contains(&role),
+		["owner", "admin", "operator", "token_writer", "viewer"].contains(&role),
 		"Rol geçersiz."
 	);
 	ensure!(

@@ -50,6 +50,8 @@ pub fn router(state: WebState) -> Router {
 		.route("/logout", post(logout))
 		.route("/panel", get(dashboard))
 		.route("/panel/{page}", get(page))
+		.route("/manage/bots", get(bots).post(create_bot))
+		.route("/manage/bots/{id}/revoke", post(revoke_bot))
 		.route("/manage/farms", post(add_farm))
 		.route("/manage/servers", post(add_server))
 		.route("/manage/servers/{id}", post(edit_server))
@@ -128,6 +130,7 @@ pub fn router(state: WebState) -> Router {
 				)
 			}),
 		)
+		.nest("/api/manage", management_api())
 		.layer(DefaultBodyLimit::max(512 * 1024))
 		.layer(middleware::from_fn(security))
 		.layer(middleware::from_fn(i18n::middleware))
@@ -178,6 +181,13 @@ impl From<sqlx_core::error::Error> for PanelError {
 		anyhow::Error::from(e).into()
 	}
 }
+fn secret_response(user: &User, title: &str, description: &str, value: &str) -> Response {
+	if user.bot {
+		axum::Json(json!({"value":value})).into_response()
+	} else {
+		views::secret(user, title, description, value).into_response()
+	}
+}
 fn bad(message: &'static str) -> PanelError {
 	PanelError(StatusCode::BAD_REQUEST, message)
 }
@@ -193,6 +203,7 @@ fn check_origin(state: &WebState, headers: &HeaderMap) -> Result<(), PanelError>
 #[derive(Clone, Copy)]
 enum Permission {
 	Read,
+	Tokens,
 	Write,
 	Admin,
 }
@@ -205,7 +216,7 @@ async fn require(
 	let user = auth::user(&state.store, headers)
 		.await?
 		.ok_or(PanelError(StatusCode::UNAUTHORIZED, "Oturum gerekli."))?;
-	if let Some(csrf) = csrf {
+	if let Some(csrf) = csrf.filter(|_| !user.bot) {
 		check_origin(state, headers)?;
 		if !auth::same_token(csrf, &user.csrf) {
 			return Err(PanelError(
@@ -214,7 +225,8 @@ async fn require(
 			));
 		}
 	}
-	if matches!(permission, Permission::Write) && !user.can_write()
+	if matches!(permission, Permission::Tokens) && !user.can_tokens()
+		|| matches!(permission, Permission::Write) && !user.can_write()
 		|| matches!(permission, Permission::Admin) && !user.is_admin()
 	{
 		return Err(PanelError(
@@ -242,6 +254,7 @@ async fn signin(State(state): State<WebState>, headers: HeaderMap) -> Result<Res
 struct LoginForm {
 	email: String,
 	password: String,
+	#[serde(default)]
 	csrf: String,
 }
 async fn login(
@@ -336,6 +349,7 @@ async fn login(
 			tenant_name: String::new(),
 			role,
 			csrf,
+			bot: false,
 		},
 		"Oturum açıldı",
 		"panel",
@@ -359,6 +373,7 @@ async fn login(
 }
 #[derive(Deserialize)]
 struct CsrfForm {
+	#[serde(default)]
 	csrf: String,
 }
 async fn logout(
@@ -432,6 +447,7 @@ async fn render(
 }
 #[derive(Deserialize)]
 struct FarmForm {
+	#[serde(default)]
 	csrf: String,
 	name: String,
 }
@@ -457,6 +473,7 @@ async fn add_farm(
 }
 #[derive(Deserialize)]
 struct ServerForm {
+	#[serde(default)]
 	csrf: String,
 	name: String,
 	host: String,
@@ -515,7 +532,11 @@ async fn add_server(
 	let settings =
 		serde_json::to_string_pretty(&crate::install::settings(&state.origin, &credential))
 			.map_err(anyhow::Error::from)?;
-	Ok(views::installation(&user, id, &settings).into_response())
+	Ok(if user.bot {
+		axum::Json(json!({"id":id,"settings":serde_json::from_str::<serde_json::Value>(&settings).map_err(anyhow::Error::from)?})).into_response()
+	} else {
+		views::installation(&user, id, &settings).into_response()
+	})
 }
 fn rotation_confirmation(hash: &[u8], csrf: &str) -> String {
 	let mut digest = Sha256::new();
@@ -538,10 +559,15 @@ async fn confirm_credential(
 		.await?
 		.ok_or(PanelError(StatusCode::NOT_FOUND, "Sunucu bulunamadı."))?;
 	let proof = rotation_confirmation(&row.get::<Vec<u8>, _>("credential_hash"), &user.csrf);
-	Ok(views::confirm_credential(&user, id, &row.get::<String, _>("name"), &proof).into_response())
+	Ok(if user.bot {
+		axum::Json(json!({"confirmation":proof})).into_response()
+	} else {
+		views::confirm_credential(&user, id, &row.get::<String, _>("name"), &proof).into_response()
+	})
 }
 #[derive(Deserialize)]
 struct RotateCredentialForm {
+	#[serde(default)]
 	csrf: String,
 	#[serde(default)]
 	confirmed: bool,
@@ -599,7 +625,7 @@ async fn rotate_credential(
 	let settings =
 		serde_json::to_string_pretty(&crate::install::settings(&state.origin, &credential))
 			.map_err(anyhow::Error::from)?;
-	Ok(views::secret(
+	Ok(secret_response(
 		&user,
 		"Yeni sunucu bağlantı ayarı",
 		"Önceki kimlik geçersizleştirildi. Aşağıdaki ayarı sunucunuza uygulayın.",
@@ -610,6 +636,7 @@ async fn rotate_credential(
 
 #[derive(Deserialize)]
 struct EditServerForm {
+	#[serde(default)]
 	csrf: String,
 	name: String,
 	host: Option<String>,
@@ -712,6 +739,9 @@ async fn server_configuration(
 		&format!("{}:{id}:config", user.tenant),
 	)?)
 	.map_err(anyhow::Error::from)?;
+	if user.bot {
+		return Ok(axum::Json(json!({"id":id,"name":row.get::<String,_>("name"),"base_code":row.get::<String,_>("config_code"),"settings":vpnhood_protocol::config::editable(&config),"status":row.get::<Option<serde_json::Value>,_>("status")})).into_response());
+	}
 	Ok(views::configuration(
 		&user,
 		id,
@@ -725,8 +755,10 @@ async fn server_configuration(
 }
 #[derive(Deserialize)]
 struct ConfigurationForm {
+	#[serde(default)]
 	csrf: String,
 	base_code: String,
+	#[serde(deserialize_with = "json_text")]
 	settings: String,
 	#[serde(default)]
 	confirmed: bool,
@@ -766,6 +798,11 @@ async fn save_configuration(
 		.map_err(|e| e.to_string())
 		.and_then(vpnhood_protocol::config::validate);
 	if let Err(error) = validation {
+		if user.bot {
+			return Ok(
+				(StatusCode::BAD_REQUEST, axum::Json(json!({"error":error}))).into_response(),
+			);
+		}
 		let submitted = settings.unwrap_or_else(|_| json!({}));
 		return Ok((
 			StatusCode::BAD_REQUEST,
@@ -812,6 +849,7 @@ async fn save_configuration(
 
 #[derive(Deserialize)]
 struct TokenForm {
+	#[serde(default)]
 	csrf: String,
 	#[serde(default)]
 	profile: String,
@@ -828,7 +866,7 @@ async fn add_tokens(
 	headers: HeaderMap,
 	Form(form): Form<TokenForm>,
 ) -> Result<Response, PanelError> {
-	let user = require(&state, &headers, Some(&form.csrf), Permission::Write).await?;
+	let user = require(&state, &headers, Some(&form.csrf), Permission::Tokens).await?;
 	let name = management::valid_name(&form.name).map_err(|_| bad("Anahtar adı geçersiz."))?;
 	if !(1..=100).contains(&form.count)
 		|| !(0..=10000).contains(&form.max_clients)
@@ -896,12 +934,15 @@ async fn add_tokens(
 	)
 	.await?;
 	tx.commit().await?;
+	if user.bot {
+		return Ok(axum::Json(json!({"keys":keys.into_iter().map(|(id,name,key)|json!({"id":id,"name":name,"key":key})).collect::<Vec<_>>()})).into_response());
+	}
 	let text = keys
 		.into_iter()
 		.map(|(_, name, key)| format!("{name}\n{key}"))
 		.collect::<Vec<_>>()
 		.join("\n\n");
-	Ok(views::secret(
+	Ok(secret_response(
 		&user,
 		"Erişim anahtarları hazır",
 		"Anahtarları güvenli biçimde saklayıp kullanıcılarınızla paylaşın. Bu sayfa önbelleğe alınmaz.",
@@ -911,6 +952,7 @@ async fn add_tokens(
 }
 #[derive(Deserialize)]
 struct BulkForm {
+	#[serde(default)]
 	csrf: String,
 	ids: String,
 	action: String,
@@ -926,7 +968,7 @@ async fn bulk_tokens(
 	headers: HeaderMap,
 	Form(form): Form<BulkForm>,
 ) -> Result<Response, PanelError> {
-	let user = require(&state, &headers, Some(&form.csrf), Permission::Write).await?;
+	let user = require(&state, &headers, Some(&form.csrf), Permission::Tokens).await?;
 	let ids: Vec<Uuid> = form
 		.ids
 		.split_whitespace()
@@ -1018,7 +1060,7 @@ async fn close_session(
 	Path(id): Path<i64>,
 	Form(form): Form<CsrfForm>,
 ) -> Result<Response, PanelError> {
-	let user = require(&state, &headers, Some(&form.csrf), Permission::Write).await?;
+	let user = require(&state, &headers, Some(&form.csrf), Permission::Tokens).await?;
 	let mut tx = state.store.begin(user.tenant).await?;
 	let affected =
 		query("UPDATE sessions SET closed=true,pending_notify=true WHERE tenant_id=$1 AND id=$2")
@@ -1036,6 +1078,7 @@ async fn close_session(
 }
 #[derive(Deserialize)]
 struct UserForm {
+	#[serde(default)]
 	csrf: String,
 	email: String,
 	password: String,
@@ -1047,8 +1090,14 @@ async fn add_user(
 	Form(form): Form<UserForm>,
 ) -> Result<Response, PanelError> {
 	let user = require(&state, &headers, Some(&form.csrf), Permission::Admin).await?;
-	if !["admin", "operator", "viewer"].contains(&form.role.as_str()) {
+	if !["owner", "admin", "operator", "token_writer", "viewer"].contains(&form.role.as_str()) {
 		return Err(bad("Rol geçersiz."));
+	}
+	if form.role == "owner" && !user.is_owner() {
+		return Err(PanelError(
+			StatusCode::FORBIDDEN,
+			"Sahip rolünü yalnız sahip atayabilir.",
+		));
 	}
 	let address = auth::email(&form.email).map_err(|_| bad("E-posta adresi geçersiz."))?;
 	let hash = tokio::task::spawn_blocking(move || auth::hash_password(&form.password))
@@ -1064,6 +1113,7 @@ async fn add_user(
 }
 #[derive(Deserialize)]
 struct EditUserForm {
+	#[serde(default)]
 	csrf: String,
 	role: String,
 	#[serde(default)]
@@ -1076,7 +1126,7 @@ async fn edit_user(
 	Form(form): Form<EditUserForm>,
 ) -> Result<Response, PanelError> {
 	let user = require(&state, &headers, Some(&form.csrf), Permission::Admin).await?;
-	if !["admin", "operator", "viewer"].contains(&form.role.as_str()) {
+	if !["owner", "admin", "operator", "token_writer", "viewer"].contains(&form.role.as_str()) {
 		return Err(bad("Rol geçersiz."));
 	}
 	let mut tx = state.store.begin(user.tenant).await?;
@@ -1085,15 +1135,39 @@ async fn edit_user(
 		.fetch_one(&mut *tx)
 		.await?;
 	let target=query("SELECT m.role,a.active FROM memberships m JOIN accounts a ON a.id=m.account_id WHERE m.tenant_id=$1 AND m.account_id=$2").bind(user.tenant).bind(id).fetch_optional(&mut *tx).await?.ok_or(PanelError(StatusCode::NOT_FOUND,"Kullanıcı bulunamadı."))?;
-	if target.get::<String, _>("role") == "admin"
-		&& target.get::<bool, _>("active")
-		&& (!form.active || form.role != "admin")
+	let is_bot: bool = query_scalar("SELECT EXISTS(SELECT FROM bots WHERE tenant_id=$1 AND id=$2)")
+		.bind(user.tenant)
+		.bind(id)
+		.fetch_one(&mut *tx)
+		.await?;
+	if is_bot {
+		return Err(bad("Bot rolünü değiştirmek için yeni bot oluşturun."));
+	}
+	let target_role: String = target.get("role");
+	if (target_role == "owner" || form.role == "owner") && !user.is_owner() {
+		return Err(PanelError(
+			StatusCode::FORBIDDEN,
+			"Sahip rolünü yalnız sahip değiştirebilir.",
+		));
+	}
+	if target.get::<bool, _>("active")
+		&& (!form.active || !["admin", "owner"].contains(&form.role.as_str()))
+		&& ["admin", "owner"].contains(&target_role.as_str())
 	{
-		let admins:i64=query_scalar("SELECT count(*) FROM memberships m JOIN accounts a ON a.id=m.account_id WHERE m.tenant_id=$1 AND m.role='admin' AND a.active").bind(user.tenant).fetch_one(&mut *tx).await?;
+		let admins:i64=query_scalar("SELECT count(*) FROM memberships m JOIN accounts a ON a.id=m.account_id WHERE m.tenant_id=$1 AND m.role IN ('admin','owner') AND a.active").bind(user.tenant).fetch_one(&mut *tx).await?;
 		if admins <= 1 {
 			return Err(bad(
 				"Kiracının son etkin yöneticisi devre dışı bırakılamaz.",
 			));
+		}
+	}
+	if target_role == "owner"
+		&& target.get::<bool, _>("active")
+		&& (!form.active || form.role != "owner")
+	{
+		let owners:i64=query_scalar("SELECT count(*) FROM memberships m JOIN accounts a ON a.id=m.account_id WHERE m.tenant_id=$1 AND m.role='owner' AND a.active").bind(user.tenant).fetch_one(&mut *tx).await?;
+		if owners <= 1 {
+			return Err(bad("Kiracının son etkin sahibi devre dışı bırakılamaz."));
 		}
 	}
 	query("UPDATE memberships SET role=$3 WHERE tenant_id=$1 AND account_id=$2")
@@ -1125,6 +1199,7 @@ async fn edit_user(
 }
 #[derive(Deserialize)]
 struct PasswordForm {
+	#[serde(default)]
 	csrf: String,
 	current_password: String,
 	new_password: String,
@@ -1271,8 +1346,10 @@ async fn profiles(
 }
 #[derive(Deserialize)]
 struct ProfileForm {
+	#[serde(default)]
 	csrf: String,
 	name: String,
+	#[serde(deserialize_with = "json_text")]
 	policy: String,
 	#[serde(default)]
 	apply_existing: bool,
@@ -1290,7 +1367,7 @@ async fn add_profile(
 	headers: HeaderMap,
 	Form(form): Form<ProfileForm>,
 ) -> Result<Response, PanelError> {
-	let user = require(&state, &headers, Some(&form.csrf), Permission::Write).await?;
+	let user = require(&state, &headers, Some(&form.csrf), Permission::Tokens).await?;
 	let name = management::valid_name(&form.name).map_err(|_| bad("Profil adı geçersiz."))?;
 	let policy = parse_policy(&form.policy)?;
 	let id = Uuid::new_v4();
@@ -1319,7 +1396,7 @@ async fn edit_profile(
 	Path(id): Path<Uuid>,
 	Form(form): Form<ProfileForm>,
 ) -> Result<Response, PanelError> {
-	let user = require(&state, &headers, Some(&form.csrf), Permission::Write).await?;
+	let user = require(&state, &headers, Some(&form.csrf), Permission::Tokens).await?;
 	let name = management::valid_name(&form.name).map_err(|_| bad("Profil adı geçersiz."))?;
 	let policy = parse_policy(&form.policy)?;
 	let mut tx = state.store.begin(user.tenant).await?;
@@ -1370,7 +1447,7 @@ async fn token_policy(
 	headers: HeaderMap,
 	Path(id): Path<Uuid>,
 ) -> Result<Response, PanelError> {
-	let user = require(&state, &headers, None, Permission::Write).await?;
+	let user = require(&state, &headers, None, Permission::Tokens).await?;
 	let mut tx = state.store.begin(user.tenant).await?;
 	let row = query(
 		"SELECT name,policy,max_clients,max_traffic,group_name,description,customer_id,order_id,support_id FROM access_tokens WHERE tenant_id=$1 AND id=$2",
@@ -1395,7 +1472,9 @@ async fn token_policy(
 }
 #[derive(Deserialize)]
 struct TokenPolicyForm {
+	#[serde(default)]
 	csrf: String,
+	#[serde(deserialize_with = "json_text")]
 	policy: String,
 	#[serde(default)]
 	confirmed: bool,
@@ -1406,7 +1485,7 @@ async fn save_token_policy(
 	Path(id): Path<Uuid>,
 	Form(form): Form<TokenPolicyForm>,
 ) -> Result<Response, PanelError> {
-	let user = require(&state, &headers, Some(&form.csrf), Permission::Write).await?;
+	let user = require(&state, &headers, Some(&form.csrf), Permission::Tokens).await?;
 	if !form.confirmed {
 		return Err(bad("Etkin oturumların kapanacağını onaylayın."));
 	}
@@ -1439,10 +1518,10 @@ async fn token_key(
 	headers: HeaderMap,
 	Path(id): Path<Uuid>,
 ) -> Result<Response, PanelError> {
-	let user = require(&state, &headers, None, Permission::Write).await?;
+	let user = require(&state, &headers, None, Permission::Tokens).await?;
 	let mut tx = state.store.begin(user.tenant).await?;
 	let token = management::access_key(&mut tx, &state.store.vault, user.tenant, id).await?;
-	Ok(views::secret(
+	Ok(secret_response(
 		&user,
 		"VPN erişim anahtarı",
 		"Anahtarı yalnız yetkili VPN kullanıcısıyla paylaşın.",
@@ -1485,9 +1564,12 @@ async fn server_routing(
 }
 #[derive(Deserialize)]
 struct RoutingForm {
+	#[serde(default)]
 	csrf: String,
 	base_code: String,
+	#[serde(deserialize_with = "json_text")]
 	policy: String,
+	#[serde(deserialize_with = "json_text")]
 	advertisement: String,
 	#[serde(default)]
 	confirmed: bool,
@@ -1561,6 +1643,7 @@ async fn save_routing(
 }
 #[derive(Deserialize)]
 struct ConfirmForm {
+	#[serde(default)]
 	csrf: String,
 	#[serde(default)]
 	confirmed: bool,
@@ -1571,7 +1654,7 @@ async fn create_access_code(
 	Path(id): Path<Uuid>,
 	Form(form): Form<ConfirmForm>,
 ) -> Result<Response, PanelError> {
-	let user = require(&state, &headers, Some(&form.csrf), Permission::Write).await?;
+	let user = require(&state, &headers, Some(&form.csrf), Permission::Tokens).await?;
 	if !form.confirmed {
 		return Err(bad("Erişim kodu oluşturmayı onaylayın."));
 	}
@@ -1594,7 +1677,7 @@ async fn create_access_code(
 		.await?;
 	auth::audit(&mut tx, &user, "Erişim kodu oluşturuldu", &id.to_string()).await?;
 	tx.commit().await?;
-	Ok(views::secret(
+	Ok(secret_response(
 		&user,
 		"Erişim kodu",
 		"Bu kod ilgili anahtarın erişimini sağlar. Yalnız yetkili kullanıcıyla paylaşın.",
@@ -1635,7 +1718,7 @@ async fn configure_ad_hook(
 	.await?;
 	tx.commit().await?;
 	let settings = json!({"url":format!("{}/api/hooks/ad/{}",state.origin,user.tenant),"method":"POST","authorization":format!("Bearer {credential}"),"body":{"sessionId":12345,"adData":"sid:12345;ad:00000000-0000-0000-0000-000000000001"}});
-	Ok(views::secret(&user,"Ödül doğrulama bağlantısı","Bu kimliği yalnız reklam sonucunu doğrulayan güvenilir sunucuya verin. İstemci uygulamasına koymayın.",&serde_json::to_string_pretty(&settings).map_err(anyhow::Error::from)?).into_response())
+	Ok(secret_response(&user,"Ödül doğrulama bağlantısı","Bu kimliği yalnız reklam sonucunu doğrulayan güvenilir sunucuya verin. İstemci uygulamasına koymayın.",&serde_json::to_string_pretty(&settings).map_err(anyhow::Error::from)?).into_response())
 }
 
 async fn installation(
@@ -1658,6 +1741,7 @@ async fn installation(
 }
 #[derive(Deserialize)]
 struct InstallForm {
+	#[serde(default)]
 	csrf: String,
 	host: String,
 	port: u16,
@@ -1830,6 +1914,7 @@ async fn published_server_token(
 }
 #[derive(Deserialize)]
 struct PublishForm {
+	#[serde(default)]
 	csrf: String,
 }
 async fn publish_token(
@@ -1904,6 +1989,7 @@ async fn server_certificates(
 }
 #[derive(Deserialize)]
 struct CertificateForm {
+	#[serde(default)]
 	csrf: String,
 	base_code: String,
 	pfx: String,
@@ -1997,6 +2083,7 @@ async fn upload_certificate(
 }
 #[derive(Deserialize)]
 struct ChallengeForm {
+	#[serde(default)]
 	csrf: String,
 	token: String,
 	key_authorization: String,
@@ -2087,9 +2174,12 @@ async fn server_profiles(
 }
 #[derive(Deserialize)]
 struct ServerProfileForm {
+	#[serde(default)]
 	csrf: String,
 	name: String,
+	#[serde(deserialize_with = "json_text")]
 	settings: String,
+	#[serde(deserialize_with = "json_text")]
 	management: String,
 	#[serde(default)]
 	version: Option<Uuid>,
@@ -2168,6 +2258,7 @@ async fn edit_server_profile(
 }
 #[derive(Deserialize)]
 struct ApplyServerProfileForm {
+	#[serde(default)]
 	csrf: String,
 	version: Uuid,
 	servers: String,
@@ -2324,7 +2415,7 @@ async fn download_token(
 	headers: HeaderMap,
 	Path(id): Path<Uuid>,
 ) -> Result<Response, PanelError> {
-	let user = require(&state, &headers, None, Permission::Write).await?;
+	let user = require(&state, &headers, None, Permission::Tokens).await?;
 	let mut tx = state.store.begin(user.tenant).await?;
 	let key = management::access_key(&mut tx, &state.store.vault, user.tenant, id).await?;
 	Ok((
@@ -2341,6 +2432,7 @@ async fn download_token(
 }
 #[derive(Deserialize)]
 struct TokenDetailsForm {
+	#[serde(default)]
 	csrf: String,
 	name: String,
 	group_name: String,
@@ -2355,7 +2447,7 @@ async fn save_token_details(
 	Path(id): Path<Uuid>,
 	Form(form): Form<TokenDetailsForm>,
 ) -> Result<Response, PanelError> {
-	let user = require(&state, &headers, Some(&form.csrf), Permission::Write).await?;
+	let user = require(&state, &headers, Some(&form.csrf), Permission::Tokens).await?;
 	let name = management::valid_name(&form.name).map_err(|_| bad("Anahtar adı geçersiz."))?;
 	for (value, max) in [
 		(&form.group_name, 120),
@@ -2386,6 +2478,377 @@ async fn save_token_details(
 	.await?;
 	tx.commit().await?;
 	Ok(Redirect::to(&format!("/manage/tokens/{id}/policy")).into_response())
+}
+
+async fn bots(State(state): State<WebState>, headers: HeaderMap) -> Result<Response, PanelError> {
+	let user = require(&state, &headers, None, Permission::Admin).await?;
+	let mut tx = state.store.begin(user.tenant).await?;
+	let bots=query("SELECT b.id,b.name,b.expires_at,b.revoked,m.role FROM bots b JOIN memberships m ON m.tenant_id=b.tenant_id AND m.account_id=b.id WHERE b.tenant_id=$1 ORDER BY b.created_at DESC LIMIT 200").bind(user.tenant).fetch_all(&mut *tx).await?.into_iter().map(|r|views::Bot{id:r.get("id"),name:r.get("name"),role:r.get("role"),expires:r.get::<DateTime<Utc>,_>("expires_at").to_rfc3339(),revoked:r.get("revoked")}).collect();
+	Ok(views::bots(&user, bots).into_response())
+}
+#[derive(Deserialize)]
+struct BotForm {
+	#[serde(default)]
+	csrf: String,
+	name: String,
+	role: String,
+	lifetime_days: i32,
+	#[serde(default)]
+	confirmed: bool,
+}
+async fn create_bot(
+	State(state): State<WebState>,
+	headers: HeaderMap,
+	Form(form): Form<BotForm>,
+) -> Result<Response, PanelError> {
+	let user = require(&state, &headers, Some(&form.csrf), Permission::Admin).await?;
+	if !form.confirmed {
+		return Err(bad("Botun yetkilerini ve erişim süresini onaylayın."));
+	}
+	if !["admin", "operator", "token_writer", "viewer"].contains(&form.role.as_str())
+		|| !(1..=365).contains(&form.lifetime_days)
+	{
+		return Err(bad("Bot rolü veya süresi geçersiz."));
+	}
+	let name = management::valid_name(&form.name).map_err(|_| bad("Bot adı geçersiz."))?;
+	let id = Uuid::new_v4();
+	let key = format!("hmb.{}.{id}.{}", user.tenant, auth::nonce());
+	let expires = Utc::now() + chrono::Duration::days(i64::from(form.lifetime_days));
+	let mut tx = state.store.begin(user.tenant).await?;
+	query("SELECT id FROM tenants WHERE id=$1 FOR UPDATE")
+		.bind(user.tenant)
+		.fetch_one(&mut *tx)
+		.await?;
+	let count: i64 = query_scalar(
+		"SELECT count(*) FROM bots WHERE tenant_id=$1 AND NOT revoked AND expires_at>now()",
+	)
+	.bind(user.tenant)
+	.fetch_one(&mut *tx)
+	.await?;
+	if count >= 100 {
+		return Err(bad("En fazla 100 etkin bot olabilir."));
+	}
+	auth::insert_account(
+		&mut tx,
+		user.tenant,
+		id,
+		&format!("bot.{id}@hoodmin.invalid"),
+		"!locked-bot",
+		&form.role,
+	)
+	.await?;
+	query("INSERT INTO bots(tenant_id,id,name,credential_hash,expires_at) VALUES($1,$2,$3,$4,$5)")
+		.bind(user.tenant)
+		.bind(id)
+		.bind(name)
+		.bind(Sha256::digest(key.as_bytes()).to_vec())
+		.bind(expires)
+		.execute(&mut *tx)
+		.await?;
+	auth::audit(
+		&mut tx,
+		&user,
+		"Bot oluşturuldu",
+		&format!("{id}/{}", form.role),
+	)
+	.await?;
+	tx.commit().await?;
+	Ok(secret_response(&user,"Bot API anahtarı","Bu anahtar botun seçilen yetkileriyle işlem yapar. Yalnız bu ekranda gösterilir; güvenli saklayın.",&serde_json::to_string_pretty(&json!({"id":id,"authorization":format!("Bearer {key}"),"baseUrl":format!("{}/api/manage",state.origin),"role":form.role,"expiresAt":expires})).map_err(anyhow::Error::from)?))
+}
+async fn revoke_bot(
+	State(state): State<WebState>,
+	headers: HeaderMap,
+	Path(id): Path<Uuid>,
+	Form(form): Form<ConfirmForm>,
+) -> Result<Response, PanelError> {
+	let user = require(&state, &headers, Some(&form.csrf), Permission::Admin).await?;
+	if !form.confirmed {
+		return Err(bad("Bot erişimini iptal etmeyi onaylayın."));
+	}
+	let mut tx = state.store.begin(user.tenant).await?;
+	let changed = query("UPDATE bots SET revoked=true WHERE tenant_id=$1 AND id=$2")
+		.bind(user.tenant)
+		.bind(id)
+		.execute(&mut *tx)
+		.await?
+		.rows_affected();
+	if changed == 0 {
+		return Err(PanelError(StatusCode::NOT_FOUND, "Bot bulunamadı."));
+	}
+	query("UPDATE accounts SET active=false WHERE id=$1")
+		.bind(id)
+		.execute(&mut *tx)
+		.await?;
+	auth::audit(&mut tx, &user, "Bot erişimi iptal edildi", &id.to_string()).await?;
+	tx.commit().await?;
+	Ok(Redirect::to("/manage/bots").into_response())
+}
+
+fn json_text<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<String, D::Error> {
+	let value = serde_json::Value::deserialize(deserializer)?;
+	Ok(value
+		.as_str()
+		.map(str::to_owned)
+		.unwrap_or_else(|| value.to_string()))
+}
+fn api_result(result: Result<Response, PanelError>) -> Response {
+	match result{
+		Err(PanelError(code,message))=>(code,axum::Json(json!({"error":message}))).into_response(),
+		Ok(response) if response.status().is_redirection()=>(StatusCode::ACCEPTED,axum::Json(json!({"status":"accepted","location":response.headers().get(header::LOCATION).and_then(|v|v.to_str().ok())}))).into_response(),
+		Ok(response) if response.headers().get(header::CONTENT_TYPE).and_then(|v|v.to_str().ok()).is_some_and(|v|v.starts_with("text/html"))=>(response.status(),axum::Json(if response.status().is_success(){json!({"status":"ok"})}else{json!({"error":"İstek tamamlanamadı."})})).into_response(),
+		Ok(response)=>response
+	}
+}
+async fn api_preflight(state: &WebState, headers: &HeaderMap) -> Result<(), PanelError> {
+	if auth::bot_user(&state.store, headers).await?.is_none() {
+		return Err(PanelError(
+			StatusCode::UNAUTHORIZED,
+			"Geçerli bot API anahtarı gerekli.",
+		));
+	}
+	Ok(())
+}
+macro_rules! json_write {
+	($name:ident,$form:ty,$handler:ident) => {
+		async fn $name(
+			State(state): State<WebState>,
+			headers: HeaderMap,
+			axum::Json(form): axum::Json<$form>,
+		) -> Response {
+			if let Err(error) = api_preflight(&state, &headers).await {
+				return api_result(Err(error));
+			}
+			api_result($handler(State(state), headers, Form(form)).await)
+		}
+	};
+	($name:ident,$id:ty,$form:ty,$handler:ident) => {
+		async fn $name(
+			State(state): State<WebState>,
+			headers: HeaderMap,
+			Path(id): Path<$id>,
+			axum::Json(form): axum::Json<$form>,
+		) -> Response {
+			if let Err(error) = api_preflight(&state, &headers).await {
+				return api_result(Err(error));
+			}
+			api_result($handler(State(state), headers, Path(id), Form(form)).await)
+		}
+	};
+}
+macro_rules! json_read {
+	($name:ident,$id:ty,$handler:ident) => {
+		async fn $name(
+			State(state): State<WebState>,
+			headers: HeaderMap,
+			Path(id): Path<$id>,
+		) -> Response {
+			if let Err(error) = api_preflight(&state, &headers).await {
+				return api_result(Err(error));
+			}
+			api_result($handler(State(state), headers, Path(id)).await)
+		}
+	};
+}
+json_write!(api_add_server, ServerForm, add_server);
+json_write!(api_add_farm, FarmForm, add_farm);
+json_write!(api_edit_server, Uuid, EditServerForm, edit_server);
+json_write!(
+	api_configuration,
+	Uuid,
+	ConfigurationForm,
+	save_configuration
+);
+json_write!(api_routing, Uuid, RoutingForm, save_routing);
+json_write!(api_certificates, Uuid, CertificateForm, upload_certificate);
+json_write!(api_challenge, Uuid, ChallengeForm, set_challenge);
+json_write!(api_publish, Uuid, PublishForm, publish_token);
+json_write!(api_install, Uuid, InstallForm, start_installation);
+json_write!(api_rotate, Uuid, RotateCredentialForm, rotate_credential);
+json_write!(api_add_tokens, TokenForm, add_tokens);
+json_write!(api_bulk_tokens, BulkForm, bulk_tokens);
+json_write!(api_token_policy, Uuid, TokenPolicyForm, save_token_policy);
+json_write!(
+	api_token_details,
+	Uuid,
+	TokenDetailsForm,
+	save_token_details
+);
+json_write!(api_access_code, Uuid, ConfirmForm, create_access_code);
+json_write!(api_close_session, i64, CsrfForm, close_session);
+json_write!(api_add_profile, ProfileForm, add_profile);
+json_write!(api_edit_profile, Uuid, ProfileForm, edit_profile);
+json_write!(
+	api_add_server_profile,
+	ServerProfileForm,
+	add_server_profile
+);
+json_write!(
+	api_edit_server_profile,
+	Uuid,
+	ServerProfileForm,
+	edit_server_profile
+);
+json_write!(
+	api_apply_server_profile,
+	Uuid,
+	ApplyServerProfileForm,
+	apply_server_profile
+);
+json_write!(api_add_user, UserForm, add_user);
+json_write!(api_edit_user, Uuid, EditUserForm, edit_user);
+json_write!(api_tenant, FarmForm, update_tenant);
+json_write!(api_integration, ConfirmForm, configure_ad_hook);
+json_write!(api_add_bot, BotForm, create_bot);
+json_write!(api_revoke_bot, Uuid, ConfirmForm, revoke_bot);
+json_read!(api_get_configuration, Uuid, server_configuration);
+json_read!(api_get_credential, Uuid, confirm_credential);
+json_read!(api_get_key, Uuid, token_key);
+json_read!(api_download_key, Uuid, download_token);
+json_read!(api_install_status, Uuid, install_status);
+macro_rules! json_list {
+	($name:ident,$resource:literal) => {
+		async fn $name(
+			State(state): State<WebState>,
+			headers: HeaderMap,
+			Query(filter): Query<ApiListQuery>,
+		) -> Response {
+			api_list(
+				State(state),
+				headers,
+				Path($resource.to_owned()),
+				Query(filter),
+			)
+			.await
+		}
+	};
+}
+json_list!(api_servers, "servers");
+json_list!(api_tokens, "tokens");
+json_list!(api_sessions, "sessions");
+json_list!(api_farms, "farms");
+json_list!(api_profiles, "profiles");
+json_list!(api_server_profiles, "server-profiles");
+json_list!(api_users, "users");
+json_list!(api_bots, "bots");
+fn management_api() -> Router<WebState> {
+	Router::new()
+		.route("/servers", get(api_servers).post(api_add_server))
+		.route("/servers/{id}", post(api_edit_server))
+		.route(
+			"/servers/{id}/configuration",
+			get(api_get_configuration).post(api_configuration),
+		)
+		.route("/servers/{id}/routing", post(api_routing))
+		.route("/servers/{id}/certificates", post(api_certificates))
+		.route("/servers/{id}/challenge", post(api_challenge))
+		.route("/servers/{id}/publish", post(api_publish))
+		.route("/servers/{id}/installation", post(api_install))
+		.route(
+			"/servers/{id}/credential",
+			get(api_get_credential).post(api_rotate),
+		)
+		.route("/install-jobs/{id}", get(api_install_status))
+		.route("/farms", get(api_farms).post(api_add_farm))
+		.route("/tokens", get(api_tokens).post(api_add_tokens))
+		.route("/tokens/bulk", post(api_bulk_tokens))
+		.route("/tokens/{id}/policy", post(api_token_policy))
+		.route("/tokens/{id}/details", post(api_token_details))
+		.route("/tokens/{id}/access-code", post(api_access_code))
+		.route("/tokens/{id}/key", get(api_get_key))
+		.route("/tokens/{id}/download", get(api_download_key))
+		.route("/sessions", get(api_sessions))
+		.route("/sessions/{id}/close", post(api_close_session))
+		.route("/profiles", get(api_profiles).post(api_add_profile))
+		.route("/profiles/{id}", post(api_edit_profile))
+		.route(
+			"/server-profiles",
+			get(api_server_profiles).post(api_add_server_profile),
+		)
+		.route("/server-profiles/{id}", post(api_edit_server_profile))
+		.route(
+			"/server-profiles/{id}/apply",
+			post(api_apply_server_profile),
+		)
+		.route("/users", get(api_users).post(api_add_user))
+		.route("/users/{id}", post(api_edit_user))
+		.route("/tenant", post(api_tenant))
+		.route("/integrations", post(api_integration))
+		.route("/bots", get(api_bots).post(api_add_bot))
+		.route("/bots/{id}/revoke", post(api_revoke_bot))
+}
+#[derive(Deserialize)]
+struct ApiListQuery {
+	#[serde(default)]
+	p: i64,
+}
+async fn api_list(
+	State(state): State<WebState>,
+	headers: HeaderMap,
+	Path(resource): Path<String>,
+	Query(filter): Query<ApiListQuery>,
+) -> Response {
+	api_result(api_list_result(state, headers, resource, filter).await)
+}
+async fn api_list_result(
+	state: WebState,
+	headers: HeaderMap,
+	resource: String,
+	filter: ApiListQuery,
+) -> Result<Response, PanelError> {
+	api_preflight(&state, &headers).await?;
+	if !(0..=10000).contains(&filter.p) {
+		return Err(bad("Arama veya sayfa numarası geçersiz."));
+	}
+	let user = require(
+		&state,
+		&headers,
+		None,
+		if ["users", "bots"].contains(&resource.as_str()) {
+			Permission::Admin
+		} else {
+			Permission::Read
+		},
+	)
+	.await?;
+	let mut tx = state.store.begin(user.tenant).await?;
+	let query = match resource.as_str() {
+		"servers" => {
+			"SELECT jsonb_build_object('id',id,'name',name,'farm_id',farm_id,'paused',paused,'last_seen',last_seen,'config_code',config_code,'management',management,'status',status) AS item FROM servers WHERE tenant_id=$1 ORDER BY id LIMIT 101 OFFSET $2"
+		}
+		"tokens" => {
+			"SELECT jsonb_build_object('id',id,'name',name,'server_id',server_id,'farm_id',farm_id,'profile_id',profile_id,'policy',policy,'revoked',revoked,'sent',sent,'received',received,'cycle_sent',cycle_sent,'cycle_received',cycle_received,'expires_at',expires_at,'max_clients',max_clients,'max_traffic',max_traffic,'description',description,'group_name',group_name,'support_id',support_id,'customer_id',customer_id,'order_id',order_id) AS item FROM access_tokens WHERE tenant_id=$1 ORDER BY id LIMIT 101 OFFSET $2"
+		}
+		"sessions" => {
+			"SELECT jsonb_build_object('id',id,'server_id',server_id,'token_id',token_id,'created_at',created_at,'closed',closed,'decision',decision,'expires_at',expires_at,'country',metadata->>'clientCountry') AS item FROM sessions WHERE tenant_id=$1 ORDER BY id DESC LIMIT 101 OFFSET $2"
+		}
+		"profiles" => {
+			"SELECT jsonb_build_object('id',id,'name',name,'is_public',is_public,'policy',policy) AS item FROM access_profiles WHERE tenant_id=$1 ORDER BY id LIMIT 101 OFFSET $2"
+		}
+		"server-profiles" => {
+			"SELECT jsonb_build_object('id',id,'name',name,'settings',settings,'management',management,'version',version) AS item FROM server_profiles WHERE tenant_id=$1 ORDER BY id LIMIT 101 OFFSET $2"
+		}
+		"farms" => {
+			"SELECT jsonb_build_object('id',id,'name',name,'management',management) AS item FROM farms WHERE tenant_id=$1 ORDER BY id LIMIT 101 OFFSET $2"
+		}
+		"bots" => {
+			"SELECT jsonb_build_object('id',b.id,'name',b.name,'role',m.role,'revoked',b.revoked,'expires_at',b.expires_at) AS item FROM bots b JOIN memberships m ON m.tenant_id=b.tenant_id AND m.account_id=b.id WHERE b.tenant_id=$1 ORDER BY b.id LIMIT 101 OFFSET $2"
+		}
+		"users" => {
+			"SELECT jsonb_build_object('id',a.id,'email',a.email,'active',a.active,'role',m.role) AS item FROM memberships m JOIN accounts a ON a.id=m.account_id WHERE m.tenant_id=$1 AND NOT EXISTS(SELECT FROM bots b WHERE b.tenant_id=m.tenant_id AND b.id=a.id) ORDER BY a.id LIMIT 101 OFFSET $2"
+		}
+		_ => return Err(PanelError(StatusCode::NOT_FOUND, "API kaynağı bulunamadı.")),
+	};
+	let mut rows = sqlx_core::query::query(query)
+		.bind(user.tenant)
+		.bind(filter.p * 100)
+		.fetch_all(&mut *tx)
+		.await?
+		.into_iter()
+		.map(|r| r.get::<serde_json::Value, _>("item"))
+		.collect::<Vec<_>>();
+	let more = rows.len() > 100;
+	rows.truncate(100);
+	Ok(axum::Json(json!({"items":rows,"page":filter.p,"hasMore":more})).into_response())
 }
 
 #[cfg(test)]
