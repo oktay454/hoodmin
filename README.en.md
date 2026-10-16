@@ -58,7 +58,7 @@ cargo clippy --workspace --all-targets --locked -- -D warnings
 cargo audit --deny warnings
 ```
 
-`cargo audit` must be installed separately. The latest recorded checks passed 13 Rust tests, the real HTTPS/PostgreSQL/.NET panel suite and 18 theme/language HTTPS checks; this is not a general security guarantee.
+`cargo audit` must be installed separately. The latest recorded checks passed 20 Rust tests, the real HTTPS/PostgreSQL/.NET panel/protocol/profile/report suites and theme/language HTTPS checks; this is not a general security guarantee.
 
 There is no `.deb` package yet. `scripts/setup-test-manager.sh` and `scripts/setup-test-tls.sh` target dedicated test environments only; do not blindly rerun them on an existing deployment. The TLS script creates a private, short-lived test CA rather than a production certificate solution. Consult the [VPS reverse-proxy notes](docs/vps-ters-vekil.md) for the current deployment. Keep certificate verification enabled.
 

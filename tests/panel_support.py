@@ -107,4 +107,3 @@ def agent(credential, path, payload):
 	request = urllib.request.Request(BASE + "/api/agent/" + path, data=json.dumps(payload).encode(), headers={"Authorization": "Bearer " + credential, "Content-Type": "application/json"})
 	with urllib.request.urlopen(request, context=CONTEXT, timeout=15) as response:
 		return json.load(response)
-
