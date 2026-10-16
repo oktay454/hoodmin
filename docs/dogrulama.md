@@ -91,3 +91,10 @@ Kullanım ve uygulama notları: `docs/arayuz-ve-diller.md`. Yeni paket/bağıml�
 - `tests/test_preferences.py`: 18 HTTPS kontrolü geçti. Türkçe/İngilizce/Arapça giriş sayfalarında Hoodmin/HOODMIN/HM, dil ve RTL/LTR yönü ayrıca doğrulandı.
 - Tarayıcıdaki mevcut oturum korunarak genel bakışta `Genel bakış · Hoodmin`, HM işareti ve Hoodmin alt bilgisi doğrulandı. Mevcut çalışma alanının kullanıcı verisi olan adı değiştirilmedi.
 - Ekran kanıtı Codex çıktılarında `hoodmin-panel.jpg`.
+
+## Manager pazarlama vaatlerinin incelemesi — 16 Ekim 2026
+
+- Kullanıcının verdiği Manager pazarlama sayfası tarayıcıda okunarak giriş metni ve sekiz özellik kartı `web.rs`, `views.rs`, `management.rs`, agent/protokol ve veri tabanı şemasıyla karşılaştırıldı.
+- Karşılaştırma belgesine on maddelik mevcut/kısmi/eksik matrisi eklendi. Önceki listede açık olmayan marka özelleştirmesi ve ekip daveti; Windows sunucu kurulum hedefi, çiftlik ağırlıkları/yeni üye katılımı ve kullanıcı sertifikası içe aktarma ayrıntıları kaydedildi.
+- Plan tanımlama vaadinden ödeme/faturalama sistemi; genel site bağlantılarından Hoodmin güvenlik denetimi veya kapalı kaynak iç mimari garantisi çıkarılmadı.
+- Bu tur yalnız belgeler güncellendi; uygulama, servis ve kullanıcı verileri değiştirilmedi. Belge bağlantıları ve Git boşluk denetimi başarılı; kod değişmediğinden derleme/işlev sınamaları tekrarlanmadı.
