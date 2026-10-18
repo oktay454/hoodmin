@@ -155,3 +155,7 @@ Kullanım ve uygulama notları: `docs/arayuz-ve-diller.md`. Yeni paket/bağıml�
 - `age` şifreli yedek, kaynak IP/komutla sınırlı SSH okuma anahtarı ve günlük ayrı makine kopyası eklendi. İki kopyanın SHA-256 özeti eşleşti. Ayrı veritabanına yükleme ve yedeklenen ana anahtarla yapılandırma çözme geçti; canlı veri üzerine yazılmadı, geçici kurtarma veritabanı kaldırıldı.
 - Sonradan UID/GID aralığı taşıması otomatik onay denetimince reddedildi; uygulanmadı. Salt okunur ön inceleme ve bakım/geri dönüş kapsamı belgede hazırdır. İlk sahip parolasının yerel dosyaya kopyalanması da reddedildi; parola sunucuda kaldı. Bu kısıtlar dolaylı yöntemle aşılmadı.
 - Paket sürümü, dizinler, başlıca kurulan paketler, zamanlayıcılar, kalan işler ve erişim: [üretim ortamı](uretim-ortami.md).
+
+## POST/PUT yeniden inceleme sınırı — 18 Ekim 2026
+
+Console yayım formunun üç alanı ve dört HTTP kipi salt okunur tekrar doğrulandı; form kaydedilmedi. Geçici dış QA alıcısı otomatik onay denetimince reddedildi. Yeni devam talebi ve eski QA hedefinin farklılığı gösterilerek yapılan tekrar da reddedildi; işlem dolaylı yoldan uygulanmadı. Kullanıcıya açık hedef/kapsam ile ayrıca onay soruldu. Bu aşamada POST/PUT gövdesi, iki yöntemli kipin sırası veya canlı yayım başarısı doğrulanmış sayılmaz.
