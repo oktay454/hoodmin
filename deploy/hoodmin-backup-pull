@@ -1,0 +1,14 @@
+#!/bin/bash
+set -euo pipefail
+umask 077
+YEDEK_DIZINI="/var/backups/hoodmin-remote"
+install -d -m0700 "${YEDEK_DIZINI}"
+GECICI_DOSYA="$(mktemp "${YEDEK_DIZINI}/incoming.XXXXXX")"
+trap 'rm -f "${GECICI_DOSYA}"' EXIT
+ssh -T -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=/root/.ssh/hoodmin-backup-known-hosts -i /root/.ssh/hoodmin-backup-pull root@hoodmin.oktayaktogan.com.tr >"${GECICI_DOSYA}"
+test -s "${GECICI_DOSYA}"
+ZAMAN="$(date -u +%Y%m%dT%H%M%SZ)"
+HEDEF="${YEDEK_DIZINI}/hoodmin-${ZAMAN}.age"
+mv "${GECICI_DOSYA}" "${HEDEF}"
+sha256sum "${HEDEF}" >"${HEDEF}.sha256"
+printf '%s\n' 'Şifreli Hoodmin yedeği ayrı makinede saklandı.'

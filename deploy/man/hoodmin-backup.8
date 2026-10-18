@@ -1,0 +1,9 @@
+.TH HOODMIN-BACKUP 8 "2026-10-18" "Hoodmin 0.1.0" "System Administration"
+.SH NAME
+hoodmin-backup \- back up Hoodmin data and encryption key
+.SH SYNOPSIS
+.B hoodmin-backup
+.SH DESCRIPTION
+Run as root. Writes a PostgreSQL custom-format dump, encryption key, environment settings and package version under /var/backups/hoodmin with private permissions. Transfer the backup to independent encrypted storage. Never restore over a live database without separately verifying recovery.
+.SH SEE ALSO
+/usr/share/doc/hoodmin/uretim-kurulumu.md.gz

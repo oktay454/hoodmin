@@ -1,0 +1,23 @@
+hoodmin (0.1.0-3~deb13u1) trixie; urgency=medium
+
+  * Ship backup export tooling, deployment examples and operations
+    documentation.
+  * Document verified certificate renewal and isolated database recovery.
+
+ -- Hoodmin maintainers <vpn@oktayaktogan.com.tr>  Sun, 18 Oct 2026 18:30:00 +0300
+
+hoodmin (0.1.0-2~deb13u1) trixie; urgency=medium
+
+  * Preserve DNS resolution when replacing VPN certificates.
+  * Add Certbot HTTP01 and PFX deployment hooks.
+  * Correct Python migration escapes and harden first-owner setup.
+
+ -- Hoodmin maintainers <vpn@oktayaktogan.com.tr>  Sun, 18 Oct 2026 18:00:00 +0300
+
+hoodmin (0.1.0-1~deb13u1) trixie; urgency=medium
+
+  * Initial Debian package for dedicated Debian 13 deployments.
+  * Keep existing database role and protocol environment compatibility.
+  * Require explicit database and owner initialization before activation.
+
+ -- Hoodmin maintainers <vpn@oktayaktogan.com.tr>  Sun, 18 Oct 2026 12:00:00 +0300

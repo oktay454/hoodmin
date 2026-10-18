@@ -8,7 +8,7 @@ Her kuruluş kendi sunucularını getirir (bring your own server, BYOS). Bir sun
 
 ## Durum
 
-Protokol çekirdeği ve kiracılı panel çalışıyor. VpnHood **9.0.856** ile gerçek .NET sözleşmesi ve uzak istemci bağlantısı doğrulandı. Üretime hazır dağıtım ve kapalı kaynak Manager ile tam özellik eşdeğerliği henüz tamamlanmadı. Çalışma ayrıntıları: [doğrulama kaydı](docs/dogrulama.md). Son tamamlanan iş ve devam sınırı: [duraklama kaydı](docs/calisma-durumu.md).
+Protokol çekirdeği ve kiracılı panel çalışıyor. VpnHood **9.0.856** ile gerçek .NET sözleşmesi ve uzak istemci bağlantısı doğrulandı. Debian 13 paket kurulumu, gerçek alan adlarıyla sertifika otomasyonu ve şifreli yedekten ayrı veritabanına dönüş doğrulandı. Uzun süreli üretim yükü ve kapalı kaynak Manager ile tam özellik eşdeğerliği henüz tamamlanmadı. Çalışma ayrıntıları: [doğrulama kaydı](docs/dogrulama.md). Son tamamlanan iş ve devam sınırı: [duraklama kaydı](docs/calisma-durumu.md).
 
 ## Mevcut özellikler
 
@@ -18,7 +18,7 @@ Protokol çekirdeği ve kiracılı panel çalışıyor. VpnHood **9.0.856** ile 
 - Grup erişimi, kapasite/güce ve konuma göre yönlendirme, şifreli sunucu adresi yayımı ve erişim kodları.
 - Grup adres yenileme bağlantısıyla ulaşılamayan başlangıç sunucusundan uygun canlı üyeye geçiş; .NET ve gerçek istemci bağlantısıyla doğrulandı.
 - Grup PFX deposu; mevcut/yeni/gruba taşınan üyelere dağıtım, VPN adresi ve sunucu sırrını koruma.
-- Parolalı PFX içe aktarma, sertifika sabitleme ve süreli HTTP-01 doğrulama yanıtı. Otomatik CA alma/yenileme henüz tamamlanmadı.
+- Parolalı PFX içe aktarma, sertifika sabitleme ve süreli HTTP-01 doğrulama yanıtı. Debian Certbot kancalarıyla işletmen tarafından yapılandırılan otomatik CA alma/yenileme ve PFX dağıtımı çalışır.
 - Tarih/sunucu filtreli CPU, bellek, oturum ve hız grafikleri; ülkeye göre bildirilen cihaz sayıları. Anahtar açıklaması, müşteri/sipariş/destek kodu ve anahtar indirme.
 
 - Türkçe, Arapça ve İngilizce arayüz; Arapçada sağdan sola düzen (RTL), açık/koyu tema ve güneş/ay düğmesi.
@@ -62,24 +62,24 @@ cargo clippy --workspace --all-targets --locked -- -D warnings
 cargo audit --deny warnings
 ```
 
-`cargo audit` ayrıca kurulu olmalıdır. Son kayıtlarda 20 Rust testi, gerçek HTTPS/PostgreSQL/.NET panel/protokol/profil/rapor sınamaları ve tema/dil HTTPS kontrolleri başarılıdır; bu sonuç genel güvenlik garantisi değildir.
+`cargo audit` ayrıca kurulu olmalıdır. Son kayıtlarda 22 Rust testi, gerçek HTTPS/PostgreSQL/.NET panel/protokol/profil/rapor sınamaları ve tema/dil HTTPS kontrolleri başarılıdır; bu sonuç genel güvenlik garantisi değildir.
 
-Henüz `.deb` paketi yoktur. `scripts/setup-test-manager.sh` ve `scripts/setup-test-tls.sh` yalnız ayrılmış sınama ortamları içindir; mevcut kurulumda körlemesine yeniden çalıştırılmamalıdır. TLS betiği özel ve kısa ömürlü bir sınama CA'sı oluşturur, üretim sertifika çözümü değildir. Mevcut ters vekil düzeni için [VPS notlarını](docs/vps-ters-vekil.md) okuyun; sertifika doğrulamasını kapatmayın.
+Debian 13 amd64 için `.deb` paketi vardır; yeni kurulum, sürüm yükseltme, geçiş özeti denetimi ve kurtarma sınandı. [Üretim kurulumunu](docs/uretim-kurulumu.md) ve [mevcut ortam kaydını](docs/uretim-ortami.md) okuyun. `scripts/setup-test-manager.sh` ve `scripts/setup-test-tls.sh` yalnız ayrılmış sınama ortamları içindir; mevcut kurulumda körlemesine yeniden çalıştırılmamalıdır. TLS betiği özel ve kısa ömürlü bir sınama CA'sı oluşturur, üretim sertifika çözümü değildir. Eski sınama ortamının ters vekil düzeni için [VPS notlarını](docs/vps-ters-vekil.md) okuyun; sertifika doğrulamasını kapatmayın.
 
-İlk hesap yerel `create-account` komutuyla veya `scripts/bootstrap-panel.sh KIRACI_UUID` ile oluşturulur. Betik rastgele başlangıç parolasını `work/panel-admin.txt` içinde 0600 izinleriyle saklar; mevcut parolayı değiştirmez. `scripts/test-contract.sh`, `tests/test_panel.py` ve `tests/test_preferences.py` ortam gereksinimleri için doğrulama kaydına bakın. Bütünleşim sınamaları ayrı kiracılar kullanır.
+Paketli kurulumda ilk sahip `hoodmin-create-owner EPOSTA HTTPS_ORIGIN` ile oluşturulur; üretim rehberini izleyin. Eski sınama ortamında ilk hesap yerel `create-account` komutuyla veya `scripts/bootstrap-panel.sh KIRACI_UUID` ile oluşturulur. Betik rastgele başlangıç parolasını `work/panel-admin.txt` içinde 0600 izinleriyle saklar; mevcut parolayı değiştirmez. `scripts/test-contract.sh`, `tests/test_panel.py` ve `tests/test_preferences.py` ortam gereksinimleri için doğrulama kaydına bakın. Bütünleşim sınamaları ayrı kiracılar kullanır.
 
 ## Sınırlar ve kalan işler
 
-- Otomatik CA sertifikası alma/yenileme ve gerçek DNS doğrulaması için ayrıca sağlanacak VPN sunucusu bekleniyor; mevcut HTTP-01 yanıtı otomatik sertifika hizmeti değildir.
+- Gerçek ACME/yenileme ve PFX dağıtımı dış Certbot işçisiyle doğrulandı. Kiracının panelden kendi ACME işini oluşturduğu AutoSign ekranı henüz yoktur.
 - Şifreli sunucu/grup adres kaynağı HTTPS GET olarak çalışır. Console'daki harici POST/PUT yayım işleri ve gruba sunucu profili atayarak otomatik yayma henüz uygulanmadı.
 - `clientPolicies` istemciye duyurulur; ülke bazındaki kapalı kaynak ticari plan kararlarının birebir uygulandığı iddia edilmez. Ödüllü reklam için güvenilir sunucu doğrulayıcısı gerekir; doğrudan reklam ağı entegrasyonu yoktur.
-- `.deb`, üretim yedekleme/geri yükleme ve ana anahtar döndürme süreçleri tamamlanmadı. Kurulum işlerinin durumu kalıcıdır; kesilen işler otomatik yeniden çalıştırılmaz.
+- Debian paketi, yerel/şifreli uzak yedek ve ayrı hedefte geri yükleme çalışır. Ana anahtar döndürme ve harici hata bildirim kanalı henüz tamamlanmadı. Kurulum işlerinin durumu kalıcıdır; kesilen işler otomatik yeniden çalıştırılmaz.
 - Kiracı oluşturma CLI'dadır; herkese açık kayıt/platform yönetim ekranı yoktur.
 - Kullanım farkları tekil rapor kimliği taşımaz; kesintilerde tam bir kez muhasebe garantisi yoktur.
-- Gerçek TCP/QUIC proxy trafiği, 1 Mbps indirme ve ağ engeli sınandı. İşletim sistemi VPN yönlendirmesi, UDP kullanıcı yükü, sürekli yük ve tüm ayarların her çekirdekte etkisi ayrıca sınanmalıdır.
+- Gerçek TCP/QUIC proxy trafiği, 1 Mbps indirme ve ağ engeli sınandı. Yeni genel VPN sunucusunda TCP/UDP/QUIC paket kanallarından UDP DNS verisi, sunucu TUN ve NAT sayaçları doğrulandı. Masaüstü işletim sisteminin tüm rotaları, sürekli yük ve tüm ayarların her çekirdekte etkisi ayrıca sınanmalıdır.
 
 Güncel alan kataloğu, kanıtlar ve açık işler: [protokol uyumluluğu](docs/protokol-uyumlulugu.md). Console karşılaştırmaları tarihsel inceleme kayıtlarıdır; güncel uygulama durumu için bu belgeyi kullanın.
 
 ## Adlandırma ve kurulum uyumluluğu
 
-Ürün ve ana Cargo paketi **Hoodmin** olarak adlandırıldı. Mevcut sınama kurulumunu korumak için çalıştırılabilir dosya/servis adı `vpnhood-manager`, veri tabanı `vpnhood_manager`, sistem kullanıcısı `vhmgr`, `VHM_*` ayarları ve `__Host-vhm_*` çerezleri korunuyor. Depo dizini de mevcut `VpnHood` yolundadır. Bunların Hoodmin adlarına geçişi Debian paketleme sırasında veri ve anahtarları koruyan bir yükseltme olarak ele alınacaktır. VpnHood adı protokol, sunucu ve istemci uyumluluğunu belirtmek için kullanılır.
+Ürün ve ana Cargo paketi **Hoodmin** olarak adlandırıldı. Mevcut sınama kurulumunu korumak için çalıştırılabilir dosya/servis adı `vpnhood-manager`, veri tabanı `vpnhood_manager`, sistem kullanıcısı `vhmgr`, `VHM_*` ayarları ve `__Host-vhm_*` çerezleri korunuyor. Depo dizini de mevcut `VpnHood` yolundadır. Yeni Debian paketi `/usr/bin/hoodmin`, `hoodmin.service` ve `/var/lib/hoodmin` kullanır; `vhmgr`, veri tabanı, ortam değişkenleri ve geçici SSH dizini uyumluluk için korunur. Eski kurulumu kendiliğinden taşımaz. VpnHood adı protokol, sunucu ve istemci uyumluluğunu belirtmek için kullanılır.

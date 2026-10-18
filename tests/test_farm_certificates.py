@@ -56,7 +56,7 @@ actual=agent(credential,'configure',{})
 check(actual['serverSecret']==original['serverSecret'] and actual['certificates'][0]['commonName']=='farm-cert-test.invalid','Grup PFX dağıtımı üyenin sunucu sırrını korudu')
 code,body,_=admin.post('/manage/tokens',server=member,name='DNS sonra',count=1,max_clients=0,max_gib=0,profile='',expires='')
 dns_token=json.loads(base64.b64decode(Fields(body).output.split('vh://',1)[1].strip()))['ser']
-check(dns_token['hname']=='dns-member.example.test','Grup sertifikası DNS bağlantı adresini değiştirmedi')
+check(dns_token['hname']=='dns-member.example.test' and dns_token['isv'] is True,'Grup sertifikası DNS bağlantı adresini değiştirmedi')
 code,body,_=admin.post('/manage/servers',name='Yeni grup üyesi',host='10.0.3.220',port=2781,farm=farm)
 new_credential=json.loads(Fields(body).output)['HttpAccessManager']['Authorization'][7:]
 check(agent(new_credential,'configure',{})['certificates'][0]['rawData']==actual['certificates'][0]['rawData'],'Gruba yeni eklenen sunucu ortak PFX aldı')

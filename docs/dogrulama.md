@@ -143,3 +143,15 @@ Kullanım ve uygulama notları: `docs/arayuz-ve-diller.md`. Yeni paket/bağıml�
 - Tam native özellik dizisi tekrar geçti: PFX/TLS, gerçek HTTP01/404, TCP 12 MiB, QUIC 256 KiB, 1 Mbps sınırı ve aynı hedefi engelleme. Son 2 MiB indirme 16,70 saniye sürdü. Son yapılandırma uygulanmış; HTTP01 ve özel ağ erişimi kapalı. Kullanıcının eski `vpnhood-test` kaydı değiştirilmedi.
 - Grup sertifikası/yayım sayfalarında üç dil ve RTL/LTR HTTPS ile kontrol edildi. Bot ekranı mevcut kullanıcı oturumuyla salt okunur incelendi; ekran kaydı `hoodmin-bot-yonetimi.jpg`. Üç benioku bağlantısı, çeviri anahtarları ve Git boşluk/sır taraması başarılı. Yeni sistem paketi kurulmadı.
 - Kullanıcının isteğiyle bu kilometre taşından sonra duraklanır. Harici POST/PUT yayımı ve sonraki işler başlatılmadı; devam noktası [çalışma durumu](calisma-durumu.md).
+
+## Yeni genel sunucular ve Debian paketi — 18 Ekim 2026
+
+- Kullanıcının verdiği iki SSH makinesindeki şablonlardan `hoodmin` ve `vh01` kopyaları oluşturuldu. Ayrıcalıksız eşleme, sabit iç adresler, kapalı nesting, sınırlı TUN aygıtı, kalıcı ağ yönlendirmeleri ve otomatik başlangıç yapılandırıldı. Ana makine kurucusu yeniden çalıştırılmadı; şablonlar korundu.
+- `hoodmin.oktayaktogan.com.tr` için gerçek TLS/Nginx/PostgreSQL ve `vpn@oktayaktogan.com.tr` sahip hesabı oluşturuldu. İlk parola yalnız üretimdeki 0600 dosyadadır. Varsayılan sınama hesabı/veritabanı taşınmadı.
+- Debian paketi, açık başlangıç komutları, özel ana anahtar, şema özeti/kilidi/işlemleri, systemd korumaları, kılavuz sayfaları ve üç dilde belgeler eklendi. Yeni kurulum ve yükseltme geçti; ana anahtar değişmedi. 22 Rust testi, Clippy, paket derlemesi ve Lintian paket hata/uyarı denetimi başarılı.
+- Hazır VpnHood 9.0.856 kuruldu; kaynak sunucu uygulaması derlenmedi. Gerçek VPN alan adı için CA üretimi, HTTP01 köprüsü, geçici dinleyici temizliği, PFX API dağıtımı ve dış CA/TLS karşılaştırması geçti. Gerçek yenileme ayarıyla `--dry-run` başarılı; sınamada dağıtım kancası ayrıca zorlanmadı.
+- Sertifika değişimindeki DNS çözümleme bayrağı hatası düzeltildi. İki gerileme sınaması, grup PFX ve tam native PFX/HTTP01/hız/QUIC/ağ filtresi sınaması yeniden geçti. Yeni genel alanda tema/dil HTTPS kontrolleri başarılı.
+- Gerçek TCP443 istemci bağlantısı; TCP, UDP ve QUIC paket kanallarından UDP DNS verisi doğrulandı. Sunucu TUN ve NAT sayaçları arttı. Kapsayıcı yeniden başlangıcı sonrasında hizmetler, TLS, agent onayı ve QUIC verisi tekrar geçti.
+- `age` şifreli yedek, kaynak IP/komutla sınırlı SSH okuma anahtarı ve günlük ayrı makine kopyası eklendi. İki kopyanın SHA-256 özeti eşleşti. Ayrı veritabanına yükleme ve yedeklenen ana anahtarla yapılandırma çözme geçti; canlı veri üzerine yazılmadı, geçici kurtarma veritabanı kaldırıldı.
+- Sonradan UID/GID aralığı taşıması otomatik onay denetimince reddedildi; uygulanmadı. Salt okunur ön inceleme ve bakım/geri dönüş kapsamı belgede hazırdır. İlk sahip parolasının yerel dosyaya kopyalanması da reddedildi; parola sunucuda kaldı. Bu kısıtlar dolaylı yöntemle aşılmadı.
+- Paket sürümü, dizinler, başlıca kurulan paketler, zamanlayıcılar, kalan işler ve erişim: [üretim ortamı](uretim-ortami.md).

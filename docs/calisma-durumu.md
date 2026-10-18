@@ -1,31 +1,31 @@
-# Duraklama kaydı — 17 Ekim 2026
+# Çalışma durumu — 18 Ekim 2026
 
-Kullanıcının isteği: eldeki işi tamamlayıp durakla; kullanıcı “devam et” demeden sonraki işe başlama.
+Kullanıcı 17 Ekim duraklamasından sonra iki yeni SSH makinesi vererek devam edilmesini istedi. Yeni ortam üretim hedefiyle hazırlanmıştır; tam Console eşdeğerliği ve uzun süreli üretim onayı iddia edilmez.
 
-## Tamamlanan son iş
+## Son tamamlanan işler
 
-- Grup adresi yenileme URL'si: ulaşılamayan başlangıç adresinden uygun canlı grup üyesine geçiş. Gerçek .NET belirteç çözme ve hazır VpnHood 9.0.856 istemci bağlantısı sınandı.
-- Şifreli ortak grup PFX deposu; mevcut, yeni ve gruba taşınan üyeye dağıtım. VPN adresi ve her sunucunun kendi sırrı korunur. Açık onay ve sürüm denetimi vardır.
-- Tek sunucu PFX değişiminde DNS adresinin korunması ve aynı X509 DNS adına sahip sertifikaların çakışmasının önlenmesi.
-- Türkçe, Arapça ve İngilizce çeviriler, üç benioku ve yönetim API belgesi güncellendi.
+- Önceki grup adres yenilemesi ve ortak PFX deposu korunur.
+- Yeni `hoodmin` ve `vh01` kapsayıcıları, geçerli HTTPS, yeni sahip hesabı ve ilk gerçek VPN sunucusu çalışır.
+- Debian paketi; kurulum/yükseltme, geçiş özeti denetimi ve korumalı systemd hizmeti.
+- Gerçek ACME alma/yenileme köprüsü, PFX dağıtımı ve CA/TLS denetimi; Certbot zamanlayıcısı etkin.
+- Şifreli günlük yedek ve diğer makineye sınırlı SSH kopyası; ayrı veritabanında ana anahtarla kurtarma doğrulandı.
+- PFX değişiminde DNS çözümlemesi düzeltildi; 22 Rust testi ve ilgili gerçek sunucu sınamaları geçti.
+- Genel sunucuda TCP/UDP/QUIC paket kanallarından UDP DNS ve sunucu TUN/NAT geçişi doğrulandı.
 
-Ayrıntılı kanıtlar: [doğrulama kaydı](dogrulama.md), [kaynak sözleşmesi ve kapsam](protokol-uyumlulugu.md).
+[Üretim ortamı ve erişim](uretim-ortami.md), [kurulum](uretim-kurulumu.md), [kanıtlar](dogrulama.md), [uyumluluk sınırları](protokol-uyumlulugu.md).
 
-## Devam izninden sonraki işler
+## Ayrı onay bekleyen işlem
 
-1. Console'da görülen harici POST/PUT şifreli adres yayımı. Henüz kodlanmadı.
-2. Grup düzeyinde sunucu profili atama ve değişiklikleri üyeye otomatik yayma. Mevcut seçili sunuculara açık toplu uygulama çalışır.
-3. Otomatik CA/ACME sertifikası alma ve yenileme. Kullanıcı bunun sınaması için ayrı sunucu sağlayacağını bildirdi; henüz bağlantı bilgileri gelmedi. Mevcut süreli HTTP-01 yanıtı otomatik CA hizmeti değildir.
-4. Debian paketi, üretim yedekleme/geri yükleme ve ana anahtar döndürme; uzun süreli yük, kesinti, UDP kullanıcı verisi ve işletim sistemi VPN yönlendirmesi sınamaları.
+Yalnız yeni iki kapsayıcının UID/GID tabanını 100000'den 200000'e taşıma; mevcut ana makine kullanıcılarının alt kimlik aralığından ayırma. Otomatik onay denetimi, kapsayıcı durdurma ve tüm dosya sahipliklerini değiştirme nedeniyle reddetti. Uygulanmadı. Salt okunur plan, tam durdurulmuş kopya/geri dönüş ve son kontrol kapsamı üretim ortamı belgesindedir. İzin gelmeden bu işlem veya dolaylı eşdeğeri yapılmamalıdır.
 
-Kapalı kaynak Console ile tam eşdeğerlik iddia edilmez. Ülke bazlı ticari istemci kararları, Locked IPs çalışma etkisi, IP siparişi ve marka özelleştirmesinin gözlenmeyen davranışları açık kapsam kaydındadır.
+İlk sahip parolasını yerel dosyaya kopyalama adımı da reddedildi. Parola üretim kapsayıcısında kalır; bu aktarım için ayrıca açık izin olmadan başka yol denenmemelidir. API ve sunucu içindeki mevcut sahip oturumu işlev kontrollerinde kullanılabildi; tarayıcıda güvenilir giriş sayfası doğrulandı.
 
-## Çalışan sınama ortamı
+## Sonraki özellikler
 
-- Panel: https://vhm-test.oktayaktogan.com.tr/ ; `yapayzeka` kapsayıcısı, `vpnhood-manager` hizmeti.
-- VPN: `vpnhood` kapsayıcısında resmî hazır `/opt/VpnHoodServer`, `VpnHoodServer.service`, TCP2550 / UDP2551 / QUIC2552. Kaynak sunucu uygulaması yeniden derlenmedi.
-- Kullanıcının eski `vpnhood-test` kaydına dokunulmadı. Bu kayıt daha önce kimlik yenilendiği için çevrimdışıdır.
-- Özel sınama kimlik bilgileri/sertifikaları ve önceki yapılandırma yedekleri `work/` içindedir; Git dışında kalır. Sınama HTTP80 ve özel ağ erişimi iş sonunda kapatılır.
-- 0008 şema değişikliği uygulandı. Uygulanmış geçişi geriye dönük değiştirmeyin; sonraki değişiklik için yeni geçiş kullanın.
+1. Harici POST/PUT şifreli adres yayımı.
+2. Grup düzeyinde sunucu profili atama ve otomatik değişiklik yayma; açık seçili toplu uygulama zaten çalışır.
+3. Kiracının panelden kendi ACME işini oluşturduğu AutoSign akışı. Mevcut root/Certbot entegrasyonu gerçek sunucuda çalışır.
+4. Ana anahtar döndürme, harici hata bildirimi, yedek saklama/disk politikası ve uzun süreli yük/kesinti sınamaları.
+5. Masaüstü işletim sistemi VPN rotalarının tümü, Windows kurulum çalıştırması ve kapalı kaynak davranışı gözlenmeyen ticari özellikler ayrıca değerlendirilir.
 
-Bu sonlandırma sırasında yeni sistem paketi kurulmadı. Önceki doğrulama aşamasında iki kapsayıcıya Microsoft deposundan `libmsquic 2.6.3`, Debian'dan `libnuma1`; `vpnhood` kapsayıcısına ayrıca Debian'dan `sudo` kuruldu.
+Eski `yapayzeka`/`vpnhood` ortamları gerileme sınaması için korunur. Kullanıcının eski `vpnhood-test` kaydı değiştirilmedi. Kaynak kardeş `VpnHood-Current` salt okunur kalmıştır. Özel sınama verileri, kimlikler ve kurtarma anahtarları `work/` içinde Git dışındadır; yayımlanmamalıdır.

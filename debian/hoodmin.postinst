@@ -1,0 +1,24 @@
+#!/bin/sh
+set -e
+if [ "$1" = configure ]
+then
+	if ! getent passwd vhmgr >/dev/null
+	then
+		adduser --system --group --home /var/lib/hoodmin --no-create-home vhmgr
+	fi
+	install -d -o vhmgr -g vhmgr -m 0700 /var/lib/hoodmin
+	if [ ! -f /var/lib/hoodmin/master.key ]
+	then
+		if [ -n "$2" ]
+		then
+			printf '%s\n' 'Master key missing during upgrade; restore it from backup before continuing.' >&2
+			exit 1
+		fi
+		umask 077
+		head -c 32 /dev/urandom >/var/lib/hoodmin/master.key
+		chown vhmgr:vhmgr /var/lib/hoodmin/master.key
+	fi
+	chown root:vhmgr /etc/hoodmin/hoodmin.env
+	chmod 0640 /etc/hoodmin/hoodmin.env
+fi
+#DEBHELPER#

@@ -11,3 +11,11 @@
 *.pem
 .env.*
 **/__pycache__/
+
+/debian/.debhelper/
+/debian/hoodmin/
+/debian/hoodmin-dbgsym/
+/debian/files
+/debian/*.substvars
+/debian/debhelper-build-stamp
+/debian/*.debhelper

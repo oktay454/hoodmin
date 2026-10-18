@@ -1,0 +1,15 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: Hoodmin
+Source: local private development repository
+
+Files: *
+Copyright: 2026 Hoodmin contributors
+License: proprietary
+ No redistribution license has been granted for Hoodmin.
+ This package is prepared for the project owner's deployment.
+ .
+ VpnHood is a separate upstream project. Its server application is not
+ included in this package and is installed from its official release.
+ .
+ Rust dependency license expressions and package source locations are
+ recorded in dependency-licenses.json in the documentation directory.

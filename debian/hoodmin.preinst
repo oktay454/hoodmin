@@ -1,0 +1,8 @@
+#!/bin/sh
+set -e
+if [ "$1" = install ] && [ -f /var/lib/vpnhood-manager/master.key ]
+then
+	printf '%s\n' 'Existing legacy installation detected; use an explicit data migration before installing Hoodmin.' >&2
+	exit 1
+fi
+#DEBHELPER#

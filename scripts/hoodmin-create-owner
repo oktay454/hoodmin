@@ -1,0 +1,44 @@
+#!/usr/bin/python3
+"""Create the first owner once; never print the generated password."""
+import fcntl
+import json
+import os
+from pathlib import Path
+import pwd
+import secrets
+import subprocess
+import sys
+import urllib.parse
+import uuid
+
+if os.geteuid()!=0 or len(sys.argv)!=3:
+	raise SystemExit('Usage: sudo hoodmin-create-owner EMAIL HTTPS_ORIGIN')
+lock=open('/run/lock/hoodmin-bootstrap.lock','w')
+fcntl.flock(lock,fcntl.LOCK_EX)
+if Path('/root/hoodmin-first-owner.json').exists():
+	raise SystemExit('Bootstrap credential file already exists; refusing to overwrite it.')
+email,origin=sys.argv[1:]
+url=urllib.parse.urlsplit(origin)
+if url.scheme!='https' or not url.hostname or url.username or url.password or url.path or url.query or url.fragment:
+	raise SystemExit('A plain HTTPS origin is required.')
+if len(email)>254 or '@' not in email or any(x in email for x in '\r\n'):
+	raise SystemExit('Invalid email.')
+check=subprocess.run(['runuser','-u','postgres','--','psql','-X','-At','-d','vpnhood_manager','-c','SELECT count(*) FROM accounts;'],check=True,text=True,capture_output=True)
+if check.stdout.strip()!='0':
+	raise SystemExit('An account already exists; initial owner bootstrap was not repeated.')
+owner=pwd.getpwnam('vhmgr');tenant=str(uuid.uuid4());password=secrets.token_urlsafe(32)
+secret=Path('/var/lib/hoodmin/bootstrap-password')
+fd=os.open(secret,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+with os.fdopen(fd,'w') as f:f.write(password+'\n')
+os.chown(secret,owner.pw_uid,owner.pw_gid)
+env=dict(os.environ,DATABASE_URL='postgresql:///vpnhood_manager?host=/var/run/postgresql&user=vhmgr',VHM_MASTER_KEY_FILE='/var/lib/hoodmin/master.key')
+try:
+	subprocess.run(['runuser','-u','vhmgr','--preserve-environment','--','/usr/bin/hoodmin','create-account','--tenant',tenant,'--tenant-name','Hoodmin','--email',email,'--password-file',str(secret),'--role','owner'],env=env,check=True,capture_output=True)
+finally:
+	secret.unlink(missing_ok=True)
+output=Path('/root/hoodmin-first-owner.json')
+fd=os.open(output,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+with os.fdopen(fd,'w') as f:json.dump(dict(email=email,password=password,tenant=tenant,origin=origin),f,ensure_ascii=False,indent='\t')
+config=Path('/etc/hoodmin/hoodmin.env');text=config.read_text();lines=[('VHM_PUBLIC_ORIGIN='+origin) if line.startswith('VHM_PUBLIC_ORIGIN=') else line for line in text.splitlines()];config.write_text('\n'.join(lines)+'\n')
+Path('/etc/hoodmin/configured').touch(mode=0o600)
+print('Initial owner created. Credentials: /root/hoodmin-first-owner.json (0600).')

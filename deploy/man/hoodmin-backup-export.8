@@ -1,0 +1,9 @@
+.TH HOODMIN-BACKUP-EXPORT 8 "2026-10-18" "Hoodmin 0.1.0" "System Administration"
+.SH NAME
+hoodmin-backup-export \- encrypt a complete Hoodmin backup for remote storage
+.SH SYNOPSIS
+.B hoodmin-backup-export
+.SH DESCRIPTION
+Run as root with the age package installed. Reads the age recipient from /etc/hoodmin/backup-recipient.txt. Writes an authenticated encrypted archive to /var/backups/hoodmin/latest.age. The recovery identity must be stored independently; it is not included in the archive. This command does not delete old backups.
+.SH SEE ALSO
+hoodmin-backup(8), age(1)

@@ -128,7 +128,42 @@ pub fn attach(
 	if make_default || certificate_dns.eq_ignore_ascii_case(&hostname) {
 		config["publicServerToken"]["ch"] = hash.into();
 		config["publicServerToken"]["ct"] = json!(chrono::Utc::now());
-		config["publicServerToken"]["isv"] = false.into();
 	}
 	Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	#[test]
+	fn certificate_replacement_preserves_dns_resolution() {
+		let mut config = crate::management::make_config("vpn.example.test", 443).unwrap();
+		let replacement = crate::management::make_config("certificate.example.test", 443).unwrap();
+		let hash = replacement["publicServerToken"]["ch"].as_str().unwrap();
+		attach(
+			&mut config,
+			replacement["certificates"][0].clone(),
+			hash,
+			true,
+		)
+		.unwrap();
+		assert_eq!(config["publicServerToken"]["hname"], "vpn.example.test");
+		assert_eq!(config["publicServerToken"]["isv"], true);
+		assert_eq!(config["publicServerToken"]["ch"], hash);
+	}
+	#[test]
+	fn certificate_replacement_preserves_ip_endpoint_strategy() {
+		let mut config = crate::management::make_config("203.0.113.7", 443).unwrap();
+		let endpoint = config["publicServerToken"]["ep"].clone();
+		let replacement = crate::management::make_config("certificate.example.test", 443).unwrap();
+		attach(
+			&mut config,
+			replacement["certificates"][0].clone(),
+			replacement["publicServerToken"]["ch"].as_str().unwrap(),
+			true,
+		)
+		.unwrap();
+		assert_eq!(config["publicServerToken"]["isv"], false);
+		assert_eq!(config["publicServerToken"]["ep"], endpoint);
+	}
 }

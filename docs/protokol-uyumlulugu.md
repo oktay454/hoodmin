@@ -115,13 +115,13 @@ Console'da görünen UseUdpProxy2, bu kaynakta ve hazır sunucunun son uygulanan
 
 ### Açık kalan işler
 
-- Kullanıcının ayrıca vereceği DNS/TCP80 erişimli VPN sunucusunda otomatik CA üretimi ve yenileme; mevcut HTTP-01 köprüsü bunun tamamı değildir.
+- Gerçek DNS/TCP80 sunucusunda Certbot kancalarıyla CA alma/yenileme ve PFX dağıtımı doğrulandı. Çok kiracılı panelden kendi ACME işini oluşturma/yönetme ekranı halen eksiktir.
 - Console'un harici POST/PUT token yayımı ve grup düzeyinde sunucu profili atama/otomatik yayma.
 - Beş ekip rolü ve bağımsız bot yönetim API'si son aşamada eklendi; Console'un özel yönetim API sözleşmesiyle birebir aynı olduğu iddia edilmez.
 - İstemci politikalarının (`cpols`) ülkeye göre ticari karar kuralları. Kaynak, bu kararların kapalı kaynak sunucu tarafındaki anlamını bütünüyle tanımlamaz; root politika süreleri Hoodmin'de açıkça seçilir.
 - Locked IPs kaydının çalışma etkisi, bulut IP siparişi ve markalama bu kaynak sözleşmesinden çıkarılamaz; gözlenmeyen davranış uydurulmadı.
-- UDP kullanıcı yükü, işletim sistemi VPN yönlendirmesi, kesinti ve uzun süreli yük; her kernel ayarının desteklenmeyen LXC yetkileriyle çalıştığı iddia edilmez.
-- Debian paketi ve üretim kurtarma/ana anahtar döndürme işleri ayrıca tamamlanacak.
+- UDP kullanıcı verisi yeni genel sunucuda TCP/UDP/QUIC paket kanalları ve sunucu TUN/NAT üzerinden doğrulandı. Masaüstü işletim sistemi rotaları, uzun kesinti ve sürekli yük halen ayrı sınama ister.
+- Debian paketi ve ayrı veritabanına yedek kurtarma tamamlandı. Ana anahtar döndürme, harici alarm kanalı ve uzun süreli işletim sınamaları ayrıca tamamlanacak.
 
 Sınama için yalnız ayrılmış kapsayıcının `/opt/VpnHoodServer` kurulumu değiştirildi; kullanıcının eski `vpnhood-test` hizmeti ve kaynak ağacındaki sunucu uygulaması yeniden derlenmedi. Yeni sertifika yalnız bu sınama kaydındadır. Geçici SSH hesabı/anahtarı, özel ağ erişimi ve HTTP80 dinleyicisi sınama sonunda kapatıldı.
 
@@ -144,3 +144,13 @@ Hoodmin'e ayrı grup URL yolu eklendi: `/f/{tenant}/{farm}/{seed}`. Yalnız yay�
 PFX özel anahtarı kiracı/grup bağlamına bağlı AES-256-GCM ile saklanır. Açık onayla mevcut üyelere tek veritabanı işlemi içinde dağıtılır; yeni kaydedilen ve gruba taşınan sunucular da sertifikayı devralır. VPN bağlantı adresi ve her sunucunun kendi sırrı korunur. Sürüm denetimi eski formları reddeder. Grup üyeliğini kaldırmak, daha önce dağıtılmış özel anahtarı o sunucudan kendiliğinden geri çekmez.
 
 `tests/test_farm_certificates.py` geçti: yanlış parola 400, eski form 409; mevcut/yeni/taşınan üyede PFX, sunucu sırrı ve DNS adresi korundu. Hazır 9.0.856 sunucusu eski bağlantı adı/SNI ile yeni sertifikayı sundu; DER ve erişim anahtarı parmak izi karşılaştırıldı, gerçek istemci bağlandı. Aynı X509 DNS adı farklı arayüz etiketiyle yenilenince yerel TLS seçicisinde mükerrer kayıt oluşmadı. Sınama hedefinin önceki şifreli yapılandırması ve grup üyeliği geri yüklendi. Otomatik CA hizmeti ve harici POST/PUT yayımı bu çalışmanın parçası değildir.
+
+## Yeni genel sunucular — 18 Ekim 2026
+
+Ayrılmış `hoodmin` ve `vh01` kapsayıcıları, resmî hazır 9.0.856 ve gerçek Let’s Encrypt alan adlarıyla kuruldu. CA alma ve yenileme `hoodmin-acme` Certbot kancaları üzerinden Hoodmin yönetim API'sini kullanır. Gerçek ilk dağıtımda PFX/TLS eşleşmesi ve CA doğrulaması geçti; yenileme `--dry-run` ile geçmiştir. Bu yol root işletmen yapılandırmasıdır; Console AutoSign ekranıyla aynı kullanıcı akışı olduğu iddia edilmez.
+
+Gerçek DNS istemcisi bir hatayı ortaya çıkardı: PFX değişimi `isv` değerini false yapıyordu. Bu değer, kaynaktaki `EndPointResolver` için DNS çözümlemesini de denetler; adres listesi olmayan DNS anahtarı çalışmıyordu. Sertifika değişimi artık DNS/IP çözümleme bayrağını korur; pin yeni sertifikaya güncellenir. İki Rust gerileme sınaması ve grup PFX denetimi eklendi.
+
+`tests/UdpProbe` resmî .NET istemci kitaplığı ve MsQuic soket fabrikasıyla TCP, UDP ve QUIC paket kanallarını ayrı ayrı seçti; geri düşmeyi reddetti. Atanmış sanal istemci IP'sinden yapılan UDP DNS isteği gerçek yanıt verdi. Sunucu TUN/NAT sayaçlarının arttığı ve kapsayıcı yeniden başlatıldıktan sonra QUIC verisinin tekrar geçtiği görüldü. NullVpnAdapter'a sentetik paket verildiğinden masaüstü işletim sisteminin tüm yönlendirme tablosu sınanmış sayılmaz.
+
+Debian paket kurulum/yükseltmesi, geçiş özetleri, şifreli ayrı makine yedeği ve ayrı veritabanına ana anahtarla geri yükleme doğrulandı. [Ortam, işletim sınırları ve ayrı onay bekleyen UID/GID taşıması](uretim-ortami.md) kaydındadır.

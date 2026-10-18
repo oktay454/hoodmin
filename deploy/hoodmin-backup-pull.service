@@ -1,0 +1,14 @@
+[Unit]
+Description=Fetch encrypted Hoodmin backup using read-only SSH
+After=network-online.target
+Wants=network-online.target
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/hoodmin-backup-pull
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/backups/hoodmin-remote
+TimeoutStartSec=10min

@@ -1,0 +1,18 @@
+Source: hoodmin
+Section: admin
+Priority: optional
+Maintainer: Hoodmin maintainers <vpn@oktayaktogan.com.tr>
+Build-Depends: debhelper-compat (= 13), cargo, rustc, pkg-config, libssl-dev
+Standards-Version: 4.7.2
+Rules-Requires-Root: no
+
+Package: hoodmin
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, adduser, ca-certificates, openssh-client, openssl, postgresql (>= 17), python3
+Recommends: nginx
+Suggests: certbot, age
+Description: independent VpnHood-compatible server management panel
+ Rust management service with tenant isolation, access policies,
+ encrypted server credentials and a web interface in Turkish, Arabic
+ and English. VPN traffic goes directly to each tenant's own servers.
+ Initial database and owner setup are explicit administrator actions.

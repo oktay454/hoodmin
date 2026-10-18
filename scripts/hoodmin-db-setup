@@ -1,0 +1,37 @@
+#!/usr/bin/python3
+"""Explicit root-only PostgreSQL migrations; per-migration transaction and checksum."""
+import hashlib
+import os
+from pathlib import Path
+import re
+import subprocess
+
+if os.geteuid() != 0:
+	raise SystemExit('Run as root on the dedicated Hoodmin container.')
+
+def psql(sql, database='postgres'):
+	return subprocess.run(['runuser','-u','postgres','--','psql','-X','-v','ON_ERROR_STOP=1','-At','-d',database],input=sql,text=True,check=True,capture_output=True).stdout.strip()
+
+psql("DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='vhmgr') THEN CREATE ROLE vhmgr LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS; END IF; END $$;")
+if psql("SELECT count(*) FROM pg_database WHERE datname='vpnhood_manager';")=='0':
+	subprocess.run(['runuser','-u','postgres','--','createdb','vpnhood_manager'],check=True)
+if psql("SELECT to_regclass('public.tenants') IS NOT NULL AND to_regclass('public._hoodmin_migrations') IS NULL;",'vpnhood_manager')=='t':
+	raise SystemExit('Untracked existing schema: explicit legacy migration is required; nothing was modified.')
+files=sorted(Path('/usr/share/hoodmin/migrations').glob('*.sql'))
+assert files, 'No packaged migrations found'
+sql=["SELECT pg_advisory_lock(684663001);", "CREATE TABLE IF NOT EXISTS _hoodmin_migrations(name text PRIMARY KEY, checksum text NOT NULL, applied_at timestamptz NOT NULL DEFAULT now());"]
+for path in files:
+	name=path.name
+	assert re.fullmatch(r'[0-9]{4}_[a-z_]+\.sql',name),name
+	data=path.read_text()
+	digest=hashlib.sha256(data.encode()).hexdigest()
+	body,count=re.subn(r'(?m)^BEGIN;[ \t]*\n','',data,count=1)
+	assert count==1 and body.rstrip().endswith('COMMIT;'),name
+	body=body.rstrip()[:-len('COMMIT;')]
+	sql.extend([f"DO $$ BEGIN IF EXISTS(SELECT FROM _hoodmin_migrations WHERE name='{name}' AND checksum<>'{digest}') THEN RAISE EXCEPTION 'Migration checksum mismatch: {name}'; END IF; END $$;",f"SELECT NOT EXISTS(SELECT FROM _hoodmin_migrations WHERE name='{name}') AS apply \\gset",r'\if :apply','BEGIN;',body,f"INSERT INTO _hoodmin_migrations(name,checksum) VALUES('{name}','{digest}');",'COMMIT;',r'\endif'])
+sql.extend(["GRANT CONNECT ON DATABASE vpnhood_manager TO vhmgr; GRANT USAGE ON SCHEMA public TO vhmgr; GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO vhmgr; GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO vhmgr; REVOKE UPDATE, DELETE ON audit_events FROM vhmgr; REVOKE ALL ON _hoodmin_migrations FROM vhmgr; REVOKE ALL ON _hoodmin_migrations FROM PUBLIC;",'SELECT pg_advisory_unlock(684663001);'])
+try:
+	psql('\n'.join(sql),'vpnhood_manager')
+except subprocess.CalledProcessError as error:
+	raise SystemExit(error.stderr)
+print('Hoodmin database migrations applied and checksums verified.')

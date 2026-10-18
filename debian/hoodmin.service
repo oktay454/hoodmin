@@ -1,0 +1,33 @@
+[Unit]
+Description=Hoodmin independent VPN management panel
+After=network.target postgresql.service
+Requires=postgresql.service
+ConditionPathExists=/etc/hoodmin/configured
+
+[Service]
+Type=simple
+User=vhmgr
+Group=vhmgr
+EnvironmentFile=/etc/hoodmin/hoodmin.env
+ExecStart=/usr/bin/hoodmin serve
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=15
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+RuntimeDirectory=vpnhood-manager
+RuntimeDirectoryMode=0700
+StateDirectory=hoodmin
+StateDirectoryMode=0700
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

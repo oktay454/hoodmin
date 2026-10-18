@@ -1,0 +1,9 @@
+.TH HOODMIN-CREATE-OWNER 8 "2026-10-18" "Hoodmin 0.1.0" "System Administration"
+.SH NAME
+hoodmin-create-owner \- create the first Hoodmin owner
+.SH SYNOPSIS
+.B hoodmin-create-owner EMAIL HTTPS_ORIGIN
+.SH DESCRIPTION
+Run as root on a fresh database. Generates a random password and writes it only to /root/hoodmin-first-owner.json with mode 0600. Does not repeat if an account already exists. Set up trusted HTTPS before using the panel.
+.SH SEE ALSO
+/usr/share/doc/hoodmin/uretim-kurulumu.md.gz
