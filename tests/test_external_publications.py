@@ -105,7 +105,7 @@ check(viewer.post(endpoint,**form,confirmed='true')[0]==403,'Gözlemci yayım he
 outsider=Browser();email,_=account(str(uuid.uuid4()),'admin');assert outsider.login(email)[0]==303;outsider.request('/panel')
 check(outsider.post(endpoint,**form,confirmed='true')[0]==404,'Başka kiracı grubuna yayım hedefi eklenemedi')
 other_tenant=str(uuid.uuid4())
-assert subprocess.run(['runuser','-u','vhmgr','--','psql','-X','-d','vpnhood_manager','-Atqc',f"SET app.tenant_id='{other_tenant}'; SELECT count(*) FROM external_publications WHERE tenant_id='{tenant}';"],capture_output=True,text=True,check=True).stdout.strip()=='0'
+assert subprocess.run(['runuser','-u','hoodmin','--','psql','-X','-d','vpnhood_manager','-Atqc',f"SET app.tenant_id='{other_tenant}'; SELECT count(*) FROM external_publications WHERE tenant_id='{tenant}';"],capture_output=True,text=True,check=True).stdout.strip()=='0'
 check(True,'Uygulama DB rolü başka kiracının yayım satırlarını RLS üzerinden okuyamadı')
 for bad_url in ['https://127.0.0.1/','https://169.254.169.254/','http://example.com/','https://user:pass@example.com/','https://[::1]/']:
 	invalid={**form,'upload_url':bad_url}

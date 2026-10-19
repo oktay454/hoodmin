@@ -19,7 +19,7 @@ Her kuruluş kendi VPN sunucusunu getirir (bring your own server, BYOS). Sunucu 
 Debian 13 amd64 üzerinde, root olarak, indirdiğiniz `.deb` dosyasının bulunduğu dizinde:
 
 ```bash
-apt install ./hoodmin_0.1.0-7~deb13u1_amd64.deb
+apt install ./hoodmin_0.1.0-8~deb13u1_amd64.deb
 hoodmin-db-setup
 hoodmin-create-owner vpn@example.com https://hoodmin.example.com
 ```
@@ -42,7 +42,7 @@ Ardından [kurulum kılavuzundaki](docs/uretim-kurulumu.md) Nginx/HTTPS adımlar
 
 [Mimari](docs/mimari.md) · [API](docs/yonetim-api.md) · [Protokol ve destek sınırları](docs/protokol-uyumlulugu.md) · [Console özellik karşılığı](docs/console-karsilastirmasi.md) · [Geliştirme ve doğrulama](docs/dogrulama.md)
 
-Hizmet hesabı ve PostgreSQL rolü **`vhmgr`**, veritabanı **`vpnhood_manager`** adını kullanır. Bunlar yerel kimlik doğrulaması ve mevcut verilerin sahipliği için sabit teknik adlardır. Ürün adı Hoodmin'dir. Ayrıntılar: [dosyalar ve teknik adlar](docs/uretim-kurulumu.md#dosyalar-ve-teknik-adlar).
+Hizmet hesabı, grubu ve PostgreSQL rolü **`hoodmin`** adını kullanır. Sistem hesabı ile rol, yerel eş kimlik doğrulaması (peer authentication) için eşleştirilir. Veritabanı adı **`vpnhood_manager`** olur. Ayrıntılar: [dosyalar ve teknik adlar](docs/uretim-kurulumu.md#dosyalar-ve-teknik-adlar).
 
 ## Destek sınırları
 

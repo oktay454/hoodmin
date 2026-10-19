@@ -5,21 +5,21 @@ PROJE_DIZINI="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SINAMA_DIZINI="$(mktemp -d "${PROJE_DIZINI}/work/contract.XXXXXX")"
 KIRACI_A="$(cat /proc/sys/kernel/random/uuid)"
 KIRACI_B="$(cat /proc/sys/kernel/random/uuid)"
-export DATABASE_URL="postgresql:///vpnhood_manager?host=/var/run/postgresql&user=vhmgr"
+export DATABASE_URL="postgresql:///vpnhood_manager?host=/var/run/postgresql&user=hoodmin"
 export VHM_MASTER_KEY_FILE="/var/lib/vpnhood-manager/master.key"
 export DOTNET_CLI_TELEMETRY_OPTOUT=1
 export DOTNET_NOLOGO=1
 
 function Yonet()
 {
-	runuser -u vhmgr --preserve-environment -- /usr/lib/vpnhood-manager/vpnhood-manager "$@"
+	runuser -u hoodmin --preserve-environment -- /usr/lib/vpnhood-manager/vpnhood-manager "$@"
 }
 
 function Sina()
 {
 	dotnet build "${PROJE_DIZINI}/tests/ContractProbe" -c Release --nologo
 	dotnet run --project "${PROJE_DIZINI}/tests/ContractProbe" -c Release --no-build -- prepare "${SINAMA_DIZINI}"
-	chown -R vhmgr:vhmgr "${SINAMA_DIZINI}"
+	chown -R hoodmin:hoodmin "${SINAMA_DIZINI}"
 	Yonet register-server --tenant "${KIRACI_A}" --name 'Sınama A' --configuration "${SINAMA_DIZINI}/server-config.json" --credential-out "${SINAMA_DIZINI}/server-a.credential"
 	Yonet register-server --tenant "${KIRACI_B}" --name 'Sınama B' --configuration "${SINAMA_DIZINI}/server-config.json" --credential-out "${SINAMA_DIZINI}/server-b.credential"
 	SUNUCU_A="$(cut -d . -f 2 "${SINAMA_DIZINI}/server-a.credential")"
@@ -31,7 +31,7 @@ function Sina()
 	Yonet revoke-token --tenant "${KIRACI_B}" --token "${IPTAL_EDILECEK_ID}"
 	dotnet run --project "${PROJE_DIZINI}/tests/ContractProbe" -c Release --no-build -- probe "${SINAMA_DIZINI}"
 	# RLS: kimliksiz sorgu satır döndürmemeli; başka kiracıya ilişki kurulması reddedilmeli.
-	runuser -u vhmgr -- psql -v ON_ERROR_STOP=1 -d vpnhood_manager <<SQL
+	runuser -u hoodmin -- psql -v ON_ERROR_STOP=1 -d vpnhood_manager <<SQL
 DO \$\$
 BEGIN
 	IF (SELECT count(*) FROM servers) <> 0 THEN

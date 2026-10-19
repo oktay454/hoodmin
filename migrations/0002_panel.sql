@@ -58,5 +58,5 @@ CREATE POLICY tenant_scope ON farms USING(tenant_id=nullif(current_setting('app.
 ALTER TABLE audit_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_events FORCE ROW LEVEL SECURITY;
 CREATE POLICY tenant_scope ON audit_events USING(tenant_id=nullif(current_setting('app.tenant_id',true),'')::uuid) WITH CHECK(tenant_id=nullif(current_setting('app.tenant_id',true),'')::uuid);
-REVOKE UPDATE, DELETE ON audit_events FROM vhmgr;
+REVOKE UPDATE, DELETE ON audit_events FROM hoodmin;
 COMMIT;

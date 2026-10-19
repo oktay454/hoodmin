@@ -26,14 +26,14 @@ if len(email)>254 or '@' not in email or any(x in email for x in '\r\n'):
 check=subprocess.run(['runuser','-u','postgres','--','psql','-X','-At','-d','vpnhood_manager','-c','SELECT count(*) FROM accounts;'],check=True,text=True,capture_output=True)
 if check.stdout.strip()!='0':
 	raise SystemExit('An account already exists; initial owner bootstrap was not repeated.')
-owner=pwd.getpwnam('vhmgr');tenant=str(uuid.uuid4());password=secrets.token_urlsafe(32)
+owner=pwd.getpwnam('hoodmin');tenant=str(uuid.uuid4());password=secrets.token_urlsafe(32)
 secret=Path('/var/lib/hoodmin/bootstrap-password')
 fd=os.open(secret,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
 with os.fdopen(fd,'w') as f:f.write(password+'\n')
 os.chown(secret,owner.pw_uid,owner.pw_gid)
-env=dict(os.environ,DATABASE_URL='postgresql:///vpnhood_manager?host=/var/run/postgresql&user=vhmgr',VHM_MASTER_KEY_FILE='/var/lib/hoodmin/master.key')
+env=dict(os.environ,DATABASE_URL='postgresql:///vpnhood_manager?host=/var/run/postgresql&user=hoodmin',VHM_MASTER_KEY_FILE='/var/lib/hoodmin/master.key')
 try:
-	subprocess.run(['runuser','-u','vhmgr','--preserve-environment','--','/usr/bin/hoodmin','create-account','--tenant',tenant,'--tenant-name','Hoodmin','--email',email,'--password-file',str(secret),'--role','owner'],env=env,check=True,capture_output=True)
+	subprocess.run(['runuser','-u','hoodmin','--preserve-environment','--','/usr/bin/hoodmin','create-account','--tenant',tenant,'--tenant-name','Hoodmin','--email',email,'--password-file',str(secret),'--role','owner'],env=env,check=True,capture_output=True)
 finally:
 	secret.unlink(missing_ok=True)
 output=Path('/root/hoodmin-first-owner.json')

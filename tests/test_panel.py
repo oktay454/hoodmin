@@ -145,7 +145,7 @@ request = urllib.request.Request(BASE + "/events")
 with admin.open.open(request, timeout=20) as response:
 	lines = [response.readline().decode() for _ in range(2)]
 	check(any("stats" in line for line in lines), "Canlı SSE göstergeleri HTTPS üzerinden iletildi")
-result = subprocess.run(["runuser", "-u", "vhmgr", "--", "psql", "-d", "vpnhood_manager", "-c", "DELETE FROM audit_events"], capture_output=True, text=True)
+result = subprocess.run(["runuser", "-u", "hoodmin", "--", "psql", "-d", "vpnhood_manager", "-c", "DELETE FROM audit_events"], capture_output=True, text=True)
 check(result.returncode != 0, "Uygulama veri tabanı rolü denetim kayıtlarını silemedi")
 
 check(admin.post(f"/manage/servers/{server_a}/credential")[0] == 400, "Onaysız doğrudan kimlik yenileme reddedildi")

@@ -6,9 +6,8 @@ ConditionPathExists=/etc/hoodmin/configured
 
 [Service]
 Type=simple
-# Stable account name: PostgreSQL peer authentication and existing data ownership depend on it.
-User=vhmgr
-Group=vhmgr
+User=hoodmin
+Group=hoodmin
 EnvironmentFile=/etc/hoodmin/hoodmin.env
 ExecStart=/usr/bin/hoodmin serve
 Restart=on-failure

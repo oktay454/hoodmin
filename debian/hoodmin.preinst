@@ -1,8 +1,13 @@
 #!/bin/sh
 set -e
+if [ -n "${2:-}" ] && dpkg --compare-versions "$2" lt '0.1.0-8~deb13u1'
+then
+	printf '%s\n' 'This release requires a fresh Hoodmin installation. Existing data and service were not migrated; keep the original installation and its backup intact.' >&2
+	exit 1
+fi
 if [ "$1" = install ] && [ -f /var/lib/vpnhood-manager/master.key ]
 then
-	printf '%s\n' 'Existing legacy installation detected; use an explicit data migration before installing Hoodmin.' >&2
+	printf '%s\n' 'An existing QA installation was detected. Install Hoodmin in a separate environment.' >&2
 	exit 1
 fi
 #DEBHELPER#

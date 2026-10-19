@@ -12,7 +12,7 @@ Each organization brings its own VPN servers (BYOS). A server belongs to one ten
 2. As root, from the directory containing the downloaded package:
 
 ```bash
-apt install ./hoodmin_0.1.0-7~deb13u1_amd64.deb
+apt install ./hoodmin_0.1.0-8~deb13u1_amd64.deb
 systemctl enable --now postgresql
 hoodmin-db-setup
 hoodmin-create-owner vpn@example.com https://hoodmin.example.com
@@ -52,9 +52,9 @@ The package installs the panel, not the VPN server. Do not run the isolated QA s
 - [Troubleshooting](docs/sorun-giderme.md): `systemctl status hoodmin` and `journalctl -u hoodmin`.
 - [Architecture](docs/mimari.md), [API](docs/yonetim-api.md), [protocol](docs/protokol-uyumlulugu.md), [build and validation](docs/dogrulama.md).
 
-The executable is `/usr/bin/hoodmin`, the service is `hoodmin.service`, settings are in `/etc/hoodmin/hoodmin.env`, and data is in `/var/lib/hoodmin`. The service account/PostgreSQL role `vhmgr`, database `vpnhood_manager`, `VHM_*` settings and `__Host-vhm_*` cookies are stable technical names. Peer authentication and existing ownership depend on them; changing the product name does not rename these resources.
+The executable is `/usr/bin/hoodmin`, the service is `hoodmin.service`, settings are in `/etc/hoodmin/hoodmin.env`, and data is in `/var/lib/hoodmin`. The service account, group and PostgreSQL peer role are named `hoodmin`. The database is named `vpnhood_manager`. The account name is a local identity, not a panel login. Settings use `VHM_*` and cookies use `__Host-vhm_*`.
 
-Before upgrading, back up and stop the service, install the new package, run `hoodmin-db-setup`, then restart. Preserve the master key and environment file. Validate restoration in a separate database before any recovery into a replacement installation.
+This release requires a fresh installation; packages older than `0.1.0-8~deb13u1` are not migrated. For subsequent upgrades, back up and stop the service, install the new package, run `hoodmin-db-setup`, then restart. Preserve the master key and environment file. Validate restoration in a separate database before any recovery into a replacement installation.
 
 ## Scope
 

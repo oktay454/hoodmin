@@ -15,7 +15,7 @@ Bu kılavuz yeni ve ayrılmış Debian 13 amd64 kurulumunu anlatır. Komutları 
 
 ```bash
 apt update
-apt install ./hoodmin_0.1.0-7~deb13u1_amd64.deb
+apt install ./hoodmin_0.1.0-8~deb13u1_amd64.deb
 systemctl enable --now postgresql
 hoodmin-db-setup
 ```
@@ -137,16 +137,18 @@ Tarayıcıdan `https://hoodmin.example.com` adresini açın. İlk sahip e-postas
 | Veriler / ana anahtar | `/var/lib/hoodmin` / `/var/lib/hoodmin/master.key` |
 | AutoSign hesapları ve özel anahtarları | `/var/lib/hoodmin/acme/` |
 | İlk sahip bilgileri | `/root/hoodmin-first-owner.json` |
-| Sistem kullanıcısı / PostgreSQL rolü | `vhmgr` / `vhmgr` |
+| Sistem kullanıcısı / PostgreSQL rolü | `hoodmin` / `hoodmin` |
 | Veritabanı | `vpnhood_manager` |
 | Geçici SSH çalışma alanı | `/run/vpnhood-manager` |
 | Yüklü belgeler | `/usr/share/doc/hoodmin/` |
 
-`vhmgr` ayrıcalıksız hizmet hesabıdır; **panel giriş kullanıcı adı değildir**. PostgreSQL eş kimlik doğrulaması (peer authentication) sistem kullanıcısı ile aynı adlı rolü eşleştirir. Dosya sahiplikleri ve SQL izinleri de bu role bağlıdır. Mevcut kurulum/yükseltme uyumluluğu için bu teknik ad korunur; VpnHood ürününe veya harici bir hesaba bağımlılık oluşturmaz. Rol süper kullanıcı değildir ve RLS atlayamaz.
+`hoodmin` ayrıcalıksız hizmet hesabıdır; **panel giriş kullanıcı adı değildir**. PostgreSQL eş kimlik doğrulaması (peer authentication) sistem kullanıcısı ile aynı adlı rolü eşleştirir. Dosya sahiplikleri ve SQL izinleri de bu role bağlıdır. Rol süper kullanıcı değildir ve RLS atlayamaz.
 
-Aynı nedenle `DATABASE_URL`, `VHM_MASTER_KEY_FILE`, `VHM_PUBLIC_ORIGIN` ayarları ve `__Host-vhm_*` çerez adları sabittir. Bunları yalnız görsel ad değişikliği için yeniden adlandırmayın. Cargo derlemesi `target/release/vpnhood-manager` üretir; Debian paketi bunu `/usr/bin/hoodmin` olarak kurar.
+Ortam ayarları `DATABASE_URL`, `VHM_MASTER_KEY_FILE`, `VHM_PUBLIC_ORIGIN`; çerez adları `__Host-vhm_*` biçimindedir. Cargo derlemesi `target/release/vpnhood-manager` üretir; Debian paketi bunu `/usr/bin/hoodmin` olarak kurar.
 
 ## Yükseltme
+
+Bu sürüm temiz kurulum içindir. `0.1.0-8~deb13u1` öncesindeki hesap/şema düzeninden yerinde yükseltme yapılmaz; paket işlemi değişiklik yapmadan reddedilir. Mevcut kurulum ve yedeği korunarak ayrı, boş bir ortam kullanılmalıdır. Aşağıdaki adımlar aynı hesap/şema düzenini kullanan sonraki sürümler içindir.
 
 Yeni paketin sürümünü/destek hedefini kontrol edin. Önce [yedek alın ve ayrı hedefte kurtarmayı doğrulayın](yedekleme.md). Bakım penceresinde:
 

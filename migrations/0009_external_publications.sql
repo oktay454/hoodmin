@@ -32,5 +32,5 @@ LANGUAGE sql SECURITY DEFINER SET search_path=pg_catalog AS $$
 	ORDER BY p.next_due,p.id LIMIT 16
 $$;
 REVOKE ALL ON FUNCTION hoodmin_due_publications() FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION hoodmin_due_publications() TO vhmgr;
+GRANT EXECUTE ON FUNCTION hoodmin_due_publications() TO hoodmin;
 COMMIT;

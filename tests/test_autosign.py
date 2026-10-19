@@ -36,7 +36,7 @@ old=agent(credential,'configure',{})
 token=secrets.token_urlsafe(24);proof=token+'.'+secrets.token_urlsafe(32)
 env=dict(ENV,CERTBOT_DOMAIN='vpn.example.com',CERTBOT_TOKEN=token,CERTBOT_VALIDATION=proof)
 def hook(cleanup=False,scope=tenant):
-	command=['runuser','-u','vhmgr','--preserve-environment','--',BINARY,'acme-hook','--tenant',scope,'--job',job]
+	command=['runuser','-u','hoodmin','--preserve-environment','--',BINARY,'acme-hook','--tenant',scope,'--job',job]
 	if cleanup:command+=['--cleanup']
 	return subprocess.run(command,env=env,capture_output=True,text=True,timeout=140)
 def await_hook(cleanup=False):

@@ -22,9 +22,9 @@ ROOT = Path(__file__).resolve().parents[1]
 BASE = os.environ.get("VHM_TEST_ORIGIN", "https://vhm-test.oktayaktogan.com.tr")
 CONTEXT = ssl.create_default_context(cafile=os.environ.get("VHM_TEST_CA"))
 BINARY = "/usr/lib/vpnhood-manager/vpnhood-manager"
-ENV = dict(os.environ, DATABASE_URL="postgresql:///vpnhood_manager?host=/var/run/postgresql&user=vhmgr", VHM_MASTER_KEY_FILE="/var/lib/vpnhood-manager/master.key")
+ENV = dict(os.environ, DATABASE_URL="postgresql:///vpnhood_manager?host=/var/run/postgresql&user=hoodmin", VHM_MASTER_KEY_FILE="/var/lib/vpnhood-manager/master.key")
 WORK = Path(tempfile.mkdtemp(prefix="panel-test.", dir=ROOT / "work"))
-USER = pwd.getpwnam("vhmgr")
+USER = pwd.getpwnam("hoodmin")
 os.chown(WORK, USER.pw_uid, USER.pw_gid)
 PASSWORD = secrets.token_urlsafe(24)
 PASSFILE = WORK / "password"
@@ -92,7 +92,7 @@ def check(condition, message):
 
 def account(tenant, role):
 	address = f"{role}.{uuid.uuid4().hex[:10]}@vpnhood.test"
-	result = subprocess.run(["runuser", "-u", "vhmgr", "--preserve-environment", "--", BINARY, "create-account", "--tenant", tenant, "--tenant-name", "Panel sınaması", "--email", address, "--password-file", str(PASSFILE), "--role", role], env=ENV, capture_output=True, text=True, check=True)
+	result = subprocess.run(["runuser", "-u", "hoodmin", "--preserve-environment", "--", BINARY, "create-account", "--tenant", tenant, "--tenant-name", "Panel sınaması", "--email", address, "--password-file", str(PASSFILE), "--role", role], env=ENV, capture_output=True, text=True, check=True)
 	identity = re.search(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}", result.stdout).group()
 	return address, identity
 

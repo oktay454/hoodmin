@@ -11,22 +11,22 @@ function Hazirla()
 		printf '%s\n' 'Bu betik yalnızca sınama kapsayıcısında root ile çalıştırılır.' >&2
 		exit 1
 	fi
-	if ! getent passwd vhmgr >/dev/null
+	if ! getent passwd hoodmin >/dev/null
 	then
-		useradd --system --home-dir "${VERI_DIZINI}" --shell /usr/sbin/nologin vhmgr
+		useradd --system --home-dir "${VERI_DIZINI}" --shell /usr/sbin/nologin hoodmin
 	fi
-	install -d -o vhmgr -g vhmgr -m 0700 "${VERI_DIZINI}"
+	install -d -o hoodmin -g hoodmin -m 0700 "${VERI_DIZINI}"
 	if [ ! -f "${VERI_DIZINI}/master.key" ]
 	then
 		umask 077
 		head -c 32 /dev/urandom >"${VERI_DIZINI}/master.key"
-		chown vhmgr:vhmgr "${VERI_DIZINI}/master.key"
+		chown hoodmin:hoodmin "${VERI_DIZINI}/master.key"
 	fi
 	runuser -u postgres -- psql -v ON_ERROR_STOP=1 <<'SQL'
 DO $$
 BEGIN
-	IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='vhmgr') THEN
-		CREATE ROLE vhmgr LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
+	IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='hoodmin') THEN
+		CREATE ROLE hoodmin LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
 	END IF;
 END $$;
 SQL
@@ -79,11 +79,11 @@ SQL
 		runuser -u postgres -- psql -v ON_ERROR_STOP=1 -d vpnhood_manager -f "${PROJE_DIZINI}/migrations/0011_acme_orders.sql"
 	fi
 	runuser -u postgres -- psql -v ON_ERROR_STOP=1 -d vpnhood_manager <<'SQL'
-GRANT CONNECT ON DATABASE vpnhood_manager TO vhmgr;
-GRANT USAGE ON SCHEMA public TO vhmgr;
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO vhmgr;
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO vhmgr;
-REVOKE UPDATE, DELETE ON audit_events FROM vhmgr;
+GRANT CONNECT ON DATABASE vpnhood_manager TO hoodmin;
+GRANT USAGE ON SCHEMA public TO hoodmin;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO hoodmin;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO hoodmin;
+REVOKE UPDATE, DELETE ON audit_events FROM hoodmin;
 SQL
 	install -d -m 0755 /usr/lib/vpnhood-manager
 	install -m 0755 "${PROJE_DIZINI}/target/release/vpnhood-manager" /usr/lib/vpnhood-manager/vpnhood-manager

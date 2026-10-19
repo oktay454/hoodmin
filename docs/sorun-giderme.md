@@ -18,7 +18,7 @@ curl --fail --show-error http://127.0.0.1:3080/healthz
 
 ## İlk erişim bilgileri nerede?
 
-Kurulum sırasında verdiğiniz e-posta ve rastgele parola `/root/hoodmin-first-owner.json` içindedir. Dosya **panelin kurulduğu makinede/kapsayıcıdadır**. `vhmgr` panel kullanıcı adı değildir. Parola ilk girişten sonra değiştirildiyse dosyadaki ilk parola artık geçerli değildir. Mevcut hesapta `hoodmin-create-owner` çalıştırmak parolayı sıfırlamaz.
+Kurulum sırasında verdiğiniz e-posta ve rastgele parola `/root/hoodmin-first-owner.json` içindedir. Dosya **panelin kurulduğu makinede/kapsayıcıdadır**. `hoodmin` panel kullanıcı adı değildir. Parola ilk girişten sonra değiştirildiyse dosyadaki ilk parola artık geçerli değildir. Mevcut hesapta `hoodmin-create-owner` çalıştırmak parolayı sıfırlamaz.
 
 ## VPN sunucusu çevrimdışı
 

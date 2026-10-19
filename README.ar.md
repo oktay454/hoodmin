@@ -12,7 +12,7 @@ Hoodmin **لوحة مستقلة لإدارة VPN، متوافقة مع VpnHood**
 2. نفّذ بصلاحيات root من مجلد الحزمة:
 
 ```bash
-apt install ./hoodmin_0.1.0-7~deb13u1_amd64.deb
+apt install ./hoodmin_0.1.0-8~deb13u1_amd64.deb
 systemctl enable --now postgresql
 hoodmin-db-setup
 hoodmin-create-owner vpn@example.com https://hoodmin.example.com
@@ -52,9 +52,9 @@ curl --fail --show-error https://hoodmin.example.com/healthz
 - [استكشاف الأخطاء](docs/sorun-giderme.md): استخدم `systemctl status hoodmin` و`journalctl -u hoodmin`.
 - [المعمارية](docs/mimari.md)، [API](docs/yonetim-api.md)، [البروتوكول](docs/protokol-uyumlulugu.md)، [البناء والتحقق](docs/dogrulama.md).
 
-البرنامج `/usr/bin/hoodmin`، والخدمة `hoodmin.service`، والإعدادات `/etc/hoodmin/hoodmin.env`، والبيانات `/var/lib/hoodmin`. أسماء حساب الخدمة ودور PostgreSQL `vhmgr` وقاعدة البيانات `vpnhood_manager` وإعدادات `VHM_*` وملفات الارتباط `__Host-vhm_*` أسماء تقنية ثابتة. يعتمد عليها التحقق المحلي (peer authentication) وملكية البيانات؛ تغيير اسم المنتج لا يغيّر أسماء هذه الموارد.
+البرنامج `/usr/bin/hoodmin`، والخدمة `hoodmin.service`، والإعدادات `/etc/hoodmin/hoodmin.env`، والبيانات `/var/lib/hoodmin`. اسم حساب الخدمة والمجموعة ودور PostgreSQL للتحقق المحلي هو `hoodmin`. اسم قاعدة البيانات `vpnhood_manager`. هذا الحساب هوية نظام محلية وليس حساب دخول للوحة. تستخدم الإعدادات `VHM_*` وملفات الارتباط `__Host-vhm_*`.
 
-قبل الترقية خذ نسخة احتياطية وأوقف الخدمة، ثم ثبّت الحزمة الجديدة ونفّذ `hoodmin-db-setup` وأعد تشغيل الخدمة. احتفظ بالمفتاح الرئيسي وملف البيئة. تحقّق من الاستعادة في قاعدة منفصلة قبل استبدال تثبيت قائم.
+يتطلب هذا الإصدار تثبيتًا جديدًا؛ لا تُنقل الحزم الأقدم من `0.1.0-8~deb13u1` تلقائيًا. للترقيات اللاحقة خذ نسخة احتياطية وأوقف الخدمة، ثم ثبّت الحزمة الجديدة ونفّذ `hoodmin-db-setup` وأعد تشغيل الخدمة. احتفظ بالمفتاح الرئيسي وملف البيئة. تحقّق من الاستعادة في قاعدة منفصلة قبل استبدال تثبيت قائم.
 
 ## نطاق الدعم
 

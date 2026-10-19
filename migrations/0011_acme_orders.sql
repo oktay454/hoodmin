@@ -16,5 +16,5 @@ LANGUAGE sql SECURITY DEFINER SET search_path=pg_catalog AS $$
 	SELECT a.tenant_id,a.id FROM public.acme_orders a WHERE a.enabled AND a.next_due<=now() AND (a.lease_until IS NULL OR a.lease_until<now()) ORDER BY a.next_due,a.id LIMIT 8
 $$;
 REVOKE ALL ON FUNCTION hoodmin_due_acme() FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION hoodmin_due_acme() TO vhmgr;
+GRANT EXECUTE ON FUNCTION hoodmin_due_acme() TO hoodmin;
 COMMIT;

@@ -2,6 +2,8 @@
 
 Bu belge yalnız `oktayaktogan.com.tr` yerleşiminin adreslerini ve işletim yollarını içerir. Yeni kurulum için [genel kurulum kılavuzunu](uretim-kurulumu.md) kullanın. Parola, API anahtarı veya özel sertifika içeriği bu belgede bulunmaz.
 
+Kurulu paket `0.1.0-7~deb13u1` kullanır. Bu mevcut ortamın hesap/rolü `vhmgr` olarak kalır; yeni temiz kurulum paketinin hesabı `hoodmin` olur. Ortam yeniden oluşturulurken güncel kurulum kılavuzu uygulanmalıdır.
+
 ## Makine ve kapsayıcılar
 
 | Görev | SSH ana makinesi | LXC kapsayıcısı | İç adres | Dış hizmet |

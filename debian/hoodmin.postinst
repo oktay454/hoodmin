@@ -2,11 +2,11 @@
 set -e
 if [ "$1" = configure ]
 then
-	if ! getent passwd vhmgr >/dev/null
+	if ! getent passwd hoodmin >/dev/null
 	then
-		adduser --system --group --home /var/lib/hoodmin --no-create-home vhmgr
+		adduser --system --group --home /var/lib/hoodmin --no-create-home hoodmin
 	fi
-	install -d -o vhmgr -g vhmgr -m 0700 /var/lib/hoodmin
+	install -d -o hoodmin -g hoodmin -m 0700 /var/lib/hoodmin
 	if [ ! -f /var/lib/hoodmin/master.key ]
 	then
 		if [ -n "$2" ]
@@ -16,9 +16,9 @@ then
 		fi
 		umask 077
 		head -c 32 /dev/urandom >/var/lib/hoodmin/master.key
-		chown vhmgr:vhmgr /var/lib/hoodmin/master.key
+		chown hoodmin:hoodmin /var/lib/hoodmin/master.key
 	fi
-	chown root:vhmgr /etc/hoodmin/hoodmin.env
+	chown root:hoodmin /etc/hoodmin/hoodmin.env
 	chmod 0640 /etc/hoodmin/hoodmin.env
 fi
 #DEBHELPER#

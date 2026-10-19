@@ -51,7 +51,7 @@ Arşivin güvenilir kaynaktan geldiğini ve yollarını kontrol edin; sonra yine
 
 ## 4. Ayrı veritabanında kurtarma sınaması
 
-Canlı veritabanının üzerine yazmayın. Aynı PostgreSQL ana sürümüyle, `vhmgr` rolünün hazır olduğu ayrılmış Hoodmin makinesinde:
+Canlı veritabanının üzerine yazmayın. Aynı PostgreSQL ana sürümüyle, `hoodmin` rolünün hazır olduğu ayrılmış Hoodmin makinesinde:
 
 ```bash
 runuser -u postgres -- createdb hoodmin_restore_check
@@ -68,9 +68,9 @@ Hesap/sunucu sayıları, geçiş kayıtları, kiracı RLS politikaları ve yedek
 1. Kurtarma planında eski sürüme uygun paketi ve PostgreSQL sürümünü belirleyin. Orijinal hizmeti durdurun; aynı kiracıyı yöneten iki etkin panel bırakmayın.
 2. Yerine geçecek ayrılmış makinede paketi kurun. İlk sahip oluşturma komutunu çalıştırmayın; hesaplar yedekten gelir.
 3. Boş `vpnhood_manager` veritabanına doğrulanmış dökümü yükleyin. Var olan canlı veritabanını silmek bu kılavuzun otomatik adımı değildir.
-4. `master.key` dosyasını `/var/lib/hoodmin/master.key` olarak `vhmgr:vhmgr`, 0600 ile geri yükleyin. `/var/lib/hoodmin` 0700 olmalıdır.
-5. `configuration/` ve ortam ayarını `/etc/hoodmin` altında geri yükleyin; `hoodmin.env` için `root:vhmgr`, 0640 kullanın. Genel HTTPS adresini kontrol edin.
-6. AutoSign `acme/` ağacını aynı konuma `/var/lib/hoodmin/acme/` geri koyun; `vhmgr:vhmgr` sahipliğini ve özel dosya/dizin izinlerini koruyun. Certbot hesap/özel anahtarlarını herkese okunur yapmayın. Varsa `/etc/letsencrypt` ağacını da özel izinleriyle geri yükleyin.
+4. `master.key` dosyasını `/var/lib/hoodmin/master.key` olarak `hoodmin:hoodmin`, 0600 ile geri yükleyin. `/var/lib/hoodmin` 0700 olmalıdır.
+5. `configuration/` ve ortam ayarını `/etc/hoodmin` altında geri yükleyin; `hoodmin.env` için `root:hoodmin`, 0640 kullanın. Genel HTTPS adresini kontrol edin.
+6. AutoSign `acme/` ağacını aynı konuma `/var/lib/hoodmin/acme/` geri koyun; `hoodmin:hoodmin` sahipliğini ve özel dosya/dizin izinlerini koruyun. Certbot hesap/özel anahtarlarını herkese okunur yapmayın. Varsa `/etc/letsencrypt` ağacını da özel izinleriyle geri yükleyin.
 7. Yeni pakete yükseltiyorsanız önce yedek sürümle doğrulayın, ardından desteklenen geçişleri `hoodmin-db-setup` ile uygulayın. HTTPS/Nginx ve `/etc/hoodmin/configured` başlangıç işaretini kontrol edin.
 8. Hizmeti başlatıp HTTPS girişini, VPN sunucusu bağlantılarını, yapılandırma onayını ve yeni anahtar üretimini sınayın. Sertifika ve yayıncı işleri için kayıtlı görevlerin durumunu kontrol edin.
 

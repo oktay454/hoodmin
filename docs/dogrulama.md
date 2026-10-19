@@ -29,7 +29,7 @@ dpkg-buildpackage -b -us -uc
 
 Bunlar **ayrılmış QA ortamı** içindir; üretimde doğrudan çalıştırmayın. Bazıları sunucu ayarlarını/sertifikasını değiştirir, HTTP alıcısı açar veya hizmeti yeniden başlatır. Önce her dosyanın ön koşullarını ve hedefini okuyun.
 
-`tests/panel_support.py` varsayılan olarak QA `vpnhood-manager` ikilisini, `vpnhood_manager` veritabanını ve `vhmgr` rolünü kullanır; paket kurulumunun yollarıyla aynı değildir. HTTPS kökü `VHM_TEST_ORIGIN`, özel CA `VHM_TEST_CA` ile seçilir. Origin denetimi açık kalmalıdır; sertifika denetimini kapatmayın.
+`tests/panel_support.py` varsayılan olarak QA `vpnhood-manager` ikilisini, `vpnhood_manager` veritabanını ve `hoodmin` rolünü kullanır; paket kurulumunun yollarıyla aynı değildir. HTTPS kökü `VHM_TEST_ORIGIN`, özel CA `VHM_TEST_CA` ile seçilir. Origin denetimi açık kalmalıdır; sertifika denetimini kapatmayın.
 
 | Araç | Amaç |
 |---|---|

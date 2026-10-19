@@ -12,8 +12,8 @@ if os.geteuid() != 0:
 def psql(sql, database='postgres'):
 	return subprocess.run(['runuser','-u','postgres','--','psql','-X','-v','ON_ERROR_STOP=1','-At','-d',database],input=sql,text=True,check=True,capture_output=True).stdout.strip()
 
-# vhmgr is the stable service/peer role; do not rename it or rewrite applied migrations.
-psql("DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='vhmgr') THEN CREATE ROLE vhmgr LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS; END IF; END $$;")
+# The service account and PostgreSQL peer role both use the product name.
+psql("DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='hoodmin') THEN CREATE ROLE hoodmin LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS; END IF; END $$;")
 if psql("SELECT count(*) FROM pg_database WHERE datname='vpnhood_manager';")=='0':
 	subprocess.run(['runuser','-u','postgres','--','createdb','vpnhood_manager'],check=True)
 if psql("SELECT to_regclass('public.tenants') IS NOT NULL AND to_regclass('public._hoodmin_migrations') IS NULL;",'vpnhood_manager')=='t':
@@ -30,7 +30,7 @@ for path in files:
 	assert count==1 and body.rstrip().endswith('COMMIT;'),name
 	body=body.rstrip()[:-len('COMMIT;')]
 	sql.extend([f"DO $$ BEGIN IF EXISTS(SELECT FROM _hoodmin_migrations WHERE name='{name}' AND checksum<>'{digest}') THEN RAISE EXCEPTION 'Migration checksum mismatch: {name}'; END IF; END $$;",f"SELECT NOT EXISTS(SELECT FROM _hoodmin_migrations WHERE name='{name}') AS apply \\gset",r'\if :apply','BEGIN;',body,f"INSERT INTO _hoodmin_migrations(name,checksum) VALUES('{name}','{digest}');",'COMMIT;',r'\endif'])
-sql.extend(["GRANT CONNECT ON DATABASE vpnhood_manager TO vhmgr; GRANT USAGE ON SCHEMA public TO vhmgr; GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO vhmgr; GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO vhmgr; REVOKE UPDATE, DELETE ON audit_events FROM vhmgr; REVOKE ALL ON _hoodmin_migrations FROM vhmgr; REVOKE ALL ON _hoodmin_migrations FROM PUBLIC;",'SELECT pg_advisory_unlock(684663001);'])
+sql.extend(["GRANT CONNECT ON DATABASE vpnhood_manager TO hoodmin; GRANT USAGE ON SCHEMA public TO hoodmin; GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO hoodmin; GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO hoodmin; REVOKE UPDATE, DELETE ON audit_events FROM hoodmin; REVOKE ALL ON _hoodmin_migrations FROM hoodmin; REVOKE ALL ON _hoodmin_migrations FROM PUBLIC;",'SELECT pg_advisory_unlock(684663001);'])
 try:
 	psql('\n'.join(sql),'vpnhood_manager')
 except subprocess.CalledProcessError as error:

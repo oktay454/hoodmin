@@ -20,7 +20,7 @@ Beş rol owner/admin/operator/token_writer/viewer vardır. Kiracı kaynakları o
 
 ## Kiracı ve sır yalıtımı
 
-Kaynak tablolarında zorunlu satır düzeyi güvenlik (FORCE RLS) ve kiracı içeren yabancı anahtarlar vardır. İşlem kapsamındaki kiracı ayarı bağlantı havuzuna sızmaz. Giriş öncesi hesap/oturum kimlik tabloları küreseldir. `vhmgr` veritabanı rolü süper kullanıcı değildir ve RLS atlayamaz; adının nedeni [kurulum başvurusunda](uretim-kurulumu.md#dosyalar-ve-teknik-adlar) açıklanır.
+Kaynak tablolarında zorunlu satır düzeyi güvenlik (FORCE RLS) ve kiracı içeren yabancı anahtarlar vardır. İşlem kapsamındaki kiracı ayarı bağlantı havuzuna sızmaz. Giriş öncesi hesap/oturum kimlik tabloları küreseldir. `hoodmin` veritabanı rolü süper kullanıcı değildir ve RLS atlayamaz. Sistem hesabı/grubu da `hoodmin` adını kullanır.
 
 Sunucu yapılandırmaları, PFX ve yayıncı sırları kaynak/kimlik bağlamına bağlı AES-256-GCM ile korunur. Ana anahtar ayrı 0600 dosyadadır. AutoSign'ın standart Certbot hesap/sertifika dosyaları özel izinlerle ACME ağacında tutulur; bu dosyalar ayrıca veritabanı kasasıyla şifrelenmez. Yedekleme ikisini de kapsar.
 

@@ -29,7 +29,7 @@ HTTP-01 doğrulamasında önceki dinleyici durumu saklanır; işlem sonunda geri
 
 ## Özel dosyalar ve sınırlar
 
-Certbot ayrıcalıksız `vhmgr` hesabında çalışır. CA hesapları, günlükler, sertifikalar ve özel anahtarlar `/var/lib/hoodmin/acme/` altında özel izinlerle saklanır. Bunlar standart özel Certbot dosyalarıdır; bütün ACME ağacı ayrıca AES-GCM ile şifrelenmez. Dosyalar API/HTML yanıtına konmaz. `hoodmin-backup` bu ağacı içerir; kurtarmada aynı yol/sahiplik/izinler korunmalıdır. [Yedekleme](yedekleme.md).
+Certbot ayrıcalıksız `hoodmin` hesabında çalışır. CA hesapları, günlükler, sertifikalar ve özel anahtarlar `/var/lib/hoodmin/acme/` altında özel izinlerle saklanır. Bunlar standart özel Certbot dosyalarıdır; bütün ACME ağacı ayrıca AES-GCM ile şifrelenmez. Dosyalar API/HTML yanıtına konmaz. `hoodmin-backup` bu ağacı içerir; kurtarmada aynı yol/sahiplik/izinler korunmalıdır. [Yedekleme](yedekleme.md).
 
 Alan adı, e-posta veya CA değişince ayrı çalışma ağacı kullanılır; eski dosyalar kendiliğinden silinmez. Her VPN sunucusu için tek FQDN ve HTTP-01 desteklenir. DNS-01, joker alan adı ve grup deposuna toplu AutoSign sunulmaz. E-posta kaydı hata bildirimi hizmeti değildir; iş durumunu ve günlükleri izleyin.
 
