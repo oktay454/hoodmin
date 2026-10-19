@@ -1,4 +1,4 @@
-# Yeni sunucu ortamı — 18 Ekim 2026
+# Yeni sunucu ortamı — 19 Ekim 2026
 
 Bu kayıt, üretimde kullanılmak üzere hazırlanan yeni ortamın mevcut durumudur. Uzun süreli yük, bağımsız güvenlik denetimi veya kapalı kaynak Console ile tam eşdeğerlik tamamlanmış sayılmaz.
 
@@ -14,7 +14,7 @@ Ağ yönlendirmeleri kullanıcının `/etc/lxc/network-rules.conf` düzenine ekl
 ## Panel ve ilk hesap
 
 - Adres: https://hoodmin.oktayaktogan.com.tr/
-- Paket: `hoodmin 0.1.0-3~deb13u1`, Debian 13 amd64.
+- Paket: `hoodmin 0.1.0-6~deb13u1`, Debian 13 amd64.
 - Hizmet: `hoodmin.service`; ikili `/usr/bin/hoodmin`; veri `/var/lib/hoodmin`; ayar `/etc/hoodmin/hoodmin.env`.
 - PostgreSQL yerel eş kimlik doğrulaması (peer); uygulama rolü `vhmgr`, veritabanı `vpnhood_manager`. Uygulama rolü süper kullanıcı değildir ve RLS atlayamaz.
 - İlk sahip: `vpn@oktayaktogan.com.tr`. Rastgele parola yalnız kapsayıcıdaki `/root/hoodmin-first-owner.json` içinde 0600 izinleriyle tutulur. Burada gerçek parola veya API anahtarı yoktur. Yerel dosyaya ilk parola kopyalanmadı.
@@ -27,7 +27,7 @@ Nginx aynı kapsayıcıdaki loopback Rust hizmetine bağlanır; istemciden gelen
 
 Resmî hazır VpnHood **9.0.856** `/opt/VpnHoodServer` altında kuruldu; sunucu kaynak kodu derlenmedi. `VpnHoodServer.service` başlangıçta etkin. Uygulamanın otomatik sürüm güncellemesi kapalıdır; uyumluluk sınamasıyla kontrollü güncelleme yapılmalıdır. TUN arayüzü, NAT ve UDP/TCP/QUIC dinleyicileri doğrulandı.
 
-Panel ve VPN alan adları gerçek Let’s Encrypt sertifikası kullanır; mevcut sertifikalar **16 Ocak 2027** tarihine kadar geçerlidir. VPN sertifikası panel kapsayıcısındaki Debian Certbot ile alınır:
+Panel ve VPN alan adları gerçek Let’s Encrypt sertifikası kullanır; panel sertifikası **16 Ocak 2027**, AutoSign ile yenilenen VPN sertifikası **17 Ocak 2027** tarihine kadar geçerlidir. İlk kurulumda VPN sertifikası panel kapsayıcısındaki root Certbot köprüsüyle alınmıştı:
 
 1. Root sahibi 0600 `/etc/hoodmin/acme/vh01.json`, yalnız bu kiracının operatör botu kimliğini içerir.
 2. HTTP-01 kancası Hoodmin API'sinden VPN'e doğrulamayı aktarır ve dış TCP80 yanıtını kontrol eder.
@@ -35,7 +35,7 @@ Panel ve VPN alan adları gerçek Let’s Encrypt sertifikası kullanır; mevcut
 4. Gerçek sertifika dağıtım kancası PFX'i Hoodmin'e yükler; genel VPN adresinde CA doğrulaması ve DER eşleşmesi yapar.
 5. Debian `certbot.timer` yenilemeleri yürütür. `certbot renew --dry-run` başarılıdır; bu sınamada dağıtım kancası ayrıca zorlanmamıştır.
 
-`ACME vh01` botu operatör yetkisiyle 365 gün geçerlidir. Süre bitmeden panelden yeni anahtar üretilip root yapılandırması yenilenmelidir. Hata için harici e-posta/izleme kanalı henüz yoktur; systemd/Certbot günlükleri izlenmelidir. Sertifika iletişim e-postası otomatik alarm hizmeti değildir. İşletmen yapılandırması hazırdır; çok kiracılı panelde kendi kendine ACME işi oluşturma ekranı henüz yoktur.
+`ACME vh01` botu operatör yetkisiyle 365 gün geçerlidir. Süre bitmeden panelden yeni anahtar üretilip root yapılandırması yenilenmelidir. Hata için harici e-posta/izleme kanalı henüz yoktur; systemd/Certbot günlükleri izlenmelidir. Sertifika iletişim e-postası otomatik alarm hizmeti değildir. İşletmen yapılandırması hazırdır; 19 Ekimde kiracı yöneticisine ait [AutoSign ekranı](autosign.md) eklendi; canlı VPN sertifikası bu akışla alınıp uygulandı.
 
 ## Yedekleme ve geri yükleme
 
@@ -69,3 +69,9 @@ Panelde Debian depolarından Nginx 1.26.3, PostgreSQL 17.11, Certbot 4.0.0, age 
 Mevcut eşleme 100000 tabanlıdır ve ana makinedeki ilkbyte/debian kullanıcılarının alt kimlik aralığıyla ortaktır. Kullanıcı yetkilerinden ayrı bir eşleme için **200000–265535** hedef aralığı önerildi. Salt okunur ön inceleme: Hoodmin 29.731, VPN 23.575 tekil dosya nesnesi; beklenmeyen sahiplik ve dosya yeteneği yok, hedef aralıkta çakışma yok. Sayılar sonradan günlüklerle değişebilir.
 
 Taşıma başlangıçta otomatik onay denetimince reddedildi. Kullanıcı daha sonra onay verdi, gerekliliğini sordu ve durdurulmuş `lxc-copy` yedeğini önerdi. Yeniden değerlendirmede Hoodmin'i çalıştırmak veya yedeklemek için eşleme değişikliğinin gerekli olmadığı açıklandı; mevcut eşlemenin korunmasına karar verildi. Taşıma uygulanmadı. Önemli bakım öncesinde yalnız ilgili kapsayıcı durdurularak bağımsız kopya alınması yaklaşımı kullanılacak; şablonlar korunacak. Ayrı alt kimlik aralığı, ileride gerekçesiyle yeniden değerlendirilebilecek bir yalıtım iyileştirmesidir. `scripts/plan-lxc-idmap.py` salt okunurdur.
+
+## AutoSign sınaması için geri dönüş kopyaları
+
+19 Ekimde kullanıcı gelecekte üretimde kullanacağı makinelerde canlı sınamaya izin verdi; kapsayıcıları tüm çalışma sonunda yeniden oluşturacağını bildirdi. Değişiklikten önce kapsayıcılar durdurularak lxc-copy kopyaları alındı: panel ana makinesinde hoodmin-before-autosign-20261019, VPN ana makinesinde vh01-before-autosign-20261019. Kopyalar durur ve otomatik başlangıçları kapalıdır. Asıl kapsayıcılar yeniden çalıştırıldı; UID/GID eşlemesi değiştirilmedi. Panelin özel veritabanı/anahtar yedeği de alındı.
+
+VPN AutoSign geçişi tamamlandı: /etc/letsencrypt/renewal/vh01.oktayaktogan.com.tr.conf.autosign-disabled eski root yenileme kaydıdır. Panelin hoodmin.oktayaktogan.com.tr.conf kaydı korunur. Yeni AutoSign son durumu başarılıdır; yenileme dry-run ve değişmeyen sertifikada yeniden uygulama yapmama sınamaları geçti. Özel kanıtlar kapsayıcıdaki /root/hoodmin-autosign-proof.json dosyasındadır; dosya parola veya özel anahtar içermez. Yeni ACME ağacı hoodmin-backup kapsamındadır.

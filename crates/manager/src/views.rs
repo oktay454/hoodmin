@@ -591,7 +591,7 @@ pub fn certificates(
 	certificates: Vec<(String, String, String)>,
 ) -> Html<String> {
 	let rows=certificates.into_iter().enumerate().map(|(i,(name,expiry,fingerprint))|view!{<tr><td>{i+1}</td><td>{name}</td><td><bdi dir="ltr">{expiry}</bdi></td><td><code dir="ltr">{fingerprint}</code></td></tr>}).collect_view();
-	layout(user,"Sertifikalar","servers",view!{<div class="section-heading"><h2>{name.to_owned()}</h2><a class="button secondary" href=format!("/manage/servers/{id}/configuration")>{tr("Gelişmiş ayarlar")}</a></div><section class="card table-wrap"><table><thead><tr><th>{tr("Öncelik")}</th><th>{tr("TLS adı")}</th><th>{tr("Son tarih")}</th><th>"SHA-256"</th></tr></thead><tbody>{rows}</tbody></table></section><section class="card"><h2>{tr("PFX sertifikası yükle")}</h2><p class="muted">{tr("PFX dışa aktarılabilir özel anahtar içermelidir. Özel anahtar şifreli saklanır. Varsayılan sertifika değişirse eski erişim anahtarları yeniden paylaşılmalı veya adres güncellemesiyle yenilenmelidir.")}</p><form method="post" action=format!("/manage/servers/{id}/certificates") class="stack">{csrf(&user.csrf)}<input type="hidden" name="base_code" value=code.to_owned()/><label>{tr("TLS adı")}<input name="tls_name" required maxlength="253"/></label><label>{tr("PFX dosyası")}<input type="file" accept=".pfx,.p12" data-pfx-file="pfx-data"/></label><label>{tr("PFX verisi (Base64)")}<textarea id="pfx-data" name="pfx" rows="3" dir="ltr" required maxlength="350000"/></label><label>{tr("PFX parolası")}<input type="password" name="password" autocomplete="new-password" maxlength="1024"/></label><label class="checkbox"><input type="checkbox" name="make_default" value="true"/>{tr("Varsayılan sertifika olarak kullan")}</label><label class="checkbox"><input type="checkbox" name="confirmed" value="true" required/>{tr("Sertifika değişikliğinin bağlantı anahtarlarını etkileyebileceğini anladım.")}</label><button class="button primary" type="submit">{tr("Doğrula ve yükle")}</button></form></section><section class="card"><h2>"ACME HTTP-01"</h2><p class="muted">{tr("Sertifika sağlayıcınızın token ve keyAuthorization değerlerini girin. Yanıt 15 dakika geçerlidir; VPN sunucusunda HTTP 80 dinleyicisi açılır. Genel TCP 80 yönlendirmesi gereklidir. Bu işlem tek başına sertifika üretmez veya yenilemez.")}</p><form method="post" action=format!("/manage/servers/{id}/challenge") class="stack">{csrf(&user.csrf)}<label>"token"<input name="token" required minlength="16" maxlength="256" dir="ltr"/></label><label>"keyAuthorization"<input name="key_authorization" required maxlength="1024" dir="ltr"/></label><label class="checkbox"><input type="checkbox" name="confirmed" value="true" required/>{tr("VPN sunucusunda HTTP 80 dinleyicisinin açılmasını onaylıyorum.")}</label><button class="button secondary" type="submit">{tr("Doğrulamayı hazırla")}</button></form></section>}.into_any())
+	layout(user,"Sertifikalar","servers",view!{<div class="section-heading"><h2>{name.to_owned()}</h2><a class="button primary" href=format!("/manage/servers/{id}/autosign")>{tr("Otomatik sertifika (AutoSign)")}</a><a class="button secondary" href=format!("/manage/servers/{id}/configuration")>{tr("Gelişmiş ayarlar")}</a></div><section class="card table-wrap"><table><thead><tr><th>{tr("Öncelik")}</th><th>{tr("TLS adı")}</th><th>{tr("Son tarih")}</th><th>"SHA-256"</th></tr></thead><tbody>{rows}</tbody></table></section><section class="card"><h2>{tr("PFX sertifikası yükle")}</h2><p class="muted">{tr("PFX dışa aktarılabilir özel anahtar içermelidir. Özel anahtar şifreli saklanır. Varsayılan sertifika değişirse eski erişim anahtarları yeniden paylaşılmalı veya adres güncellemesiyle yenilenmelidir.")}</p><form method="post" action=format!("/manage/servers/{id}/certificates") class="stack">{csrf(&user.csrf)}<input type="hidden" name="base_code" value=code.to_owned()/><label>{tr("TLS adı")}<input name="tls_name" required maxlength="253"/></label><label>{tr("PFX dosyası")}<input type="file" accept=".pfx,.p12" data-pfx-file="pfx-data"/></label><label>{tr("PFX verisi (Base64)")}<textarea id="pfx-data" name="pfx" rows="3" dir="ltr" required maxlength="350000"/></label><label>{tr("PFX parolası")}<input type="password" name="password" autocomplete="new-password" maxlength="1024"/></label><label class="checkbox"><input type="checkbox" name="make_default" value="true"/>{tr("Varsayılan sertifika olarak kullan")}</label><label class="checkbox"><input type="checkbox" name="confirmed" value="true" required/>{tr("Sertifika değişikliğinin bağlantı anahtarlarını etkileyebileceğini anladım.")}</label><button class="button primary" type="submit">{tr("Doğrula ve yükle")}</button></form></section><section class="card"><h2>"ACME HTTP-01"</h2><p class="muted">{tr("Sertifika sağlayıcınızın token ve keyAuthorization değerlerini girin. Yanıt 15 dakika geçerlidir; VPN sunucusunda HTTP 80 dinleyicisi açılır. Genel TCP 80 yönlendirmesi gereklidir. Bu işlem tek başına sertifika üretmez veya yenilemez.")}</p><form method="post" action=format!("/manage/servers/{id}/challenge") class="stack">{csrf(&user.csrf)}<label>"token"<input name="token" required minlength="16" maxlength="256" dir="ltr"/></label><label>"keyAuthorization"<input name="key_authorization" required maxlength="1024" dir="ltr"/></label><label class="checkbox"><input type="checkbox" name="confirmed" value="true" required/>{tr("VPN sunucusunda HTTP 80 dinleyicisinin açılmasını onaylıyorum.")}</label><button class="button secondary" type="submit">{tr("Doğrulamayı hazırla")}</button></form></section>}.into_any())
 }
 
 pub fn routing(
@@ -791,6 +791,48 @@ pub fn farm_server_profile(
 		<section class="card"><h2>{tr("Grup sunucu profili")}{help("Otomatik profil uygulaması","Atama mevcut üyelere hemen uygulanır. Yeni veya gruba taşınan sunucu güncel profili alır. Profil kaydedilince bağlı tüm gruplar tek veritabanı işleminde güncellenir; çevrimdışı sunucu yeniden bağlandığında alır. Tekil ayarlar sonraki profil değişiminde üzerine yazılır. Atamayı kaldırmak son ayarları geri almaz.")}</h2><p>{tr("Grup üyesi sayısı")}{": "}{members}</p><div class="alert warning">{tr("Bu işlem dinleyici, ağ ve kapasite ayarlarını değiştirebilir. Sertifika, sunucu sırrı ve istemci adresi korunur. Dinleyici portlarının duyurulan adres ve güvenlik duvarıyla uyumunu denetleyin.")}</div><p>{tr(if selected.is_some(){"Atanmış profil"}else{"Profil atanmamış"})}</p></section>
 		{rows}
 		{(selected.is_some()&&user.can_write()).then(||view!{<section class="card"><h2>{tr("Profil atamasını kaldır")}</h2><form method="post" action=format!("/manage/farms/{id}/server-profile") class="stack">{csrf(&user.csrf)}<input type="hidden" name="version" value=version.to_string()/><input type="hidden" name="profile" value=""/><label class="checkbox"><input name="confirmed" type="checkbox" value="true" required/>{tr("Otomatik profil uygulamasını durdurmayı onaylıyorum. Son ayarlar korunacak.")}</label><button class="button secondary" type="submit">{tr("Atamayı kaldır")}</button></form></section>})}
+	}.into_any())
+}
+
+pub fn autosign(user: &User, server: Uuid, name: &str, order: Option<Value>) -> Html<String> {
+	let data = order.unwrap_or_else(|| json!({"staging":true,"enabled":true}));
+	let text = |key: &str| {
+		let value = data[key].as_str().unwrap_or("");
+		DateTime::parse_from_rfc3339(value)
+			.map(|v| v.with_timezone(&Utc).to_rfc3339())
+			.unwrap_or_else(|_| value.to_owned())
+	};
+	let version = text("version");
+	let status = text("status");
+	let message = text("message");
+	let details = ["last_attempt", "last_success", "expires_at", "next_due"]
+		.into_iter()
+		.zip([
+			"Son deneme (UTC)",
+			"Son başarılı işlem (UTC)",
+			"Son tarih",
+			"Sonraki kontrol (UTC)",
+		])
+		.map(
+			|(key, title)| view! {<p><strong>{tr(title)}{": "}</strong><bdi dir="ltr">{text(key)}</bdi></p>},
+		)
+		.collect_view();
+	layout(user,"Otomatik sertifika (AutoSign)","servers",view!{
+		<div class="section-heading"><h2>{name.to_owned()}</h2><a class="button secondary" href=format!("/manage/servers/{server}/certificates")>{tr("Sertifikalar")}</a></div>
+		<section class="card"><h2>{tr("Otomatik sertifika (AutoSign)")}{help("AutoSign nasıl çalışır?","Alan adının DNS kaydı VPN sunucusuna gitmeli; dış TCP80 doğrulaması sunucuya ulaşmalıdır. Test CA modu sertifikayı VPN'e uygulamaz. Gerçek CA modu geçerli PFX'i varsayılan sertifika olarak uygular. Günde iki kez süre kontrol edilir; yalnız gerektiğinde yenilenir. Kapatmak son sertifikayı kaldırmaz. Eski erişim anahtarlarının parmak izi adres yayımı veya yeniden paylaşım yoluyla güncellenmelidir.")}</h2>
+		<p>{tr("Durum")}{": "}{tr(&status)}</p><p>{tr(&message)}</p>{details}
+		</section>
+		{user.is_admin().then(||view!{<section class="card"><form method="post" action=format!("/manage/servers/{server}/autosign") class="stack">{csrf(&user.csrf)}
+			{(!version.is_empty()).then(||view!{<input type="hidden" name="version" value=version/>})}
+			<label>{tr("Alan adı (FQDN)")}<input name="domain" value=text("domain") required maxlength="253"/></label>
+			<label>{tr("CA iletişim e-postası")}<input name="email" type="email" value=text("email") required maxlength="254"/></label>
+			<label class="checkbox"><input name="staging" type="checkbox" value="true" checked=data["staging"].as_bool().unwrap_or(true)/>{tr("Test CA: doğrula, VPN sertifikasını değiştirme")}</label>
+			<label class="checkbox"><input name="enabled" type="checkbox" value="true" checked=data["enabled"].as_bool().unwrap_or(true)/>{tr("Otomatik yenileme etkin")}</label>
+			<p><a class="text-link" href="https://letsencrypt.org/repository/" target="_blank" rel="noopener">{tr("Let's Encrypt hizmet koşulları")}</a></p>
+			<label class="checkbox"><input name="agree_tos" type="checkbox" value="true"/>{tr("Alan adı ve e-postanın Let's Encrypt'e gönderilmesini ve hizmet koşullarını kabul ediyorum.")}</label>
+			<label class="checkbox"><input name="confirmed" type="checkbox" value="true" required/>{tr("HTTP-01 dinleyicisinin geçici açılmasını ve gerçek CA modunda sertifika değişikliğini onaylıyorum.")}</label>
+			<button class="button primary" type="submit">{tr("Kaydet ve kontrol et")}</button>
+		</form></section>})}
 	}.into_any())
 }
 #[cfg(test)]

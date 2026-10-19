@@ -77,3 +77,5 @@ Sunucu yapılandırması, sertifika, kurulum, bot yetkisi ve kimlik yenileme iş
 Grup yayım hedeflerinin listeleme/oluşturma, tekli/toplu çalıştırma, sürümlü düzenleme ve kaldırma uçları eklendi. Liste sırları içermez; hedef ayarı yönetici, yayımlama operatör yetkisi ister. [Yollar ve istek alanları](harici-adres-yayimi.md#api).
 
 Grup sunucu profili ataması ve otomatik güncellemeler: [sözleşme ve sınırlar](grup-sunucu-profili.md).
+
+Sunucu AutoSign yönetimi: [GET/POST alanları ve CA onayı](autosign.md).

@@ -74,6 +74,10 @@ SQL
 	then
 		runuser -u postgres -- psql -v ON_ERROR_STOP=1 -d vpnhood_manager -f "${PROJE_DIZINI}/migrations/0010_farm_server_profiles.sql"
 	fi
+	if [ "$(runuser -u postgres -- psql -d vpnhood_manager -Atqc "SELECT to_regclass('public.acme_orders') IS NULL")" = t ]
+	then
+		runuser -u postgres -- psql -v ON_ERROR_STOP=1 -d vpnhood_manager -f "${PROJE_DIZINI}/migrations/0011_acme_orders.sql"
+	fi
 	runuser -u postgres -- psql -v ON_ERROR_STOP=1 -d vpnhood_manager <<'SQL'
 GRANT CONNECT ON DATABASE vpnhood_manager TO vhmgr;
 GRANT USAGE ON SCHEMA public TO vhmgr;

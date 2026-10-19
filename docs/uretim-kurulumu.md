@@ -9,7 +9,7 @@ Depodaki kilitli Rust araç zinciri, Cargo bağımlılıkları ve Debian `debhel
 ## Yeni kurulum
 
 ```bash
-apt install ./hoodmin_0.1.0-5~deb13u1_amd64.deb
+apt install ./hoodmin_0.1.0-6~deb13u1_amd64.deb
 hoodmin-db-setup
 hoodmin-create-owner vpn@example.com https://hoodmin.example.com
 systemctl enable --now hoodmin.service
@@ -37,7 +37,7 @@ Panel için Debian Certbot ve Nginx kullanılabilir. VPN sertifikası panelden P
 
 `hoodmin-acme auth|cleanup|deploy ROOT_ONLY_CONFIG.json` Debian Certbot kancalarıdır (hook). Yapılandırma root sahibi ve 0600 olmalıdır; `origin`, `domain`, `server` UUID ve süreli operatör botunun `authorization` değerini içerir. `auth` HTTP-01 yanıtını yönetim API'siyle VPN sunucusuna iletir, gerçek dış TCP80 yanıtını denetler. `cleanup` dinleyiciyi kapatır. `deploy` yalnız beklenen Certbot canlı sertifika dizinini kabul eder, PFX yükler ve genel VPN adresinde CA doğrulaması ile DER eşleşmesini denetler. HTTP yönlendirmesiyle başka hedefe API kimliği gönderilmez.
 
-Bu işletmen tarafından yapılandırılan bir entegrasyondur; kiracının panelde kendi kendine ACME hesabı/işi açtığı AutoSign ekranı henüz yoktur. Bot en fazla 365 gün geçerlidir; süre bitmeden panelden yeni anahtar oluşturulup root yapılandırması değiştirilmelidir. Certbot iletişim e-postası, ayrıca bir hata bildirim kanalı kurulduğu anlamına gelmez; mevcut hatalar systemd günlüğündedir.
+Bu root kancası işletmen entegrasyonudur. Kiracı yöneticisi için ayrıca [panel AutoSign akışı](autosign.md) vardır. Bot en fazla 365 gün geçerlidir; süre bitmeden panelden yeni anahtar oluşturulup root yapılandırması değiştirilmelidir. Certbot iletişim e-postası, ayrıca bir hata bildirim kanalı kurulduğu anlamına gelmez; mevcut hatalar systemd günlüğündedir.
 
 Gerçek sertifika alımında dağıtım kancası çalışır. Yenileme doğrulaması `certbot renew --dry-run` ile yapılır; deneme sırasında dağıtım kancası ayrıca zorlanmaz. Root yapılandırmalı Certbot zamanlayıcısı gerçek yenilemede PFX'i otomatik uygular.
 

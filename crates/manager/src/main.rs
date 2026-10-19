@@ -1,5 +1,6 @@
 #![recursion_limit = "512"]
 
+mod acme;
 mod agent;
 mod auth;
 mod certificates;
@@ -42,6 +43,14 @@ struct Cli {
 }
 #[derive(Subcommand)]
 enum Command {
+	AcmeHook {
+		#[arg(long)]
+		tenant: Uuid,
+		#[arg(long)]
+		job: Uuid,
+		#[arg(long)]
+		cleanup: bool,
+	},
 	CreateAccount {
 		#[arg(long)]
 		tenant: Uuid,
@@ -126,6 +135,11 @@ async fn main() -> Result<()> {
 	);
 	let state = store::Store { pool, vault };
 	match cli.command {
+		Command::AcmeHook {
+			tenant,
+			job,
+			cleanup,
+		} => acme::hook(&state, tenant, job, cleanup).await?,
 		Command::CreateAccount {
 			tenant,
 			tenant_name,
@@ -157,6 +171,11 @@ async fn main() -> Result<()> {
 			tracing::info!(%listen, "Erişim yöneticisi hazır");
 			let panel = web::WebState::new(state.clone(), public_origin)?;
 			tokio::spawn(publication::worker(state.clone()));
+			tokio::spawn(acme::worker(
+				state.clone(),
+				cli.database_url.clone(),
+				cli.master_key_file.clone(),
+			));
 			axum::serve(listener, agent::router(state).merge(web::router(panel)))
 				.with_graceful_shutdown(async {
 					let mut terminate =

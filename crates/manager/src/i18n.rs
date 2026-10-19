@@ -151,7 +151,14 @@ fn safe_management_path(path: &str) -> bool {
 		&& parts[1] == "manage"
 		&& uuid::Uuid::parse_str(parts[3]).is_ok()
 		&& ((parts[2] == "servers"
-			&& ["configuration", "certificates", "routing", "installation"].contains(&parts[4]))
+			&& [
+				"configuration",
+				"certificates",
+				"routing",
+				"installation",
+				"autosign",
+			]
+			.contains(&parts[4]))
 			|| (parts[2] == "farms"
 				&& [
 					"publication",

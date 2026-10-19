@@ -90,6 +90,10 @@ pub fn router(state: WebState) -> Router {
 		)
 		.route("/manage/server-profiles/{id}", post(edit_server_profile))
 		.route(
+			"/manage/servers/{id}/autosign",
+			get(autosign).post(save_autosign),
+		)
+		.route(
 			"/manage/farms/{id}/server-profile",
 			get(farm_server_profile).post(assign_farm_server_profile),
 		)
@@ -2863,6 +2867,10 @@ fn management_api() -> Router<WebState> {
 		)
 		.route("/server-profiles/{id}", post(api_edit_server_profile))
 		.route(
+			"/servers/{id}/autosign",
+			get(api_autosign).post(api_save_autosign),
+		)
+		.route(
 			"/farms/{id}/server-profile",
 			get(api_farm_server_profile).post(api_assign_farm_server_profile),
 		)
@@ -3758,3 +3766,116 @@ json_write!(
 	PushPublicationForm,
 	destination_remove
 );
+
+json_read!(api_autosign, Uuid, autosign);
+json_write!(api_save_autosign, Uuid, AutoSignForm, save_autosign);
+#[derive(Deserialize)]
+struct AutoSignForm {
+	#[serde(default)]
+	csrf: String,
+	version: Option<Uuid>,
+	domain: String,
+	email: String,
+	#[serde(default)]
+	staging: bool,
+	#[serde(default)]
+	enabled: bool,
+	#[serde(default)]
+	confirmed: bool,
+	#[serde(default)]
+	agree_tos: bool,
+}
+async fn autosign(
+	State(state): State<WebState>,
+	headers: HeaderMap,
+	Path(server): Path<Uuid>,
+) -> Result<Response, PanelError> {
+	let user = require(&state, &headers, None, Permission::Read).await?;
+	let mut tx = state.store.begin(user.tenant).await?;
+	let name: String = query_scalar("SELECT name FROM servers WHERE tenant_id=$1 AND id=$2")
+		.bind(user.tenant)
+		.bind(server)
+		.fetch_optional(&mut *tx)
+		.await?
+		.ok_or(PanelError(StatusCode::NOT_FOUND, "Sunucu bulunamadı."))?;
+	let data:Option<serde_json::Value>=query_scalar("SELECT jsonb_build_object('id',id,'version',version,'domain',domain,'email',email,'staging',staging,'enabled',enabled,'status',status,'message',message,'last_attempt',last_attempt,'last_success',last_success,'expires_at',expires_at,'next_due',next_due) FROM acme_orders WHERE tenant_id=$1 AND server_id=$2").bind(user.tenant).bind(server).fetch_optional(&mut *tx).await?;
+	if user.bot {
+		return Ok(axum::Json(json!({"server":server,"order":data})).into_response());
+	}
+	Ok(views::autosign(&user, server, &name, data).into_response())
+}
+async fn save_autosign(
+	State(state): State<WebState>,
+	headers: HeaderMap,
+	Path(server): Path<Uuid>,
+	Form(form): Form<AutoSignForm>,
+) -> Result<Response, PanelError> {
+	let user = require(&state, &headers, Some(&form.csrf), Permission::Admin).await?;
+	if !form.confirmed || (form.enabled && !form.agree_tos) {
+		return Err(bad("AutoSign etkilerini ve CA koşullarını onaylayın."));
+	}
+	let domain = form.domain.trim().to_ascii_lowercase();
+	let email = form.email.trim();
+	crate::acme::validate(&domain, email).map_err(|_| bad("Alan adı veya e-posta geçersiz."))?;
+	let mut tx = state.store.begin(user.tenant).await?;
+	// Serialize first creation and changes with server row. Worker always locks job before server;
+	// reject busy job before taking the server lock to avoid that inversion.
+	let busy:bool=query_scalar("SELECT EXISTS(SELECT FROM acme_orders WHERE tenant_id=$1 AND server_id=$2 AND lease_until>now())").bind(user.tenant).bind(server).fetch_one(&mut *tx).await?;
+	if busy {
+		return Err(PanelError(
+			StatusCode::CONFLICT,
+			"Sertifika işi çalışıyor. Tamamlanmasını bekleyin.",
+		));
+	}
+	let existing=query("SELECT id,version,lease_until>now() AS busy,last_attempt>now()-interval '5 minutes' AS recent FROM acme_orders WHERE tenant_id=$1 AND server_id=$2 FOR UPDATE").bind(user.tenant).bind(server).fetch_optional(&mut *tx).await?;
+	if let Some(row) = &existing {
+		if row.get::<Option<bool>, _>("busy") == Some(true) {
+			return Err(PanelError(
+				StatusCode::CONFLICT,
+				"Sertifika işi çalışıyor. Tamamlanmasını bekleyin.",
+			));
+		}
+		if form.version != Some(row.get("version")) {
+			return Err(PanelError(
+				StatusCode::CONFLICT,
+				"Ayarlar başka bir işlemle değişmiş. Sayfayı yenileyin.",
+			));
+		}
+		if form.enabled && row.get::<Option<bool>, _>("recent") == Some(true) {
+			return Err(bad("Yeni sertifika denemesi için beş dakika bekleyin."));
+		}
+	} else if form.version.is_some() {
+		return Err(PanelError(
+			StatusCode::CONFLICT,
+			"Ayarlar başka bir işlemle değişmiş. Sayfayı yenileyin.",
+		));
+	}
+	let owned: Option<Uuid> =
+		query_scalar("SELECT id FROM servers WHERE tenant_id=$1 AND id=$2 FOR UPDATE")
+			.bind(user.tenant)
+			.bind(server)
+			.fetch_optional(&mut *tx)
+			.await?;
+	if owned.is_none() {
+		return Err(PanelError(StatusCode::NOT_FOUND, "Sunucu bulunamadı."));
+	}
+	let id = existing
+		.map(|r| r.get::<Uuid, _>("id"))
+		.unwrap_or_else(Uuid::new_v4);
+	let result=query("INSERT INTO acme_orders(tenant_id,id,server_id,domain,email,staging,enabled,next_due,status,version) VALUES($1,$2,$3,$4,$5,$6,$7,CASE WHEN $7 THEN now() END,$8,$9) ON CONFLICT(tenant_id,server_id) DO UPDATE SET domain=$4,email=$5,staging=$6,enabled=$7,next_due=CASE WHEN $7 THEN now() END,status=$8,version=$9,last_success=CASE WHEN acme_orders.domain=$4 AND acme_orders.staging=$6 AND acme_orders.email=$5 THEN acme_orders.last_success END,expires_at=CASE WHEN acme_orders.domain=$4 AND acme_orders.staging=$6 AND acme_orders.email=$5 THEN acme_orders.expires_at END,message='' WHERE acme_orders.version=$10 AND (acme_orders.lease_until IS NULL OR acme_orders.lease_until<now())").bind(user.tenant).bind(id).bind(server).bind(domain).bind(email).bind(form.staging).bind(form.enabled).bind(if form.enabled{"Queued"}else{"Disabled"}).bind(Uuid::new_v4()).bind(form.version).execute(&mut *tx).await?;
+	if result.rows_affected() != 1 {
+		return Err(PanelError(
+			StatusCode::CONFLICT,
+			"Ayarlar başka bir işlemle değişmiş. Sayfayı yenileyin.",
+		));
+	}
+	auth::audit(
+		&mut tx,
+		&user,
+		"AutoSign ayarı değiştirildi",
+		&server.to_string(),
+	)
+	.await?;
+	tx.commit().await?;
+	Ok(Redirect::to(&format!("/manage/servers/{server}/autosign")).into_response())
+}

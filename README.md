@@ -62,7 +62,7 @@ cargo clippy --workspace --all-targets --locked -- -D warnings
 cargo audit --deny warnings
 ```
 
-`cargo audit` ayrıca kurulu olmalıdır. Son kayıtlarda 25 Rust testi, gerçek HTTPS/PostgreSQL/.NET panel/protokol/profil/rapor sınamaları ve tema/dil HTTPS kontrolleri başarılıdır; bu sonuç genel güvenlik garantisi değildir.
+`cargo audit` ayrıca kurulu olmalıdır. Son kayıtlarda 26 Rust testi, gerçek HTTPS/PostgreSQL/.NET panel/protokol/profil/rapor sınamaları ve tema/dil HTTPS kontrolleri başarılıdır; bu sonuç genel güvenlik garantisi değildir.
 
 Debian 13 amd64 için `.deb` paketi vardır; yeni kurulum, sürüm yükseltme, geçiş özeti denetimi ve kurtarma sınandı. [Üretim kurulumunu](docs/uretim-kurulumu.md) ve [mevcut ortam kaydını](docs/uretim-ortami.md) okuyun. `scripts/setup-test-manager.sh` ve `scripts/setup-test-tls.sh` yalnız ayrılmış sınama ortamları içindir; mevcut kurulumda körlemesine yeniden çalıştırılmamalıdır. TLS betiği özel ve kısa ömürlü bir sınama CA'sı oluşturur, üretim sertifika çözümü değildir. Eski sınama ortamının ters vekil düzeni için [VPS notlarını](docs/vps-ters-vekil.md) okuyun; sertifika doğrulamasını kapatmayın.
 
@@ -70,7 +70,7 @@ Paketli kurulumda ilk sahip `hoodmin-create-owner EPOSTA HTTPS_ORIGIN` ile oluş
 
 ## Sınırlar ve kalan işler
 
-- Gerçek ACME/yenileme ve PFX dağıtımı dış Certbot işçisiyle doğrulandı. Kiracının panelden kendi ACME işini oluşturduğu AutoSign ekranı henüz yoktur.
+- Kiracı yöneticisi [AutoSign ekranından](docs/autosign.md) CA doğrulaması, sertifika alma ve otomatik yenileme işi oluşturabilir. Certbot ayrıcalıksız çalışır; test ve gerçek CA açıkça ayrılır.
 - Şifreli adresler HTTPS GET yanında harici PUT/POST ve multipart ile yayımlanabilir; zamanlama, dosya doğrulaması, bot API ve kiracı yalıtımı vardır. [Kullanım ve sınırlar](docs/harici-adres-yayimi.md). Grup sunucu profili ataması, yeni/taşınan üyeye uygulama ve profil değişikliğinin bağlı gruplara otomatik aktarımı da vardır. [Davranış ve sınırlar](docs/grup-sunucu-profili.md).
 - `clientPolicies` istemciye duyurulur; ülke bazındaki kapalı kaynak ticari plan kararlarının birebir uygulandığı iddia edilmez. Ödüllü reklam için güvenilir sunucu doğrulayıcısı gerekir; doğrudan reklam ağı entegrasyonu yoktur.
 - Debian paketi, yerel/şifreli uzak yedek ve ayrı hedefte geri yükleme çalışır. Ana anahtar döndürme ve harici hata bildirim kanalı henüz tamamlanmadı. Kurulum işlerinin durumu kalıcıdır; kesilen işler otomatik yeniden çalıştırılmaz.

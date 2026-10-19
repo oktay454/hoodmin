@@ -30,10 +30,15 @@ Gerçek HTTPS dosyası .NET ile çözüldü ve hazır VPN sunucusuna gerçek ist
 
 Aynı profil birden çok gruba atanabilir. Onaylı atama mevcut üyelere, güncel profil yeni ve gruba taşınan sunucuya uygulanır. Profil düzenlemesi onaylandığında bütün bağlı grup üyeleri tek veritabanı işleminde güncellenir. Bir üyede hata bütün işlemi geri alır; üyelik ve profil güncellemesi kiracı düzeyinde sıralanır. Atama kaldırıldığında son ayarlar korunur. Çevrimdışı üyeler normal agent bağlantısında yeni sürümü alır; tüm makinelerde aynı anda uygulama garantisi yoktur. [Kullanım ve API](grup-sunucu-profili.md).
 
+## Yeni tamamlanan: panel AutoSign
+
+Kiracı yöneticisi sunucunun AutoSign ekranından alan adı, iletişim e-postası, test/gerçek CA ve yenileme ayarını yönetir. CA paylaşımı/koşulları ve sertifika etkisi açık onay gerektirir. Certbot root olmadan ayrı görev dizinlerinde çalışır; HTTP-01 kancası önceki dinleyici durumunu geri yükler. Kalıcı işler, kesinti sonrası kira toparlanması, on iki saatte bir kontrol, durum/hata/son tarih ve bot API vardır. [Kullanım ve sınırlar](autosign.md).
+
+Kullanıcı canlı sınamayı gelecekte üretimde kullanacağı ortamlarda yetkilendirdi. Durdurulmuş hoodmin/vh01 kopyaları alındı, panel 0.1.0-6~deb13u1 sürümüne yükseltildi. Test CA doğrulaması gerçek sunucuda geçti ve sertifikayı değiştirmedi; gerçek CA sertifikası alınıp sunucuya uygulandı, dış TLS doğrulandı. Panelin HTTPS sertifikası korundu. Diğer mantıksal/isteğe bağlı geliştirmeler bu çalışmada başlatılmadı.
+
 ## Sonraki özellikler
 
-1. Kiracının panelden kendi ACME işini oluşturduğu AutoSign akışı. Mevcut root/Certbot entegrasyonu gerçek sunucuda çalışır.
-2. Ana anahtar döndürme, harici hata bildirimi, yedek saklama/disk politikası ve uzun süreli yük/kesinti sınamaları.
-3. Masaüstü işletim sistemi VPN rotalarının tümü, Windows kurulum çalıştırması ve kapalı kaynak davranışı gözlenmeyen ticari özellikler ayrıca değerlendirilir.
+1. Ana anahtar döndürme, harici hata bildirimi, yedek saklama/disk politikası ve uzun süreli yük/kesinti sınamaları.
+2. Masaüstü işletim sistemi VPN rotalarının tümü, Windows kurulum çalıştırması ve kapalı kaynak davranışı gözlenmeyen ticari özellikler ayrıca değerlendirilir.
 
 Eski `yapayzeka`/`vpnhood` ortamları gerileme sınaması için korunur. Kullanıcının eski `vpnhood-test` kaydı değiştirilmedi. Kaynak kardeş `VpnHood-Current` salt okunur kalmıştır. Özel sınama verileri, kimlikler ve kurtarma anahtarları `work/` içinde Git dışındadır; yayımlanmamalıdır.

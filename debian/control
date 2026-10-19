@@ -8,9 +8,9 @@ Rules-Requires-Root: no
 
 Package: hoodmin
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, adduser, ca-certificates, curl (>= 8.4), openssh-client, openssl, postgresql (>= 17), python3
+Depends: ${shlibs:Depends}, ${misc:Depends}, adduser, ca-certificates, certbot, curl (>= 8.4), openssh-client, openssl, postgresql (>= 17), python3
 Recommends: nginx
-Suggests: certbot, age
+Suggests: age
 Description: independent VpnHood-compatible server management panel
  Rust management service with tenant isolation, access policies,
  encrypted server credentials and a web interface in Turkish, Arabic

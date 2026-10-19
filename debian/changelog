@@ -1,3 +1,10 @@
+hoodmin (0.1.0-6~deb13u1) trixie; urgency=medium
+
+  * Add tenant-managed AutoSign with unprivileged Debian Certbot jobs.
+  * Add explicit CA consent, staging, renewal scheduling and HTTP01 cleanup.
+
+ -- Hoodmin maintainers <vpn@oktayaktogan.com.tr>  Mon, 19 Oct 2026 06:23:42 +0300
+
 hoodmin (0.1.0-5~deb13u1) trixie; urgency=medium
 
   * Add explicit farm server profile assignment and atomic propagation.
