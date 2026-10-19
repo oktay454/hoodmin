@@ -41,6 +41,12 @@ Başlangıçtaki ModSecurity hatası, şifreli düz metnin JSON içerik türüyl
 
 Her iki geçici Console kaydı da kaldırıldı; liste yeniden boş doğrulandı. Nginx dosyası bayt düzeyinde önceki hâline getirildi; geçici hizmet, yol ve veri dosyaları kaldırıldı. Son denetimler: alıcı portu kapalı, geçici yol 404, QA giriş sayfası 200, Nginx ve panel hizmetleri etkin.
 
+## Kullanıcının uyumluluk kararı
+
+Kullanıcı ModSecurity'yi sınama FQDN'i için kapatabileceğini belirtti ve güvenlik duvarına uydurmak amacıyla standart veri biçiminin değiştirilmemesini istedi. Yukarıdaki JSON dizesi ve alıcıda JSON açma işlemi yalnız yöntem davranışını gözlemek için geçici teşhis düzeniydi; Hoodmin'e uygulanmış bir ürün davranışı veya varsayılan yayım biçimi değildir.
+
+Ham şifreli metin, gövdeyle uyumlu içerik türü ve hedef API'nin açıkça gerektirdiği form/gövde şablonu esas alınacak. WAF engelini aşmak için otomatik JSON sarmalama/açma eklenmeyecek. Console'un ham gövdesi ve Form-Data akışı, kullanıcı bu FQDN için ModSecurity durumunu bildirdikten sonra yeniden sınanacak. ModSecurity henüz kapatılmış varsayılmadı; bu karar için yeni alıcı veya Console kaydı açılmadı.
+
 ## Hoodmin'e aktarım durumu
 
 Bu çalışma gözlem ve sınama aracıdır; Hoodmin'e harici POST/PUT yayıncısı henüz eklenmedi. Çalışan mevcut `/f/…` ve `/s/…` şifreli adres servisleri korunur. Aktarımda ayrı okuma/yükleme adresleri, şifreli yayıncı kimliği, başlık/gövde şablonları, yöntem geri dönüşü, elle/otomatik görevler ve hata/durum takibi gereklidir. Kiracı yalıtımı, yetki denetimi, sırların günlüklere sızmaması ve iç ağa istek atma (SSRF) koruması birlikte sınanmalıdır. Console'un gözlenen içerik türü/URL sorunlarını Hoodmin'de aynen tekrarlamak gerekmez; uyumlu sonuç üreten davranış ve farkları açıkça belgelenmelidir.

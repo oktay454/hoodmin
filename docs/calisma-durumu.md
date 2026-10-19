@@ -28,6 +28,8 @@ Kullanıcının paylaştığı VPS günlüğü ilk 400'ün ModSecurity JSON çö
 
 Temizlik tamamlandı: Console listesi yeniden boş; geçici alıcı/veriler/Nginx yolu kaldırıldı; önceki Nginx dosyası aynen geri yüklendi. Son durumda geçici port kapalı, yol 404, QA giriş sayfası 200 ve hizmetler etkin. Yeni paket kurulmadı. Gizli içermeyen kanıt eski QA'da ve yerelde Git dışı `work/console-publication-qa-20261019-success.json` içinde korunur.
 
+Kullanıcı, ModSecurity nedeniyle standart veri biçiminin değiştirilmemesini istedi. JSON sarmalaması yalnız teşhis sınamasıdır; Hoodmin için varsayılan olmayacak. `vhm-test.oktayaktogan.com.tr` üzerinde ModSecurity kapatıldığı bilgisi bekleniyor; geldiğinde ham gövde ve Form-Data yeniden sınanacak. Bu aşamada yeni geçici alıcı açılmadı.
+
 ## Sonraki özellikler
 
 1. Harici POST/PUT şifreli adres yayımı.
