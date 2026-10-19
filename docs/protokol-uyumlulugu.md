@@ -154,3 +154,7 @@ Gerçek DNS istemcisi bir hatayı ortaya çıkardı: PFX değişimi `isv` değer
 `tests/UdpProbe` resmî .NET istemci kitaplığı ve MsQuic soket fabrikasıyla TCP, UDP ve QUIC paket kanallarını ayrı ayrı seçti; geri düşmeyi reddetti. Atanmış sanal istemci IP'sinden yapılan UDP DNS isteği gerçek yanıt verdi. Sunucu TUN/NAT sayaçlarının arttığı ve kapsayıcı yeniden başlatıldıktan sonra QUIC verisinin tekrar geçtiği görüldü. NullVpnAdapter'a sentetik paket verildiğinden masaüstü işletim sisteminin tüm yönlendirme tablosu sınanmış sayılmaz.
 
 Debian paket kurulum/yükseltmesi, geçiş özetleri, şifreli ayrı makine yedeği ve ayrı veritabanına ana anahtarla geri yükleme doğrulandı. [Ortam, işletim sınırları ve ayrı onay bekleyen UID/GID taşıması](uretim-ortami.md) kaydındadır.
+
+## Console harici yayım davranışı — 19 Ekim 2026
+
+[Açık onaylı QA gözlemi](console-harici-yayim-sinamasi.md): PUT başarısızsa POST'a geçiş, PUT başarılıysa POST'un atlanması, JSON gövde şablonu ve başlık yer tutucusu doğrulandı; Console OK durumu alındı. URL sorgusundaki yer tutucu değiştirilmeden geldi; Form-Data henüz doğrulanmadı. Bu gözlem Hoodmin'de harici yayıncı uygulaması veya tam eşdeğerlik iddiası değildir.

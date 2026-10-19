@@ -159,3 +159,9 @@ Kullanım ve uygulama notları: `docs/arayuz-ve-diller.md`. Yeni paket/bağıml�
 ## POST/PUT yeniden inceleme sınırı — 18 Ekim 2026
 
 Console yayım formunun üç alanı ve dört HTTP kipi salt okunur tekrar doğrulandı; form kaydedilmedi. Geçici dış QA alıcısı otomatik onay denetimince reddedildi. Yeni devam talebi ve eski QA hedefinin farklılığı gösterilerek yapılan tekrar da reddedildi; işlem dolaylı yoldan uygulanmadı. Kullanıcıya açık hedef/kapsam ile ayrıca onay soruldu. Bu aşamada POST/PUT gövdesi, iki yöntemli kipin sırası veya canlı yayım başarısı doğrulanmış sayılmaz.
+
+## Onaylı harici yayım sınaması — 19 Ekim 2026
+
+[Ayrıntılı kayıt](console-harici-yayim-sinamasi.md). İlk yüklemeler VPS ModSecurity JSON çözümleme hatasıyla engellendi; kullanıcı günlüğü kaynağı belirledi. Geçerli JSON dizesi gövdesiyle PUT=405 → POST=201, PUT=201 → POST'un atlanması, başlık/gövde yer tutucuları ve Console OK durumu doğrulandı. URL yer tutucusu değiştirilmeden geldi. Form-Data kodlaması 400 nedeniyle teyit edilmedi. Güvenlik duvarı değiştirilmedi; Hoodmin yayıncısı henüz eklenmedi.
+
+Deneme kayıtları silinip boş Console listesi görüldü. Önceki Nginx dosyası birebir geri alındı; geçici hizmet/port/yol/veriler kaldırıldı. Son durumda yol 404, QA giriş sayfası 200 ve Nginx/panel etkin. Yeni paket kurulmadı, üretim makineleri değiştirilmedi. `tests/publication_sink.py` Python sözdizimi denetiminden geçti.

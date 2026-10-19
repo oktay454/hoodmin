@@ -1,4 +1,4 @@
-# Çalışma durumu — 18 Ekim 2026
+# Çalışma durumu — 19 Ekim 2026
 
 Kullanıcı 17 Ekim duraklamasından sonra iki yeni SSH makinesi vererek devam edilmesini istedi. Yeni ortam üretim hedefiyle hazırlanmıştır; tam Console eşdeğerliği ve uzun süreli üretim onayı iddia edilmez.
 
@@ -14,19 +14,19 @@ Kullanıcı 17 Ekim duraklamasından sonra iki yeni SSH makinesi vererek devam e
 
 [Üretim ortamı ve erişim](uretim-ortami.md), [kurulum](uretim-kurulumu.md), [kanıtlar](dogrulama.md), [uyumluluk sınırları](protokol-uyumlulugu.md).
 
-## Ayrı onay bekleyen işlem
+## UID/GID ve sahip parolası
 
-Yalnız yeni iki kapsayıcının UID/GID tabanını 100000'den 200000'e taşıma; mevcut ana makine kullanıcılarının alt kimlik aralığından ayırma. Otomatik onay denetimi, kapsayıcı durdurma ve tüm dosya sahipliklerini değiştirme nedeniyle reddetti. Uygulanmadı. Salt okunur plan, tam durdurulmuş kopya/geri dönüş ve son kontrol kapsamı üretim ortamı belgesindedir. İzin gelmeden bu işlem veya dolaylı eşdeğeri yapılmamalıdır.
+Kullanıcı UID/GID taşımasını onayladı, ancak gerekliliğini sordu ve durdurulmuş `lxc-copy` yedeğini önerdi. Değerlendirme sonunda taşıma zorunlu bulunmadı; mevcut 100000 tabanlı eşlemenin korunacağı kullanıcıya açıklandı. Bu işlem uygulanmadı ve bekleyen onay olarak değerlendirilmez. Önemli kapsayıcı değişikliklerinden önce durdurulmuş bağımsız kopya yaklaşımı kullanılacak; bu turda üretim kapsayıcılarında bakım yapılmadı.
 
-İlk sahip parolasını yerel dosyaya kopyalama adımı da reddedildi. Parola üretim kapsayıcısında kalır; bu aktarım için ayrıca açık izin olmadan başka yol denenmemelidir. API ve sunucu içindeki mevcut sahip oturumu işlev kontrollerinde kullanılabildi; tarayıcıda güvenilir giriş sayfası doğrulandı.
+İlk sahip parolasını yerel dosyaya kopyalama adımı daha önce reddedildi. Parola üretim kapsayıcısında kalır; bu aktarım için ayrıca açık izin olmadan başka yol denenmemelidir. API ve sunucu içindeki mevcut sahip oturumu işlev kontrollerinde kullanılabildi; tarayıcıda güvenilir giriş sayfası doğrulandı.
 
-## POST/PUT sınaması için ayrı onay bekleniyor
+## POST/PUT sınaması — onaylı gözlem tamamlandı
 
-Console oturumu tekrar açıldı; Server Farms → Server Farm 1 → Farm Token Urls formunda Publish Url, Name, Auto Upload (Off / POST / PUT / PUT & POST) ve listede Status / Auto Publish / Last Pushed / Error / PUSH ALL tekrar doğrulandı. Form CANCEL ile kapatıldı; liste boş kaldı ve hiçbir Console kaydı değiştirilmedi.
+Kullanıcı geçici alıcı, şifreli deneme çiftliği adresini gönderme ve yalnız bu işin kaydını temizleme kapsamını açıkça onayladı. Eski `yapayzeka` QA kullanıldı; yeni üretim değiştirilmedi. [Ayrıntılı sınama kaydı](console-harici-yayim-sinamasi.md).
 
-Kullanıcının 18 Ekim devam talebi ve `yapayzeka`nın (10.0.3.236) yeni üretimden farklı eski QA ortamı olduğu salt okunur kontrolle gösterildi. Buna rağmen otomatik onay denetimi, önceki erteleme ve dışa açık alıcı gerekçeleriyle geçici POST/PUT alıcısını iki kez reddetti. Alıcı, systemd birimi veya Nginx yolu oluşturulmadı; `tests/publication_sink.py` de reddedilen komut çalışmadığından oluşmadı. Aynı işlem farklı bir araç/hedefle denenmemelidir.
+Kullanıcının paylaştığı VPS günlüğü ilk 400'ün ModSecurity JSON çözümleme hatası olduğunu gösterdi. Console'da içerik türünü başlıkla değiştirme denemesi mükerrer Content-Type hatası verdi. Body=`"{farm_token}"` ile geçerli JSON gönderilince alıcıya ulaşıldı; güvenlik duvarı değiştirilmedi. PUT & POST kipinde PUT=405 → POST=201 ve PUT=201 → POST gönderilmemesi doğrulandı. Alıcı JSON yüklemesini düz metin olarak sunduğunda Console durumu OK oldu. Başlık `{access_token}` ve gövde `{farm_token}` yer tutucuları doğrulandı; URL sorgusundaki `{access_token}` ise değiştirilmeden geldi. Form-Data denemesi 400 aldı; kodlaması henüz teyitli değil. Hoodmin harici yayıncısı henüz uygulanmadı.
 
-Kullanıcıya eski QA ortamında geçici alıcı/yol, Console deneme çiftliğinin şifreli adres belirtecini bu alıcıya gönderme ve yalnız bu işin deneme kaydını temizleme için açık onay soruldu; yanıt henüz gelmedi. Soru `vhm-test.oktayaktogan.com.tr/__hoodmin_publish_qa/` hedefini ve yeni üretimin değişmeyeceğini açıkça belirtir. Onay gelmeden buna bağlı sınama başlatılmamalıdır. UID/GID bakım sorusu ayrıca bekler; birine verilen onay ötekine otomatik yayılmaz.
+Temizlik tamamlandı: Console listesi yeniden boş; geçici alıcı/veriler/Nginx yolu kaldırıldı; önceki Nginx dosyası aynen geri yüklendi. Son durumda geçici port kapalı, yol 404, QA giriş sayfası 200 ve hizmetler etkin. Yeni paket kurulmadı. Gizli içermeyen kanıt eski QA'da ve yerelde Git dışı `work/console-publication-qa-20261019-success.json` içinde korunur.
 
 ## Sonraki özellikler
 
