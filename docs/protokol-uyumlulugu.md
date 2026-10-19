@@ -158,3 +158,5 @@ Debian paket kurulum/yükseltmesi, geçiş özetleri, şifreli ayrı makine yede
 ## Console harici yayım davranışı — 19 Ekim 2026
 
 [Açık onaylı QA gözlemi](console-harici-yayim-sinamasi.md): PUT başarısızsa POST'a geçiş, PUT başarılıysa POST'un atlanması, JSON gövde şablonu ve başlık yer tutucusu doğrulandı; Console OK durumu alındı. URL sorgusundaki yer tutucu değiştirilmeden geldi; Form-Data henüz doğrulanmadı. Bu gözlem Hoodmin'de harici yayıncı uygulaması veya tam eşdeğerlik iddiası değildir.
+
+Kullanıcı ModSecurity'yi sınama FQDN'inde kapattıktan sonra ham şifreli Body ve multipart Form-Data tekrar sınandı. İki akışta da Console OK alındı; form alanlarında `{farm_token}` ve `{access_token}` değişimi doğrulandı. JSON sarmalaması gerekmedi. İlk aşamadaki Form-Data belirsizliği giderildi; URL sorgusu yer tutucusu sorunu ve uzun süreli otomatik yayım sınırları korunur.

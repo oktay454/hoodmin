@@ -165,3 +165,7 @@ Console yayım formunun üç alanı ve dört HTTP kipi salt okunur tekrar doğru
 [Ayrıntılı kayıt](console-harici-yayim-sinamasi.md). İlk yüklemeler VPS ModSecurity JSON çözümleme hatasıyla engellendi; kullanıcı günlüğü kaynağı belirledi. Geçerli JSON dizesi gövdesiyle PUT=405 → POST=201, PUT=201 → POST'un atlanması, başlık/gövde yer tutucuları ve Console OK durumu doğrulandı. URL yer tutucusu değiştirilmeden geldi. Form-Data kodlaması 400 nedeniyle teyit edilmedi. Güvenlik duvarı değiştirilmedi; Hoodmin yayıncısı henüz eklenmedi.
 
 Deneme kayıtları silinip boş Console listesi görüldü. Önceki Nginx dosyası birebir geri alındı; geçici hizmet/port/yol/veriler kaldırıldı. Son durumda yol 404, QA giriş sayfası 200 ve Nginx/panel etkin. Yeni paket kurulmadı, üretim makineleri değiştirilmedi. `tests/publication_sink.py` Python sözdizimi denetiminden geçti.
+
+## ModSecurity sonrası özgün gövde/Form-Data — 19 Ekim 2026
+
+Kullanıcının FQDN'de ModSecurity'yi kapattığını bildirmesinden sonra ham gövde PUT=405 → POST=201 → GET=200 ve Console OK doğrulandı; JSON sarmalama/açma kullanılmadı. Form-Data'nın multipart kodlaması, payload/key alanları, her iki yer tutucunun değişmesi, payload ile yayımlanan dosyanın birebir eşleşmesi ve Console OK de doğrulandı. [İkinci aşama kaydı](console-harici-yayim-sinamasi.md). Tek geçici kayıt ve alıcı temizlendi; Nginx önceki hâline geri getirildi. Ürün yayıncısı henüz eklenmedi; Python sınama aracı için sözdizimi kontrolü geçti.

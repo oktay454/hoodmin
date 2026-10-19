@@ -3,6 +3,8 @@
 No authorization values or request bodies are printed. Remove the proxy when done.
 """
 import hashlib
+import email.parser
+import email.policy
 import http.server
 import json
 import pathlib
@@ -49,6 +51,12 @@ class Receiver(http.server.BaseHTTPRequestHandler):
 				if config.get('json_upload'):
 					value = json.loads(body)
 					stored = value.encode() if isinstance(value, str) else body
+				if config.get('form_field'):
+					content_type = self.headers.get('Content-Type', '')
+					message = email.parser.BytesParser(policy=email.policy.default).parsebytes(
+						('Content-Type: ' + content_type + '\r\nMIME-Version: 1.0\r\n\r\n').encode() + body)
+					stored = next(part.get_payload(decode=True) for part in message.iter_parts()
+						if part.get_param('name', header='content-disposition') == config['form_field'])
 				(ROOT / 'latest').write_bytes(stored)
 		record = dict(at=time.time(), method=self.command, status=status,
 			length=length, sha256=hashlib.sha256(body).hexdigest(),
