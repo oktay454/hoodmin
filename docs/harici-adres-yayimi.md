@@ -12,7 +12,7 @@ Sunucular → sunucu grubunda **Grup adresi yayımı** → **Harici adres yayım
 6. Form yüklemesinde Body'yi boş bırakıp örneğin `payload: {farm_token}` ve `key: {access_token}` satırlarını kullanın. İstek multipart/form-data olarak oluşturulur; içerik türü ve sınır ayracı otomatik belirlenir. Hedef API'nin payload alanını dosya içeriği olarak yayımlaması gerekir.
 7. Otomatik aralık 0 ise yalnız kaydetme/elle başlatma iş oluşturur. 5–1440 dakika aralığında düzenli yayım yapılır. Etkin bir hedefi kaydetmek ilk işi hemen sıraya alır. Gönderimi onaylayıp kaydedin.
 
-`{farm_token}` şifreli adresle, `{access_token}` yayıncı kimliğiyle değiştirilir. URL'deki kimlik URL kodlamasıyla eklenir. Console'da gözlenen URL yer tutucusu hatası ve ham metne JSON içerik türü verme davranışı Hoodmin'e kopyalanmadı. Gövde ve hedef API sözleşmesi korunur.
+`{farm_token}` şifreli adresle, `{access_token}` yayıncı kimliğiyle değiştirilir. URL'deki kimlik URL kodlamasıyla eklenir. Gövde ve içerik türü hedef API sözleşmesiyle eşleşmelidir.
 
 ## Durum ve erişim anahtarları
 
@@ -46,9 +46,3 @@ curl davranışı için birincil başvuru: [resmî curl belgesi](https://curl.se
 | Kaldır | `POST /api/manage/publications/{id}/remove` |
 
 Tüm API yolları bot Bearer kimliği gerektirir. Liste yalnız güvenli metaveriyi döndürür. Tekli yayım/kaldırma `version` ve `confirmed:true`, toplu yayım `confirmed:true` ister. Oluşturmada `name`, `seed`, `publish_url`, `upload_url`, `method` (`PUT`, `POST`, `PUT_POST`), `secret`, `headers`, `form_data`, `body`, `content_type`, `enabled`, `auto_minutes`, `confirmed` kullanılır. Düzenlemede ayrıca `version` gerekir. `replace_settings:false` kayıtlı yükleme ayarlarını korur; `true` tüm yükleme alanlarını değiştirmek içindir. Başarılı yazma yanıtı 202 ve izlenecek konumdur; liste 200 döner.
-
-## Doğrulama ve dağıtım
-
-`tests/test_external_publications.py`: gerçek genel HTTPS ham ve multipart yükleme, PUT geri dönüşü, başarılı PUT sonrası POST'un atlanması, URL/başlık/form şablonları, byte denetimi, bot API/roller, RLS, şifreli kimlik, kapatma/kaldırma, sürüm çakışması, süreli iş kirası ve servis yeniden başlatması. Harici dosya gerçek .NET `ServerToken.Decrypt` ile çözüldü ve hazır VPN sunucusuna gerçek istemci bağlantısı geçti.
-
-Bu özellik eski QA ortamında uygulanır. Yeni üretim makineleri bu kilometre taşında değiştirilmez. Debian `0.1.0-4~deb13u1` paketi `0009_external_publications.sql` geçişini içerir. Paket yükseltmesinde bakım/yedekten sonra hizmeti durdurun, paketi kurun, root ile `hoodmin-db-setup` çalıştırın ve hizmeti başlatın; ana anahtar ve mevcut ortam dosyasını koruyun. Önceki üretim paketi ve ortam bilgisi [üretim ortamı belgesindedir](uretim-ortami.md).

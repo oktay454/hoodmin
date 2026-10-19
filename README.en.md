@@ -2,86 +2,60 @@
 
 [Türkçe](README.md) · [العربية](README.ar.md) · [English](README.en.md)
 
-Hoodmin is an **independent server and access management panel compatible with VpnHood**, written in Rust. It is not the official VpnHood Manager and does not reimplement the VPN server or client. Use the official prebuilt installer for the VpnHood server.
+Hoodmin is an **independent VPN management panel compatible with VpnHood**, written in Rust. Manage VPN servers, access keys, connections, traffic quotas and certificates in one place. It is not the official VpnHood Manager product. VPN servers and clients use the official VpnHood software.
 
-Each organization brings its own servers (BYOS). Each server belongs to exactly one tenant; there is no shared VPN server pool across tenants. Hoodmin does not carry VPN traffic: clients connect directly to their VPN servers.
+Each organization brings its own VPN servers (BYOS). A server belongs to one tenant only. VPN traffic goes directly from clients to VPN servers; it does not pass through Hoodmin.
 
-## Status
+## Installation on Debian 13 amd64
 
-The protocol core and tenant panel work. Compatibility with VpnHood **9.0.856** has been checked using real .NET contracts and a remote client connection. Debian 13 installation, real-domain certificate automation and isolated recovery from an encrypted backup have been verified. Sustained production load and full parity with the closed-source Manager remain unfinished. See the [validation record, in Turkish](docs/dogrulama.md).
-
-See the [pause and continuation record](docs/calisma-durumu.md) for the latest milestone and pending work.
-
-## Available features
-
-- Official prebuilt Linux/Windows install commands; password/private-key SSH install/reinstall with pinned host keys and job logs.
-- All 47 editable source-defined server settings; reusable server templates and atomic tenant-scoped bulk application.
-- Access profiles, upload/download limits, total/cycle quotas, lifetime from first use, trial/reward plans and device policies.
-- Group access, location/capacity routing, encrypted server-address publishing and access codes.
-- Group refresh URLs recover from an unreachable bootstrap address by selecting a live member; verified with .NET and a real client connection.
-- Shared farm PFX storage and distribution to existing, new and reassigned members, preserving VPN addresses and server secrets.
-- Password-protected PFX import, certificate pinning and expiring HTTP-01 responses; operator-configured Debian Certbot hooks automate CA issuance/renewal and PFX deployment.
-- Time/server-filtered CPU, memory, session and transfer-speed charts; reported devices by country; key metadata and downloads.
-
-- Turkish, Arabic and English interface; Arabic RTL layout; light/dark themes with a sun/moon button.
-- Overview, servers, access keys, VPN sessions, panel users, audit trail and account settings.
-- Owner, admin, operator, access token writer and viewer roles; user/password management and protection of the last active administrator.
-- Server/group registration; editable name, IP/FQDN, TCP port and group; maintenance mode. Credential rotation requires explicit confirmation and rejects stale confirmation reuse.
-- VpnHood-compatible `vh://` keys; create 1–100 keys per operation; bulk revoke/enable/quota/expiry updates, search and pagination.
-- Traffic, device and expiry limits; session termination decisions persist until the server acknowledges them.
-- Live summary counters through SSE, server status, CSV usage export and contextual help dialogs.
-- PostgreSQL FORCE RLS, tenant-aware foreign keys and append-only auditing; Argon2id, AES-256-GCM, CSRF/Origin checks and login attempt limits.
-
-Bots have expiring/revocable API keys and a JSON management API using the panel's authorization checks. [API documentation](docs/yonetim-api.md).
-
-## Architecture and repository
-
-Rust/Tokio/Axum, PostgreSQL/SQLx and Leptos server-side rendering (SSR) form a modular application. Small JavaScript enhancements handle browser interaction; no browser WebAssembly or hydration is used. Nginx terminates HTTPS, Rust listens on loopback, and VpnHood servers call Hoodmin's `/api/agent/` endpoints.
-
-- `crates/manager`: Hoodmin panel, API and local operator commands; Cargo package `hoodmin`.
-- `crates/protocol`: VpnHood JSON/key formats and client proof validation.
-- `crates/paste-compat`: compatibility shim using the maintained pastey macro.
-- `migrations`: database schema and tenant policies.
-- `scripts`: setup scripts and service definitions for dedicated Debian test containers.
-- `tests`: real HTTPS/PostgreSQL/.NET integration checks in addition to Rust tests.
-- `work`: private fixtures and build outputs, excluded from Git. Do not publish secrets.
-
-Further documentation, currently in Turkish: [architecture](docs/mimari.md), [interface and languages](docs/arayuz-ve-diller.md), [console comparison](docs/console-karsilastirmasi.md).
-
-## Build and validation
-
-The validated environment is Debian 13 / PostgreSQL 17. Rust **1.99.1** is pinned in `rust-toolchain.toml` and dependencies in `Cargo.lock`. Rust/Cargo, OpenSSL development libraries and native build tools are required. .NET comparison checks also require SDK 10 and the sibling `VpnHood-Current` source tree; these are test tools, not the VPN server installation method.
-
-Toolchain paths in the test container:
+1. Point a panel DNS name, such as `hoodmin.example.com`, to the panel host. Allow inbound TCP 80/443. The panel and VPN server can use separate hosts and names.
+2. As root, from the directory containing the downloaded package:
 
 ```bash
-export CARGO_HOME=/opt/vpnhood-toolchain/cargo
-export RUSTUP_HOME=/opt/vpnhood-toolchain/rustup
-cargo build --release --locked
-cargo fmt --all -- --check
-cargo test --workspace --locked
-cargo clippy --workspace --all-targets --locked -- -D warnings
-cargo audit --deny warnings
+apt install ./hoodmin_0.1.0-7~deb13u1_amd64.deb
+systemctl enable --now postgresql
+hoodmin-db-setup
+hoodmin-create-owner vpn@example.com https://hoodmin.example.com
 ```
 
-`cargo audit` must be installed separately. The latest recorded checks passed 26 Rust tests, the real HTTPS/PostgreSQL/.NET panel/protocol/profile/report suites and theme/language HTTPS checks; this is not a general security guarantee.
+3. Configure Nginx and a trusted HTTPS certificate using the [step-by-step installation guide](docs/uretim-kurulumu.md). The guide and the detailed handbook are in Turkish. Set `VHM_PUBLIC_ORIGIN` to the exact public HTTPS origin without a trailing slash. Nginx forwards requests to `127.0.0.1:3080` and overwrites forwarded client IP headers.
+4. Start the panel after configuring HTTPS:
 
-A Debian 13 amd64 `.deb` package is available; fresh installation, upgrade, migration checksums and recovery have been tested. See the [production guide](docs/uretim-kurulumu.md) and [deployment record](docs/uretim-ortami.md). `scripts/setup-test-manager.sh` and `scripts/setup-test-tls.sh` target dedicated test environments only; do not blindly rerun them on an existing deployment. The TLS script creates a private, short-lived test CA rather than a production certificate solution. Consult the [VPS reverse-proxy notes](docs/vps-ters-vekil.md) for the legacy test deployment. Keep certificate verification enabled.
+```bash
+systemctl enable --now hoodmin.service
+curl --fail --show-error https://hoodmin.example.com/healthz
+```
 
-For packaged deployments use `hoodmin-create-owner EMAIL HTTPS_ORIGIN`, described in the production guide. In the legacy test environment, create the initial account with the local `create-account` command or `scripts/bootstrap-panel.sh TENANT_UUID`. The script stores its random initial password in `work/panel-admin.txt` with mode 0600 and does not reset an existing password. Consult the validation record for prerequisites of `scripts/test-contract.sh`, `tests/test_panel.py` and `tests/test_preferences.py`. Integration tests use separate tenants.
+5. Read `/root/hoodmin-first-owner.json` on the installation machine in your trusted root terminal. It contains the initial email and random password. Sign in and change the password under **My account**. There is no default password or public registration.
+6. Under **Servers**, register the public VPN IP/FQDN and TCP port. Run the generated official installer on the VPN host, or use the SSH installation form with a verified SSH host fingerprint. Wait for the server to appear online.
+7. Under **Access keys**, create a key and import its `vh://` value into the official VpnHood client. Panel accounts and VPN access keys are different credentials.
 
-## Limitations and remaining work
+The package installs the panel, not the VPN server. Do not run the isolated QA setup scripts on an existing installation.
 
-- Tenant administrators can configure validation, issuance and automatic renewal through the [AutoSign screen](docs/autosign.md). Certbot runs unprivileged; test and production CA modes are explicit.
-- Encrypted address publishing supports HTTPS GET and external PUT/POST or multipart uploads, with durable scheduling, file verification, bot API and tenant isolation. See [usage and limits](docs/harici-adres-yayimi.md). Farm server profile assignment, application to new or moved members, and automatic propagation to assigned groups are also supported. See [behavior and limits](docs/grup-sunucu-profili.md).
-- Client policies are advertised; closed-source commercial country-plan decisions are not claimed to be identical. Rewarded ads require a trusted server verifier, not an unverified client report or direct ad-network integration.
-- Debian packaging, encrypted remote backups and isolated recovery work. Master-key rotation and external failure notifications remain unfinished. Job states persist, but interrupted installations are not retried automatically.
-- Tenant creation uses CLI; public signup/platform administration is absent.
-- Usage deltas lack report IDs; exactly-once accounting under interruptions is not guaranteed.
-- Actual TCP/QUIC payloads, 1 Mbps shaping and network blocking were checked. The public VPN node carried UDP DNS through TCP, UDP and QUIC packet channels; server TUN/NAT counters confirmed forwarding. Full desktop routing, sustained load and every kernel-dependent setting need separate validation.
+## Features
 
-See the current [protocol compatibility record](docs/protokol-uyumlulugu.md). Console comparison documents retain their historical observations.
+- Turkish, Arabic and English, Arabic RTL, light/dark themes and contextual help.
+- Official Linux installer commands, SSH installation/reinstallation and Windows PowerShell installer commands.
+- VPN server configuration, reusable server profiles and automatic propagation to assigned groups.
+- Bulk access keys, access profiles, speed/device/traffic/time limits and VPN session termination.
+- Routing within a tenant's server group and encrypted address refresh/publication to external HTTPS storage.
+- PFX import, shared group certificates and per-server Let's Encrypt HTTP-01 AutoSign.
+- Usage charts, reported-country device counts, CSV export and audit log.
+- Five team roles, expiring bot keys and a JSON management API.
+- PostgreSQL RLS, Argon2id passwords and AES-256-GCM protection for stored management secrets.
 
-## Naming and installation compatibility
+## Operations and reference
 
-The product and main Cargo package are named **Hoodmin**. The existing test installation retains the `vpnhood-manager` executable/service, `vpnhood_manager` database, `vhmgr` system account, `VHM_*` settings and `__Host-vhm_*` cookies. The repository directory remains `VpnHood`. The new Debian package uses `/usr/bin/hoodmin`, `hoodmin.service` and `/var/lib/hoodmin`; the database role, environment variables and temporary SSH path remain compatible. It does not automatically migrate the legacy test installation. References to VpnHood identify the compatible protocol, server and client.
+- [Handbook](docs/elkitabi.md): menus, first server, access keys, profiles and roles.
+- [AutoSign](docs/autosign.md): DNS and inbound TCP 80 must reach the VPN host. Start with the staging CA; staging certificates are not deployed. Production mode deploys the validated PFX and checks renewal every 12 hours. Do not manage the same VPN certificate with a second Certbot timer.
+- [Backups and recovery](docs/yedekleme.md): run `hoodmin-backup` as root. Preserve the database dump, `/var/lib/hoodmin/master.key`, settings and the `acme` tree together. Store an encrypted copy off the machine. `hoodmin-backup-export` requires the optional `age` package and a separately stored recovery identity. Backups are not automatically deleted.
+- [Troubleshooting](docs/sorun-giderme.md): `systemctl status hoodmin` and `journalctl -u hoodmin`.
+- [Architecture](docs/mimari.md), [API](docs/yonetim-api.md), [protocol](docs/protokol-uyumlulugu.md), [build and validation](docs/dogrulama.md).
+
+The executable is `/usr/bin/hoodmin`, the service is `hoodmin.service`, settings are in `/etc/hoodmin/hoodmin.env`, and data is in `/var/lib/hoodmin`. The service account/PostgreSQL role `vhmgr`, database `vpnhood_manager`, `VHM_*` settings and `__Host-vhm_*` cookies are stable technical names. Peer authentication and existing ownership depend on them; changing the product name does not rename these resources.
+
+Before upgrading, back up and stop the service, install the new package, run `hoodmin-db-setup`, then restart. Preserve the master key and environment file. Validate restoration in a separate database before any recovery into a replacement installation.
+
+## Scope
+
+Compatibility target: VpnHood **9.0.856** on Debian 13 amd64. Windows installation is not end-to-end verified. AutoSign supports one FQDN per server with HTTP-01, without wildcard/DNS-01 or group-wide issuance. Other VPN engines, cloud IP ordering, billing, per-tenant branding and public signup are unavailable. Master-key rotation, external alerts and automatic backup retention are unavailable. Sustained load/outage tests and full desktop routing tests are incomplete; full commercial Manager equivalence is not claimed.

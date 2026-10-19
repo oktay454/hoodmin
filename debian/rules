@@ -12,7 +12,8 @@ override_dh_auto_test:
 	cargo test --workspace --locked
 
 override_dh_auto_install:
-	install -d debian/hoodmin/usr/share/doc/hoodmin
+	install -d debian/hoodmin/usr/share/doc/hoodmin/docs
+	install -m0644 docs/*.md debian/hoodmin/usr/share/doc/hoodmin/docs/
 	cargo metadata --locked --format-version 1 | python3 scripts/dependency-licenses.py >debian/hoodmin/usr/share/doc/hoodmin/dependency-licenses.json
 	install -Dm0755 target/release/vpnhood-manager debian/hoodmin/usr/bin/hoodmin
 	install -Dm0755 scripts/hoodmin-db-setup debian/hoodmin/usr/sbin/hoodmin-db-setup
@@ -28,3 +29,7 @@ override_dh_installsystemd:
 	dh_installsystemd --no-start --no-enable
 
 override_dh_auto_clean:
+
+# Preserve Markdown filenames so links work in the installed handbook.
+override_dh_compress:
+	dh_compress -X.md

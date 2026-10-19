@@ -1,6 +1,6 @@
-# VpnHood yönetim sözleşmesi ve uyumluluk çalışması
+# VpnHood protokol başvurusu
 
-İncelenen kaynak: `../VpnHood-Current`, Git `fec557a91908ffe27e238e7e6375a8ead997d2a4`. Hazır sunucu: **9.0.856**. VpnHood sunucusu bu çalışma için yeniden derlenmedi; .NET projeleri yalnız sözleşme/istemci sınaması içindir.
+İncelenen kaynak: `../VpnHood-Current`, Git `fec557a91908ffe27e238e7e6375a8ead997d2a4`. Hazır sunucu: **9.0.856**. Sunucu kurulumu resmî hazır dağıtımı kullanır; .NET projeleri sözleşme/istemci sınaması içindir.
 
 Makinece okunabilir alan kataloğu: `crates/protocol/contract-catalog.json`. Katalog kaynak dosyalarının SHA-256 özetlerini içerir; kurulum dosyalarını veya sırları okumaz. Yenileme:
 
@@ -68,99 +68,21 @@ Linux ve Windows için resmi hazır kurulum komutları, appsettings.json ve paro
 
 Kurulum işi önceki appsettings dosyasını hedefte 0600 izinli yedekler. Aynı sunucuya eşzamanlı ikinci kurulum açılmaz. Çalışan SSH işinin zaman aşımı vardır. Paket bağımlılıkları Debian önceliğiyle kurulur; resmi VpnHood betiği kendi güncelleme/bağımlılık akışını yönetir.
 
-## Doğrulama kaydı
+## Sertifika ve adres yenileme
 
-- [x] Mevcut HTTPS/PostgreSQL/.NET panel sınamaları yeni protokol katmanında geçti.
-- [x] 47 ayarın HTTP yanıtına kayıpsız taşınması ve gerçek .NET ServerConfig ile çözümlenmesi geçti.
-- [x] Hız/kota/ömrün gerçek SessionResponseEx ile çözümlenmesi geçti.
-- [x] Şifreli adres yayımı gerçek .NET ServerToken.Decrypt ile geçti.
-- [x] Dönem kotası dolması, dönem değişimi ve toplam sayacın korunması geçti.
-- [x] Grup yönlendirmesi, konum, grup dışı erişim engeli, ortak kullanım sayacı ve kapasite sınırı geçti.
-- [x] Erişim kodu, doğrulanmış ödül ve tekrar bildiriminin ikinci ödül vermemesi geçti.
-- [x] Hazır 9.0.856 sınama sunucusu TCP/UDP, DNS ve oturum ayarlarını aldı; uygulanan önbellekte doğrulandı.
-- [x] SSH özel anahtar ve parola+sudo ile resmi hazır kurulum gerçek sunucuda geçti; yanlış sunucu parmak izi bağlantıdan önce reddedildi.
-- [x] PFX/HTTP-01 ve QUIC hazır sunucuda doğrulandı.
-- [x] Gerçek TCP indirme hızı ve ağ filtresi sınamaları geçti.
-- [ ] Console menüleriyle son karşılaştırma ve eksik ticari yönetici işlevlerinin kapsam kontrolü sürüyor.
+Sunucu başına HTTP-01 [AutoSign](autosign.md) vardır. Grup sertifika deposu ortak PFX'i mevcut/yeni/taşınan üyelere dağıtır; üyelikten çıkmak anahtarı geri çekmez. Grup yenileme URL'si `/f/{tenant}/{farm}/{seed}`, başlangıç sunucusunun sırrıyla şifrelenmiş uygun canlı hedefi döndürür. Yeni grup erişimli anahtarlarda kullanılır; eski anahtarın URL'si kendiliğinden değişmez. Hedefin kendi adresi, sertifikası ve sırrı korunur.
 
-Console'da görünen UseUdpProxy2, bu kaynakta ve hazır sunucunun son uygulanan önbelleğinde yoktur. Bu, Console'un HTTP yanıtında hiç bulunmadığı anlamına gelmez; sunucuda uygulanabilir bir alan olduğu teyit edilmemiştir. Default profilin gelişmiş düzenleyicisinde deneme değeri kalıcılaşmadı; bu deneme doğrulanmış özellik olarak sayılmadı. Açık taslak iptal edildi; başlangıç yapılandırması özel sınama kopyasında tutuldu.
+[Harici yayım](harici-adres-yayimi.md) GET okuma adresi ile PUT/POST/multipart yükleme adresini ayırır. Yayımın başarılı sayılması için GET içeriğinin gönderilen şifreli dosyayla aynı olması gerekir.
 
-## Bu çalışma sırasında kapsayıcıya eklenen paketler
+## Destek ve doğrulama sınırları
 
-`vpnhood`: Microsoft deposundan libmsquic 2.6.3; Debian deposundan libnuma1 ve sudo. `yapayzeka`: Microsoft deposundan libmsquic 2.6.3; Debian deposundan libnuma1. SSH sınamasının geçici hesabı, sudo yetkisi, yetkili anahtarı ve ayrı SSH dinleyicisi kaldırıldı; ana SSH hizmeti değiştirilmedi.
+- Kaynak kataloğu 47 düzenlenebilir yaprak ayarı kapsar. Yerel çekirdek/yetkiler bazı ayarların etkisini sınırlar; sürüm onayı bütün işletim sistemi etkilerinin kanıtı değildir.
+- Gerçek hazır sunucuda TCP/UDP/QUIC veri yolu, TUN/NAT, hız ve ağ filtresi, PFX ve HTTP-01 sınanmıştır. Masaüstü işletim sisteminin bütün rotaları ve uzun süreli yük/kesinti ayrı doğrulama gerektirir.
+- Windows kurulum komutu üretilir; Windows üzerinde uçtan uca kurulum doğrulaması yoktur.
+- İstemci politikalarının kapalı kaynak ticari ülke/plan kararları birebir çıkarılamaz. Hoodmin'in açık politika kuralları uygulanır; reklam ağı entegrasyonu yoktur.
+- `UseUdpProxy2`, incelenen kaynak sürümünde uygulanabilir ayar olarak doğrulanmamıştır; desteklenen 47 ayara dahil değildir.
+- Locked IPs, bulut IP satın alma ve markalama için bilinmeyen davranış uydurulmaz. Başka VPN motoru adaptörü bulunmaz.
+- Kullanım raporlarının tekil rapor kimliği olmadığından kesintilerde tam bir kez (exactly-once) muhasebe garantisi verilmez.
+- [Yönetim API'si](yonetim-api.md), Hoodmin'in kendi sözleşmesidir; kapalı kaynak Console'un özel API'sinin kopyası değildir.
 
-## Güncel uygulama matrisi — 17 Ekim 2026
-
-Önceki Console inceleme belgeleri inceleme tarihindeki durumu korur. Aşağıdaki tablo yeni geliştirmelerin durumudur; menüde görünmek, tel sözleşmesiyle çözümlenmek ve gerçek sunucuda uygulanmak ayrı kanıtlardır.
-
-| Konu | Hoodmin uygulaması | Doğrulama |
-|---|---|---|
-| 47 gelişmiş sunucu ayarı | Tür/aralık denetimi, sürüm çakışması koruması ve uygulama durumu | Tam .NET tür karşılaştırması; gerçek hazır sunucuda TCP/UDP/QUIC, DNS, oturum ve ağ ayarları |
-| Linux SSH kurulumu | Anahtar veya parola; root/sudo, sabit SSH parmak izi, geçici sır temizliği | İki gerçek kurulum; yanlış parmak izi olumsuz sınaması |
-| Elle Linux/Windows kurulumu | Resmî kurucu komutu ve bağlantı JSON'u | Parametreler kaynakla karşılaştırıldı; Linux gerçek kurulum geçti; Windows çalıştırılmadı |
-| Erişim profilleri | Hız, kota/dönem, ömür, cihazlar, deneme/reklam politikası | HTTPS/PostgreSQL/.NET; dönem sıfırlama ve toplamın korunması |
-| Sunucu profilleri | Ayar ve kapasite şablonu; seçili sunuculara tek işlemde uygulama | Çapraz kiracı toplu işlem bütünüyle reddedildi; kimlik/PFX korundu; eski sürüm 409 |
-| Farm/Power/Location | Aynı kiracı grubunda uygun konuma ve göreli yüke yönlendirme | Grup dışı erişim, kapasite, farklı hedef sertifikası ve ortak kota sınamaları |
-| Token URL | Sunucu ve grup HTTPS GET üzerinden .NET uyumlu AES-CBC şifreli ServerToken | Ulaşılamayan başlangıç adresinden canlı üyeye yenileme ve gerçek bağlantı; eski anahtara URL sonradan kendiliğinden eklenmez |
-| Grup PFX deposu | Şifreli ortak depo; mevcut/yeni/taşınan üyelere dağıtım | Yanlış parola 400, eski sürüm 409; VPN adresi/sır koruma; gerçek TLS ve istemci bağlantısı |
-| PFX | Parolalı dosya denetimi, şifreli saklama, açık varsayılan onayı | Yanlış parola/eskimiş form reddi; hazır sunucunun TLS bağlantısında yeni DER sertifikası doğrulandı |
-| HTTP-01 | Kiracı/sunucu kapsamlı, süreli yanıt | Hazır VPN sunucusunun HTTP80 yolu gerçek yanıt verdi; bilinmeyen token 404 |
-| Gerçek trafik | TCP proxy ve QUIC stream | TCP 12 MiB veri doğrulandı; 10 MiB ısınmadan sonraki 2 MiB, 1 Mbps sınırında 16,72 sn; QUIC 256 KiB |
-| Ağ filtresi | Include/exclude aralıkları ve özel ağ erişimi | Önce erişilen aynı hedef, kural değişince HTTP401 ile reddedildi; hedefte yeni bağlantı olmadığı doğrulandı |
-| Grafikler ve ülkeler | 1 saat–31 gün; sunucu filtresi; CPU/bellek/oturum/hız; ülke/cihaz sayısı | Gerçek agent durum örnekleri, birim dönüşümleri, salt okunur erişim ve çapraz kiracı engeli |
-| Anahtar bilgileri | Ad, grup, açıklama, müşteri/sipariş/destek kodu; dosya indirme | Güncel anahtar dışa aktarımı ve yetki/HTML kaçış sınamaları |
-| Ödüllü reklam | Güvenilir SSV bildirimi + bir kez tüketilen kısa ömürlü kayıt | Olumlu/olumsuz/tekrar bildirimi sınandı; reklam ağı bağlanmadı |
-
-Çevrimiçi durumu yapılandırılmış bildirim aralığının üç katını kullanır; alt sınır 90 saniyedir. Rapor çizgileri ölçüm ortalamasıdır; ayrı sunucuların toplamını veya boş aralıkların sıfır kullanımını gösterdiği iddia edilmez. Ülke, agent isteğinde bildirilen değerdir; ayrıca IP coğrafi konumlandırması yapılmaz.
-
-### Açık kalan işler
-
-- Gerçek DNS/TCP80 sunucusunda Certbot kancalarıyla CA alma/yenileme ve PFX dağıtımı doğrulandı. Kiracı yöneticisinin panelden ACME işi oluşturma/yönetme akışı sonradan tamamlandı; [AutoSign](autosign.md).
-- Grup düzeyinde sunucu profili atama/otomatik yayma ve harici POST/PUT yayıncısı daha sonra QA üzerinde uygulanıp doğrulandı. Güncel davranış: [grup profili](grup-sunucu-profili.md), [harici yayım](harici-adres-yayimi.md).
-- Beş ekip rolü ve bağımsız bot yönetim API'si son aşamada eklendi; Console'un özel yönetim API sözleşmesiyle birebir aynı olduğu iddia edilmez.
-- İstemci politikalarının (`cpols`) ülkeye göre ticari karar kuralları. Kaynak, bu kararların kapalı kaynak sunucu tarafındaki anlamını bütünüyle tanımlamaz; root politika süreleri Hoodmin'de açıkça seçilir.
-- Locked IPs kaydının çalışma etkisi, bulut IP siparişi ve markalama bu kaynak sözleşmesinden çıkarılamaz; gözlenmeyen davranış uydurulmadı.
-- UDP kullanıcı verisi yeni genel sunucuda TCP/UDP/QUIC paket kanalları ve sunucu TUN/NAT üzerinden doğrulandı. Masaüstü işletim sistemi rotaları, uzun kesinti ve sürekli yük halen ayrı sınama ister.
-- Debian paketi ve ayrı veritabanına yedek kurtarma tamamlandı. Ana anahtar döndürme, harici alarm kanalı ve uzun süreli işletim sınamaları ayrıca tamamlanacak.
-
-Sınama için yalnız ayrılmış kapsayıcının `/opt/VpnHoodServer` kurulumu değiştirildi; kullanıcının eski `vpnhood-test` hizmeti ve kaynak ağacındaki sunucu uygulaması yeniden derlenmedi. Yeni sertifika yalnız bu sınama kaydındadır. Geçici SSH hesabı/anahtarı, özel ağ erişimi ve HTTP80 dinleyicisi sınama sonunda kapatıldı.
-
-## Ekip ve bot API doğrulaması — 17 Ekim 2026
-
-Beş rol eklendi; mevcut hesaplar kendiliğinden yükseltilmedi. Sahip ataması yalnız sahip tarafından yapılabilir; son etkin sahip ve yönetici korunur. Anahtar yazarı sunucu ayarı değiştiremez. Botlar rol ve son tarihle oluşturulur; anahtar özeti saklanır, parola girişi kapalıdır, insan üye yolundan sahip rolü alamazlar.
-
-`tests/test_team_bots.py` gerçek HTTPS/PostgreSQL ile olumlu ve olumsuz yetki sınamalarını geçti: eski ayar 409, bozuk/geçersiz/iptal edilmiş/süresi dolmuş bot 401, başka kiracının botu 404, salt okunur sır indirme ve yetki yükseltme 403. Bot anahtarıyla toplu VPN anahtarı ve sunucu oluşturma, JSON ayarı kaydetme doğrulandı. Panel, sözleşme, farm/ödül, profil/rapor ve tema/dil sınamaları bu değişiklikten sonra yeniden geçti. API girişleri panelin aynı işlevlerini kullanır; alanlar ve durum kodları [API belgesinde](yonetim-api.md) listelenmiştir.
-
-## İlk sunucuya ulaşılamadığında grup adresini yenileme
-
-Kaynak `VpnProfileService.UpdateServerTokenByUrl`, eski ServerToken.Secret ile yeni hedef belirtecini çözer; `IsTokenUpdated` denetiminden sonra profilini günceller. `VpnHoodApp`, bağlantı hatasında bu yolu deneyip yeniden bağlanır. Bu nedenle yalnız çalışan ilk sunucunun RedirectHost yanıtını uygulamak, ilk adrese ulaşılamayan durumu kapsamıyordu.
-
-Hoodmin'e ayrı grup URL yolu eklendi: `/f/{tenant}/{farm}/{seed}`. Yalnız yayımı açık grupların grup erişimli yeni anahtarlarında kullanılır. Yanıt, başlangıç sunucusunun sırrıyla şifrelenir; içerik uygun canlı hedefin kendi adresi, sertifika parmak izi ve sırrıdır. Hedefin sonraki yenileme URL'si de hedef sırrına göre değişir. Tek sunucu anahtarları kendiliğinden başka sunucuya yönlendirilmez. Kimlik, sertifika veya kiracı ortaklaştırılmaz.
-
-`tests/test_farm_publication.py` geçti: kullanılmayan TCP2999 başlangıç adresine erişilemediği doğrulandı; gerçek hazır TCP2550 hedefi aynı kiracının geçici grubundayken .NET eski sırla hedefi çözdü, hedefin kendi sertifika/sır/adresini karşılaştırdı ve yenilenen anahtarla gerçek VpnHood istemcisi bağlandı. Hedefin önceki grup üyeliği geri yüklendi. Başlangıç hizmetinin önce çalışıp sonra çöktüğü veya tam mobil uygulamanın profil deposu/UI akışının çalıştırıldığı iddia edilmez; gerçek bağlantı ve kaynak yenileme sözleşmesi sınandı.
-
-## Ortak grup PFX deposu — 17 Ekim 2026
-
-PFX özel anahtarı kiracı/grup bağlamına bağlı AES-256-GCM ile saklanır. Açık onayla mevcut üyelere tek veritabanı işlemi içinde dağıtılır; yeni kaydedilen ve gruba taşınan sunucular da sertifikayı devralır. VPN bağlantı adresi ve her sunucunun kendi sırrı korunur. Sürüm denetimi eski formları reddeder. Grup üyeliğini kaldırmak, daha önce dağıtılmış özel anahtarı o sunucudan kendiliğinden geri çekmez.
-
-`tests/test_farm_certificates.py` geçti: yanlış parola 400, eski form 409; mevcut/yeni/taşınan üyede PFX, sunucu sırrı ve DNS adresi korundu. Hazır 9.0.856 sunucusu eski bağlantı adı/SNI ile yeni sertifikayı sundu; DER ve erişim anahtarı parmak izi karşılaştırıldı, gerçek istemci bağlandı. Aynı X509 DNS adı farklı arayüz etiketiyle yenilenince yerel TLS seçicisinde mükerrer kayıt oluşmadı. Sınama hedefinin önceki şifreli yapılandırması ve grup üyeliği geri yüklendi. Otomatik CA hizmeti ve harici POST/PUT yayımı bu çalışmanın parçası değildir.
-
-## Yeni genel sunucular — 18 Ekim 2026
-
-Ayrılmış `hoodmin` ve `vh01` kapsayıcıları, resmî hazır 9.0.856 ve gerçek Let’s Encrypt alan adlarıyla kuruldu. CA alma ve yenileme `hoodmin-acme` Certbot kancaları üzerinden Hoodmin yönetim API'sini kullanır. Gerçek ilk dağıtımda PFX/TLS eşleşmesi ve CA doğrulaması geçti; yenileme `--dry-run` ile geçmiştir. Bu yol root işletmen yapılandırmasıdır; Console AutoSign ekranıyla aynı kullanıcı akışı olduğu iddia edilmez.
-
-Gerçek DNS istemcisi bir hatayı ortaya çıkardı: PFX değişimi `isv` değerini false yapıyordu. Bu değer, kaynaktaki `EndPointResolver` için DNS çözümlemesini de denetler; adres listesi olmayan DNS anahtarı çalışmıyordu. Sertifika değişimi artık DNS/IP çözümleme bayrağını korur; pin yeni sertifikaya güncellenir. İki Rust gerileme sınaması ve grup PFX denetimi eklendi.
-
-`tests/UdpProbe` resmî .NET istemci kitaplığı ve MsQuic soket fabrikasıyla TCP, UDP ve QUIC paket kanallarını ayrı ayrı seçti; geri düşmeyi reddetti. Atanmış sanal istemci IP'sinden yapılan UDP DNS isteği gerçek yanıt verdi. Sunucu TUN/NAT sayaçlarının arttığı ve kapsayıcı yeniden başlatıldıktan sonra QUIC verisinin tekrar geçtiği görüldü. NullVpnAdapter'a sentetik paket verildiğinden masaüstü işletim sisteminin tüm yönlendirme tablosu sınanmış sayılmaz.
-
-Debian paket kurulum/yükseltmesi, geçiş özetleri, şifreli ayrı makine yedeği ve ayrı veritabanına ana anahtarla geri yükleme doğrulandı. [Ortam, işletim sınırları ve ayrı onay bekleyen UID/GID taşıması](uretim-ortami.md) kaydındadır.
-
-## Console harici yayım davranışı — 19 Ekim 2026
-
-[Açık onaylı QA gözlemi](console-harici-yayim-sinamasi.md): PUT başarısızsa POST'a geçiş, PUT başarılıysa POST'un atlanması, JSON gövde şablonu ve başlık yer tutucusu doğrulandı; Console OK durumu alındı. URL sorgusundaki yer tutucu değiştirilmeden geldi; Form-Data henüz doğrulanmadı. Bu gözlem Hoodmin'de harici yayıncı uygulaması veya tam eşdeğerlik iddiası değildir.
-
-Kullanıcı ModSecurity'yi sınama FQDN'inde kapattıktan sonra ham şifreli Body ve multipart Form-Data tekrar sınandı. İki akışta da Console OK alındı; form alanlarında `{farm_token}` ve `{access_token}` değişimi doğrulandı. JSON sarmalaması gerekmedi. İlk aşamadaki Form-Data belirsizliği giderildi; URL sorgusu yer tutucusu sorunu ve uzun süreli otomatik yayım sınırları korunur.
-
-## Hoodmin harici yayıncısı — 19 Ekim 2026
-
-Harici ham PUT/POST ve multipart yayıncı, kalıcı görevler ve bot API uygulandı. Kimlik şifreli saklanır; istek hedefi genel HTTPS/DNS/TLS ile sınırlandırılır. Gerçek harici dosyayı .NET istemcisi çözdü ve hazır VPN sunucusuna bağlandı. [Akış, sınırlar ve QA kanıtı](harici-adres-yayimi.md). URL yer tutucusu ve içerik türü Console'da gözlenen hataları tekrarlamaz. Bu kayıt tam ticari Console eşdeğerliği veya yeni üretime dağıtım iddiası değildir.
+Sınama araçları ve çalıştırma koşulları: [geliştirme ve doğrulama](dogrulama.md).

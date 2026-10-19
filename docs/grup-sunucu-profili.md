@@ -20,5 +20,3 @@ Okuma için viewer; atama/değişiklik için operator/admin/owner gerekir. Botla
 - GET /api/manage/farms/{id}/server-profile: grup sürümü, atanmış profil, üye sayısı ve seçilebilir profillerin kimlik/sürümleri.
 - POST /api/manage/farms/{id}/server-profile: version, profile, profile_version, confirmed:true. Kaldırma için profile boş dize; profil sürümü kaldırmada gerekmez.
 - POST /api/manage/server-profiles/{id}: mevcut alanlara ek olarak bağlı gruplar varsa confirmed:true.
-
-Şema geçişi 0010_farm_server_profiles.sql, paket sürümü 0.1.0-5~deb13u1. Eski QA üzerinde sınanır; yeni üretim bu çalışma sırasında yükseltilmez.

@@ -12,6 +12,7 @@ if os.geteuid() != 0:
 def psql(sql, database='postgres'):
 	return subprocess.run(['runuser','-u','postgres','--','psql','-X','-v','ON_ERROR_STOP=1','-At','-d',database],input=sql,text=True,check=True,capture_output=True).stdout.strip()
 
+# vhmgr is the stable service/peer role; do not rename it or rewrite applied migrations.
 psql("DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='vhmgr') THEN CREATE ROLE vhmgr LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS; END IF; END $$;")
 if psql("SELECT count(*) FROM pg_database WHERE datname='vpnhood_manager';")=='0':
 	subprocess.run(['runuser','-u','postgres','--','createdb','vpnhood_manager'],check=True)

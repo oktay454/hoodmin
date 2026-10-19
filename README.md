@@ -2,84 +2,48 @@
 
 [Türkçe](README.md) · [العربية](README.ar.md) · [English](README.en.md)
 
-Hoodmin, **VpnHood ile uyumlu bağımsız bir sunucu ve erişim yönetim panelidir**. Rust ile geliştirilir; resmî VpnHood Manager ürünü değildir. VpnHood sunucusunu veya istemcisini yeniden yazmaz. Sunucu yazılımı için resmî hazır kurulum kullanılır.
+Hoodmin, Rust ile geliştirilmiş, **VpnHood ile uyumlu bağımsız bir VPN yönetim panelidir**. VPN sunucularını, erişim anahtarlarını, trafik kotalarını, bağlantıları ve sertifikaları tek arayüzden yönetir. Resmî VpnHood Manager ürünü değildir; VPN sunucusu ve istemcisi için resmî VpnHood yazılımları kullanılır.
 
-Her kuruluş kendi sunucularını getirir (bring your own server, BYOS). Bir sunucu yalnızca bir kiracıya (tenant) aittir; kiracılar arasında ortak VPN sunucusu havuzu yoktur. Panel VPN trafiğini taşımaz: istemci doğrudan VPN sunucusuna bağlanır.
+Her kuruluş kendi VPN sunucusunu getirir (bring your own server, BYOS). Sunucu yalnız bir kiracıya (tenant) aittir. VPN trafiği Hoodmin üzerinden geçmez; istemci doğrudan VPN sunucusuna bağlanır.
 
-## Durum
+## Nereden başlamalı?
 
-Protokol çekirdeği ve kiracılı panel çalışıyor. VpnHood **9.0.856** ile gerçek .NET sözleşmesi ve uzak istemci bağlantısı doğrulandı. Debian 13 paket kurulumu, gerçek alan adlarıyla sertifika otomasyonu ve şifreli yedekten ayrı veritabanına dönüş doğrulandı. Uzun süreli üretim yükü ve kapalı kaynak Manager ile tam özellik eşdeğerliği henüz tamamlanmadı. Çalışma ayrıntıları: [doğrulama kaydı](docs/dogrulama.md). Son tamamlanan iş ve devam sınırı: [duraklama kaydı](docs/calisma-durumu.md).
+1. [Adım adım Debian kurulumu](docs/uretim-kurulumu.md): paket, HTTPS, ilk hesap ve hizmet.
+2. [Hoodmin elkitabı](docs/elkitabi.md): ilk VPN sunucusu, erişim anahtarları, gruplar, yetkiler ve günlük kullanım.
+3. [AutoSign](docs/autosign.md): VPN sertifikası oluşturma ve yenileme.
+4. [Yedekleme ve kurtarma](docs/yedekleme.md): veritabanı, anahtarlar ve sertifikalar.
+5. [Sorun giderme](docs/sorun-giderme.md): erişim, çevrimdışı sunucu ve sertifika hataları.
 
-## Mevcut özellikler
+## Kurulum özeti
 
-- Resmî Linux/Windows hazır kurulum komutları; SSH parola/özel anahtar ile kurulum ve yeniden kurulum, parmak izi denetimi ve iş günlüğü.
-- Kaynak sözleşmesine göre 47 gelişmiş sunucu ayarı; tekrar kullanılabilir sunucu profilleri ve kiracı içinde toplu uygulama.
-- Erişim profilleri, ayrı yükleme/indirme hızı, toplam/dönem kotası, ilk kullanımdan başlayan ömür, deneme/ödül planları ve cihaz politikası.
-- Grup erişimi, kapasite/güce ve konuma göre yönlendirme, şifreli sunucu adresi yayımı ve erişim kodları.
-- Grup adres yenileme bağlantısıyla ulaşılamayan başlangıç sunucusundan uygun canlı üyeye geçiş; .NET ve gerçek istemci bağlantısıyla doğrulandı.
-- Grup PFX deposu; mevcut/yeni/gruba taşınan üyelere dağıtım, VPN adresi ve sunucu sırrını koruma.
-- Parolalı PFX içe aktarma, sertifika sabitleme ve süreli HTTP-01 doğrulama yanıtı. Debian Certbot kancalarıyla işletmen tarafından yapılandırılan otomatik CA alma/yenileme ve PFX dağıtımı çalışır.
-- Tarih/sunucu filtreli CPU, bellek, oturum ve hız grafikleri; ülkeye göre bildirilen cihaz sayıları. Anahtar açıklaması, müşteri/sipariş/destek kodu ve anahtar indirme.
-
-- Türkçe, Arapça ve İngilizce arayüz; Arapçada sağdan sola düzen (RTL), açık/koyu tema ve güneş/ay düğmesi.
-- Genel bakış, sunucular, erişim anahtarları, VPN oturumları, panel kullanıcıları, denetim kaydı ve hesap ayarları.
-- Sahip (owner), yönetici (admin), işletmen (operator), erişim anahtarı yazarı (token_writer), gözlemci (viewer) rolleri; kullanıcı ve parola yönetimi, son etkin yönetici koruması.
-- Sunucu/grup kaydı; ad, IP/FQDN, TCP portu ve grup düzenleme; bakım modu. Bağlantı kimliği yenilemede açık onay ve eski onayın tekrar kullanımına karşı koruma.
-- VpnHood istemcileriyle uyumlu `vh://` erişim anahtarları; işlem başına 1–100 anahtar üretimi, toplu iptal/etkinleştirme/kota/süre güncelleme, arama ve sayfalama.
-- Trafik, cihaz ve son kullanma sınırları; oturum sonlandırma kararının sunucu onayına kadar yeniden iletilmesi.
-- Canlı özet sayaçları (SSE), sunucu durumu ve CSV kullanım raporu; kısa yardım pencereleri.
-- PostgreSQL zorunlu satır düzeyi güvenliği (FORCE RLS), kiracılı dış anahtarlar, yalnız eklenebilir denetim kaydı; Argon2id, AES-256-GCM, CSRF/Origin denetimi ve giriş denemesi sınırlaması.
-
-Botlar için süreli/iptal edilebilir anahtar ve panelle aynı yetki denetimini kullanan JSON yönetim API'si vardır. [API belgesi](docs/yonetim-api.md).
-
-## Mimari ve çalışma alanı
-
-Rust/Tokio/Axum, PostgreSQL/SQLx ve Leptos sunucu taraflı oluşturma (SSR) kullanılır. Küçük JavaScript dosyası etkileşimleri sağlar; tarayıcıda WebAssembly veya hidrasyon kullanılmaz. Nginx HTTPS'i sonlandırır; Rust yalnız loopback üzerinde dinler. VpnHood sunucusu Hoodmin'in `/api/agent/` uç noktalarına bağlanır.
-
-- `crates/manager`: Hoodmin paneli, API ve yerel işletmen komutları; Cargo paket adı `hoodmin`.
-- `crates/protocol`: VpnHood JSON/anahtar biçimleri ve istemci kanıtı doğrulaması.
-- `crates/paste-compat`: bakımı süren pastey makrosuna yönlendiren uyumluluk katmanı.
-- `migrations`: PostgreSQL şeması ve kiracı politikaları.
-- `scripts`: ayrılmış Debian sınama kapsayıcıları için kurulum betikleri ve servis dosyaları.
-- `tests`: Rust'a ek olarak gerçek HTTPS/PostgreSQL/.NET bütünleşim sınamaları.
-- `work`: özel sınama verileri ve çıktılar; Git dışında tutulur. Sırları yayımlamayın.
-
-Ayrıntılar: [mimari](docs/mimari.md), [arayüz ve diller](docs/arayuz-ve-diller.md), [console özellik karşılaştırması](docs/console-karsilastirmasi.md).
-
-## Derleme ve sınama
-
-Doğrulanan ortam Debian 13 / PostgreSQL 17; Rust **1.99.1** araç zinciri `rust-toolchain.toml`, bağımlılıklar `Cargo.lock` ile sabittir. Rust/Cargo, OpenSSL geliştirme kitaplıkları ve yerel derleme araçları gerekir. .NET karşılaştırma sınamaları ayrıca SDK 10 ve kardeş `VpnHood-Current` kaynağını gerektirir; bunlar sınama araçlarıdır, VpnHood sunucusunun kurulum yöntemi değildir.
-
-Sınama kapsayıcısındaki araç zinciri yolları:
+Debian 13 amd64 üzerinde, root olarak, indirdiğiniz `.deb` dosyasının bulunduğu dizinde:
 
 ```bash
-export CARGO_HOME=/opt/vpnhood-toolchain/cargo
-export RUSTUP_HOME=/opt/vpnhood-toolchain/rustup
-cargo build --release --locked
-cargo fmt --all -- --check
-cargo test --workspace --locked
-cargo clippy --workspace --all-targets --locked -- -D warnings
-cargo audit --deny warnings
+apt install ./hoodmin_0.1.0-7~deb13u1_amd64.deb
+hoodmin-db-setup
+hoodmin-create-owner vpn@example.com https://hoodmin.example.com
 ```
 
-`cargo audit` ayrıca kurulu olmalıdır. Son kayıtlarda 26 Rust testi, gerçek HTTPS/PostgreSQL/.NET panel/protokol/profil/rapor sınamaları ve tema/dil HTTPS kontrolleri başarılıdır; bu sonuç genel güvenlik garantisi değildir.
+Ardından [kurulum kılavuzundaki](docs/uretim-kurulumu.md) Nginx/HTTPS adımlarını tamamlayıp `hoodmin.service` hizmetini başlatın. İlk parolanız yalnız kurulum makinesindeki `/root/hoodmin-first-owner.json` dosyasına yazılır. İlk girişten sonra **Hesabım** bölümünden değiştirin. Paket VPN sunucusunu içermez; onu panelin ürettiği resmî kurulum komutuyla ayrı kurarsınız.
 
-Debian 13 amd64 için `.deb` paketi vardır; yeni kurulum, sürüm yükseltme, geçiş özeti denetimi ve kurtarma sınandı. [Üretim kurulumunu](docs/uretim-kurulumu.md) ve [mevcut ortam kaydını](docs/uretim-ortami.md) okuyun. `scripts/setup-test-manager.sh` ve `scripts/setup-test-tls.sh` yalnız ayrılmış sınama ortamları içindir; mevcut kurulumda körlemesine yeniden çalıştırılmamalıdır. TLS betiği özel ve kısa ömürlü bir sınama CA'sı oluşturur, üretim sertifika çözümü değildir. Eski sınama ortamının ters vekil düzeni için [VPS notlarını](docs/vps-ters-vekil.md) okuyun; sertifika doğrulamasını kapatmayın.
+## Özellikler
 
-Paketli kurulumda ilk sahip `hoodmin-create-owner EPOSTA HTTPS_ORIGIN` ile oluşturulur; üretim rehberini izleyin. Eski sınama ortamında ilk hesap yerel `create-account` komutuyla veya `scripts/bootstrap-panel.sh KIRACI_UUID` ile oluşturulur. Betik rastgele başlangıç parolasını `work/panel-admin.txt` içinde 0600 izinleriyle saklar; mevcut parolayı değiştirmez. `scripts/test-contract.sh`, `tests/test_panel.py` ve `tests/test_preferences.py` ortam gereksinimleri için doğrulama kaydına bakın. Bütünleşim sınamaları ayrı kiracılar kullanır.
+- Türkçe, Arapça ve İngilizce; Arapçada sağdan sola yerleşim (RTL), açık/koyu tema ve bağlamsal yardım.
+- Linux için SSH ile veya elle, Windows için PowerShell komutuyla resmî VPN sunucusu kurulumu.
+- VPN sunucusu ayarları, tekrar kullanılabilir sunucu profilleri ve grup üyelerine otomatik profil uygulaması.
+- Erişim profilleri, toplu `vh://` anahtar üretimi, hız/cihaz/trafik/süre sınırları ve VPN oturumlarını sonlandırma.
+- Aynı kiracının grubunda konum/kapasiteye göre yönlendirme; şifreli adres yenileme ve harici HTTPS yayımı.
+- PFX yükleme, ortak grup sertifikası ve sunucu başına Let's Encrypt HTTP-01 AutoSign.
+- Kullanım grafikleri, bildirilen ülkeye göre cihaz sayıları, CSV dışa aktarımı ve denetim kaydı.
+- Beş ekip rolü, süreli bot anahtarları ve JSON yönetim API'si.
+- PostgreSQL satır düzeyi güvenlik (RLS), Argon2id parola özeti ve AES-256-GCM ile saklanan yönetim sırları.
 
-## Sınırlar ve kalan işler
+## Teknik başvuru
 
-- Kiracı yöneticisi [AutoSign ekranından](docs/autosign.md) CA doğrulaması, sertifika alma ve otomatik yenileme işi oluşturabilir. Certbot ayrıcalıksız çalışır; test ve gerçek CA açıkça ayrılır.
-- Şifreli adresler HTTPS GET yanında harici PUT/POST ve multipart ile yayımlanabilir; zamanlama, dosya doğrulaması, bot API ve kiracı yalıtımı vardır. [Kullanım ve sınırlar](docs/harici-adres-yayimi.md). Grup sunucu profili ataması, yeni/taşınan üyeye uygulama ve profil değişikliğinin bağlı gruplara otomatik aktarımı da vardır. [Davranış ve sınırlar](docs/grup-sunucu-profili.md).
-- `clientPolicies` istemciye duyurulur; ülke bazındaki kapalı kaynak ticari plan kararlarının birebir uygulandığı iddia edilmez. Ödüllü reklam için güvenilir sunucu doğrulayıcısı gerekir; doğrudan reklam ağı entegrasyonu yoktur.
-- Debian paketi, yerel/şifreli uzak yedek ve ayrı hedefte geri yükleme çalışır. Ana anahtar döndürme ve harici hata bildirim kanalı henüz tamamlanmadı. Kurulum işlerinin durumu kalıcıdır; kesilen işler otomatik yeniden çalıştırılmaz.
-- Kiracı oluşturma CLI'dadır; herkese açık kayıt/platform yönetim ekranı yoktur.
-- Kullanım farkları tekil rapor kimliği taşımaz; kesintilerde tam bir kez muhasebe garantisi yoktur.
-- Gerçek TCP/QUIC proxy trafiği, 1 Mbps indirme ve ağ engeli sınandı. Yeni genel VPN sunucusunda TCP/UDP/QUIC paket kanallarından UDP DNS verisi, sunucu TUN ve NAT sayaçları doğrulandı. Masaüstü işletim sisteminin tüm rotaları, sürekli yük ve tüm ayarların her çekirdekte etkisi ayrıca sınanmalıdır.
+[Mimari](docs/mimari.md) · [API](docs/yonetim-api.md) · [Protokol ve destek sınırları](docs/protokol-uyumlulugu.md) · [Console özellik karşılığı](docs/console-karsilastirmasi.md) · [Geliştirme ve doğrulama](docs/dogrulama.md)
 
-Güncel alan kataloğu, kanıtlar ve açık işler: [protokol uyumluluğu](docs/protokol-uyumlulugu.md). Console karşılaştırmaları tarihsel inceleme kayıtlarıdır; güncel uygulama durumu için bu belgeyi kullanın.
+Hizmet hesabı ve PostgreSQL rolü **`vhmgr`**, veritabanı **`vpnhood_manager`** adını kullanır. Bunlar yerel kimlik doğrulaması ve mevcut verilerin sahipliği için sabit teknik adlardır. Ürün adı Hoodmin'dir. Ayrıntılar: [dosyalar ve teknik adlar](docs/uretim-kurulumu.md#dosyalar-ve-teknik-adlar).
 
-## Adlandırma ve kurulum uyumluluğu
+## Destek sınırları
 
-Ürün ve ana Cargo paketi **Hoodmin** olarak adlandırıldı. Mevcut sınama kurulumunu korumak için çalıştırılabilir dosya/servis adı `vpnhood-manager`, veri tabanı `vpnhood_manager`, sistem kullanıcısı `vhmgr`, `VHM_*` ayarları ve `__Host-vhm_*` çerezleri korunuyor. Depo dizini de mevcut `VpnHood` yolundadır. Yeni Debian paketi `/usr/bin/hoodmin`, `hoodmin.service` ve `/var/lib/hoodmin` kullanır; `vhmgr`, veri tabanı, ortam değişkenleri ve geçici SSH dizini uyumluluk için korunur. Eski kurulumu kendiliğinden taşımaz. VpnHood adı protokol, sunucu ve istemci uyumluluğunu belirtmek için kullanılır.
+Uyumluluk hedefi VpnHood **9.0.856**; paket hedefi Debian 13 amd64'tür. Windows kurucu komutu üretilir; Windows kurulumu uçtan uca sınanmamıştır. AutoSign tek sunucu/tek FQDN ve HTTP-01 içindir; joker alan adı/DNS-01 yoktur. Bulut IP satın alma, başka VPN motorları, faturalama, kiracıya özel markalama ve genel kayıt portalı sunulmaz. Ana anahtar döndürme, harici alarm ve otomatik yedek silme bulunmaz. Uzun süreli yük/kesinti ve tam masaüstü rota sınamaları tamamlanmış değildir; kapalı kaynak Manager ile tam eşdeğerlik iddia edilmez.

@@ -1,45 +1,39 @@
-# Hoodmin — onaylanan mimari ve kiracı modeli
+# Hoodmin mimarisi
 
-Her kullanıcı kuruluşu bir kiracıdır (tenant). Bir kiracı birden fazla yöneticiyi, sunucu grubunu (server farm), sunucuyu ve erişim anahtarını barındırabilir. Bir sunucu tek kiracıya aittir; ortak sunucu havuzu yoktur. Anahtarlar şu anda tek sunucuya bağlıdır. Grup yönlendirmesi tamamlandığında yalnız aynı kiracının sunucuları arasında kullanılacaktır.
+Hoodmin, VpnHood VPN ortamını yöneten modüler bir Rust uygulamasıdır. Genel sunucu/kapsayıcı yönetimi sağlamaz. Her kuruluş kendi sunucularını getirir; bir VPN sunucusu tek kiracıya aittir. Başka VPN motorları için uygulanmış adaptör yoktur; mevcut API ve ayarlar VpnHood sözleşmesini izler.
 
-## İletişim yönü
+## Bileşenler ve veri yolu
 
-VpnHood sunucusu yöneticinin `/api/agent/` API'sine HTTPS isteği yapar. `configure` yapılandırmayı döndürür; `status` yanıtı yapılandırma sürümünü ve oturum kararlarını iletir. Yönetici VPN trafiğini taşımaz. İstemci doğrudan VPN sunucusuna bağlanır. SSH yalnız kurulum ve bakım iş akışına aittir.
-
-## Bileşenler
-
-Rust/Tokio/Axum, PostgreSQL/SQLx ve Leptos SSR tek systemd servisi içinde modüler uygulama olarak çalışır. Panel standart HTML formlarıyla kullanılır; küçük JavaScript dosyası toplu seçim, kopyalama ve SSE sayaçlarını sağlar. WebAssembly araç zinciri hazırdır ancak bu aşamada tarayıcıda WASM veya hidrasyon (hydration) kullanılmaz. Böylece sırlar ve yetki kararları sunucuda kalır.
-
-Nginx TLS sonlandırır; Rust yalnız loopback üzerinde dinler. PostgreSQL UNIX soketi, ayrı sistem kullanıcısı ve peer authentication kullanılır. Kalıcı iş kuyruğu, SSH iş yürütücüsü ve Debian kaynak/ikili paketleri sonraki aşamadadır.
+- Rust/Tokio/Axum: HTTPS vekilinin arkasındaki uygulama, yönetim ve agent API'leri.
+- Leptos sunucuda sayfa üretimi (SSR): standart HTML formları; küçük JavaScript ile tema, yardım, kopyalama, toplu seçim ve canlı sayaçlar. Tarayıcıda WASM/hidrasyon kullanılmaz.
+- PostgreSQL/SQLx: kiracı kaynakları, oturum kararları, denetim ve kalıcı AutoSign/yayım işleri.
+- Nginx: panelin TLS sonlandırması; Rust `127.0.0.1:3080` üzerinde dinler.
+- Resmî VpnHood sunucusu: panelin `/api/agent/` yoluna HTTPS isteği yapar. VPN trafiği istemci ile bu sunucu arasındadır; panelden geçmez.
+- SSH yürütücüsü: yalnız resmî kurulum/yeniden kurulum işi. Agent protokolünde genel kabuk komutu yoktur.
+- Certbot: sunucu başına HTTP-01 AutoSign; ayrıcalıksız hizmet hesabında çalışır.
 
 ## Kimlik ve yetki
 
-Küresel hesaplar e-posta/Argon2id parola özetini, oturumlar ise rastgele 256 bit oturum sırrının SHA-256 özetini tutar. Giriş denemeleri e-posta ve Nginx'in ilettiği gerçek istemci IP adresi üzerinden sınırlanır. Panel çerezleri Secure, HttpOnly, SameSite=Strict ve __Host kapsamındadır. Oturum 8 saat geçerlidir; parola değişimi tüm oturumları, kullanıcı kapatma mevcut oturumları geçersizleştirir. Üyelik rolü her istekte yeniden doğrulanır.
+İnsan hesapları Argon2id parola özeti kullanır. Rastgele panel oturum sırrının yalnız SHA-256 özeti saklanır. Çerezler Secure, HttpOnly, SameSite=Strict ve `__Host` kapsamındadır. Oturum sekiz saattir; parola değişimi açık oturumları kapatır. Rol her istekte yeniden denetlenir. Giriş denemeleri e-posta ve güvenilir vekilden gelen IP üzerinden sınırlanır.
 
-Yönetici kullanıcıları ve çalışma alanını yönetir; işletmen sunucu/anahtar/oturum işlemlerini yapar; gözlemci yalnız okur. Kimlik doğrulaması, rol, CSRF ve Origin kontrolleri tüm değişiklik uç noktalarında sunucuda uygulanır. Son yönetici kontrolü kiracı satır kilidiyle eşzamanlı değişikliklerden korunur. Çoklu kiracı üyeliği şemada mümkün olsa da panel şu anda hesabın varsayılan kiracısında çalışır.
+Beş rol owner/admin/operator/token_writer/viewer vardır. Kiracı kaynakları oturumdan veya doğrulanmış agent/bot kimliğinden belirlenir; kullanıcı gövdesindeki kiracı kimliğine güvenilmez. Bot anahtarı rol ve süre taşır; yalnız özeti saklanır. Tarayıcı değişikliklerinde CSRF ve Origin doğrulanır. Son etkin sahip/yönetici eşzamanlı işlemlere karşı korunur.
 
-## Kiracı ayrımı
+## Kiracı ve sır yalıtımı
 
-Kiracı kimliği istek gövdesinden alınmaz: kullanıcı oturumundan veya doğrulanan sunucu kimliğinden türetilir. Sunucu kimliği tenant UUID, sunucu UUID ve 256 bit rastgele sır içerir; yalnız bütün kimliğin SHA-256 özeti veri tabanındadır. UUID bilmek erişim sağlamaz. Her işlemde kiracı bağlamı işlem kapsamıyla ayarlanır; bağlantı havuzunda kiracı durumu taşınmaz.
+Kaynak tablolarında zorunlu satır düzeyi güvenlik (FORCE RLS) ve kiracı içeren yabancı anahtarlar vardır. İşlem kapsamındaki kiracı ayarı bağlantı havuzuna sızmaz. Giriş öncesi hesap/oturum kimlik tabloları küreseldir. `vhmgr` veritabanı rolü süper kullanıcı değildir ve RLS atlayamaz; adının nedeni [kurulum başvurusunda](uretim-kurulumu.md#dosyalar-ve-teknik-adlar) açıklanır.
 
-Bütün kiracılı kaynak tablolarında RLS ve FORCE RLS uygulanır. Giriş öncesi kimlik tabloları küreseldir; kaynak sorguları kiracı bağlamında ve RLS altında çalışır. Uygulama ayrı, RLS atlayamayan rol kullanır. Dış anahtarlar kiracı kimliğini içerir. Yapılandırma ve sırlar kaynak kimliğine bağlanan AES-256-GCM ek doğrulanmış verisiyle (additional authenticated data, AAD) korunur. Denetim kayıtlarının UPDATE/DELETE yetkisi uygulama rolünden alınmıştır.
+Sunucu yapılandırmaları, PFX ve yayıncı sırları kaynak/kimlik bağlamına bağlı AES-256-GCM ile korunur. Ana anahtar ayrı 0600 dosyadadır. AutoSign'ın standart Certbot hesap/sertifika dosyaları özel izinlerle ACME ağacında tutulur; bu dosyalar ayrıca veritabanı kasasıyla şifrelenmez. Yedekleme ikisini de kapsar.
 
-## Oturum kararları
+Denetim kaydında uygulamanın UPDATE/DELETE yetkisi yoktur. Hazır iş bulma SQL işlevleri sabit arama yolu kullanır ve yalnız opak iş/kiracı kimliklerini döndürür; iş verisi kiracı işlemi içinde okunur.
 
-Cihaz sayımı ve oturum açma aynı anahtar satırı kilidi altında yapılır. Panelde oturum kapatma veya anahtar politikası değişikliği kalıcı `pending_notify` işareti oluşturur. Sunucuya durum yanıtında karar iletilir; kapanış onayı gelene kadar tekrar gönderilir. Kota hesaplaması VpnHood kullanım raporlarının sıklığına bağlıdır. Muhasebe sözleşmesi tekil rapor kimliği sağlamadığından kesintilerde tam bir kez sayım garanti edilmez.
+## Yapılandırma ve işler
 
-## Aşamalar
+Yapılandırma değişikliği yeni `configCode` üretir; agent durum yanıtında sürümü görüp yeniden `configure` ister. Veritabanına kaydetme, fiziksel sunucuda aynı anda uygulanma garantisi değildir. Grup profil ataması ve toplu değişiklikler tek veritabanı işlemindedir; çevrimdışı üyeler yeniden bağlanınca alır.
 
-1. Tamamlandı: gerçek .NET protokol uyumluluğu, kiracı ayrımı, oturum/kota ve uzak istemci bağlantısı.
-2. Tamamlandı: kimlik doğrulaması, roller, Leptos paneli, grup kaydı, toplu anahtar işlemleri, raporlar ve denetim kaydı.
-3. Bekliyor: SSH kurulum/bakım, kalıcı işler, grup yönlendirmesi/yük dağıtımı, ACME, Debian paketleme ve üretim işletim doğrulaması.
+HTTP-01 ve harici yayım işleri kalıcı, süreli iş kirasıyla çalışır. Kesinti sonrası tekrar gönderim mümkündür; harici POST hedefi buna uygun olmalıdır. SSH kurulumunun durumu kaydedilir fakat yarıda kalan kurulum otomatik tekrarlanmaz.
 
-## Sınama yerleşimi
+## VPN oturumları ve muhasebe
 
-`yapayzeka` (10.0.3.236): araç zinciri, PostgreSQL, Rust yönetici ve Nginx. Panel `https://vhm-test.oktayaktogan.com.tr`; VPS Nginx (`43.229.92.120`), `https://46.196.34.83:40443` üzerinden kapsayıcı Nginx'ine bağlanır. Rust `127.0.0.1:3080`. Eski `https://yapayzeka:3443/api/agent/` sınama sunucuları için korunur. Geçiş ayrıntıları `docs/vps-ters-vekil.md` içindedir. `vpnhood` (10.0.3.220): mevcut gerçek VpnHood sunucusu port 2443, panelden oluşturulan ayrı sınama sunucusu port 2444. Ağ lxcbr0. Mevcut Nginx port 80 ile çakışma yoktur. Ek kapsayıcı henüz gerekmemiştir.
+Cihaz sayımı/oturum açma anahtar satır kilidi altında yapılır. Oturum sonlandırma ve politika değişimi kalıcı bekleyen bildirim oluşturur; agent kapanışı onaylayana kadar karar tekrar iletilir. Kota bildirimin sıklığına bağlıdır. Tekil kullanım rapor kimliği olmadığından kesintilerde tam bir kez muhasebe garanti edilmez.
 
-## Ürün adı ve özellik kapsamı
-
-Ürün adı Hoodmin olarak kesinleşti. [Türkçe](../README.md), [Arapça](../README.ar.md) ve [İngilizce](../README.en.md) benioku dosyaları mevcuttur. Cargo paket adı `hoodmin`; mevcut sınama servis/binary, veri tabanı, kullanıcı, ayar/çerez ve depo yolları kurulum uyumluluğu için korunur. Bunların isim geçişi veri koruyan Debian paket yükseltmesinde ele alınacaktır. VpnHood sunucu/istemci/protokol adları uyumluluk referanslarıdır.
-
-Kalan işlerin resmî Manager ile doğrudan ilişkisi, mimari gereklilikleri ve isteğe bağlı kapsamı [özellik karşılaştırmasında](console-karsilastirmasi.md) ayrılmıştır. Önceki listeye ek olarak plan/profil ve hız sınırı, dönemsel kota, bot yönetim API anahtarları ve ayrıntılı raporlar eşdeğerlik farklarıdır; bu kayıt bunların uygulanması için onay değildir.
+Aynı kiracı grubunda uygun konum ve kapasiteye göre yönlendirme yapılır. Sunucu sırları ve sertifikaları ortak kimliğe dönüştürülmez. İlk adrese erişilemediğinde grup adres yayımı kullanılabilir. [Protokol](protokol-uyumlulugu.md), [grup profili](grup-sunucu-profili.md), [harici yayım](harici-adres-yayimi.md).

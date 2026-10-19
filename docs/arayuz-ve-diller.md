@@ -1,50 +1,25 @@
-# Arayüz, yardım ve diller — 16 Ekim 2026
+# Arayüz ve diller
 
-Kullanıcının isteğiyle füme tema, belirgin kart/tablo sınırları, simgeli gezinme, görünür Hesabım bağlantısı ve Türkçe/İngilizce/Arapça dil desteği uygulandı. Yeni paket veya bağımlılık kurulmadı.
+Günlük kullanım akışı [Hoodmin elkitabında](elkitabi.md) anlatılır. Bu belge görünüm, dil ve etkileşim davranışına başvurudur.
+
+## Görünüm
+
+Açık temada kırık beyaz/sıcak gri, koyu temada nötr antrasit yüzeyler kullanılır. Renkler düzdür; gradyen yoktur. Mor ve ölçülü kehribar vurgu, belirgin kart/tablo sınırları, simgeli gezinme ve görünür **Hesabım** bağlantısı vardır. Üst çubuktaki tek güneş/ay düğmesi temayı değiştirir; tercih tarayıcıda saklanır.
+
+Arayüz VPN yönetimini anlatır. Sunucu menüsündeki değerler VPN sunucusuna aittir; panel makinesinin genel sistem yönetimi yapılmaz. VPN hesap/anahtarları ile panel hesapları ayrıdır.
 
 ## Dil ve yerleşim
 
-- Türkçe varsayılandır. Dil, giriş ve panel ekranlarından değişir; tarayıcı tercih çereziyle bir yıl saklanır. Çerez yalnız dil kodu taşır; Secure, HttpOnly, SameSite=Lax ve __Host kapsamındadır.
-- Metinler Rust tarafında çevrilir; JavaScript çeviri için gerekli değildir. Dil seçicideki uygula düğmesi JavaScript kapalıyken de çalışır.
-- `crates/manager/locales/{tr,en,ar}.json` sözlükleri arayüz, durum, hata, denetim eylemi ve yardım metinlerini içerir. Sunucu/anahtar/grup adları, e-postalar, sırlar ve JSON ayar anahtarları çevrilmez. Oluşturulan CSV'nin başlıkları seçilen dilde sunulur.
-- Dil bağlamı isteğe özeldir; eşzamanlı istekler arasında paylaşılmaz. Tercih değişikliğindeki dönüş adresi sınırlı iç sayfalarla doğrulanır.
-- Arapçada HTML `lang=ar`, `dir=rtl`; menü sağdadır. E-posta, sayısal birimler ve teknik girdiler ayrı yazı yönünde tutulur. Tüm dillerde gösterilen saatler İstanbul (UTC+03) saatidir.
+Türkçe varsayılandır; Türkçe, İngilizce ve Arapça giriş/panel ekranlarından seçilebilir. Tercih bir yıl süreli, yalnız dil kodu taşıyan Secure/HttpOnly/SameSite=Lax çereziyle saklanır. Metinler sunucuda çevrilir; JavaScript olmadan dil formu kullanılabilir.
 
-## Yardım ve yanlışlıkla yapılan işlemler
+Sözlükler `crates/manager/locales/{tr,en,ar}.json` dosyalarıdır. Kaynak adları, e-postalar, sırlar ve JSON ayar anahtarları çevrilmez. CSV başlıkları seçili dili kullanır. Dil bağlamı isteğe özeldir; Arapçada `lang=ar`, `dir=rtl` olur. E-posta ve teknik girdiler kendi yönünde gösterilir.
 
-Soru işaretleri sunucu yönetimi, VPN bağlantı adresi, gruplar, bağlantı kimliği, anahtar oluşturma, cihaz sınırı, VPN oturumları, panel kullanıcıları, denetim ve hesap güvenliği açıklamalarını açar. Yerel HTML dialog öğesi kullanılır; Escape kapatır, odak açan düğmeye döner. Metinler `textContent` ile doldurulur. Bu küçük yardım pencereleri JavaScript kullanır.
+Genel kullanım saatleri İstanbul (UTC+03) olarak gösterilir. AutoSign ve harici yayım iş zamanları açıkça **UTC** etiketi taşır. Girdi zamanını saat dilimi içeren ISO 8601 biçiminde yazın.
 
-Bağlantı kimliği yenileme bağlantısı artık GET ile açıklamalı onay ekranı açar; tek başına kimliği değiştirmez. Sunucu adı, eski kimliğin hemen geçersizleşeceği ve yeni ayarın sunucuya uygulanması gerektiği gösterilir. Onay kutusu ve ayrı gönderim gerekir. Bu akış JavaScript kapalıyken de çalışır.
+## Yardım ve onay
 
-POST işlemi rol, kiracı, kaynak (Origin), CSRF, açık onay ve güncel kimliğe bağlı onay kanıtını doğrular. Kanıt sunucu kimliği özeti ve oturumun CSRF değerinden türetilir. Satır kilidi altında doğrulanıp kimlik değiştirilir. Eski formun tekrar gönderilmesi 409 ile reddedilir; ikinci kez kimlik üretilmez. Çıplak POST isteği 400 alır. GET onayı başka kiracı için 404, salt okunur rol için 403 verir.
+Soru işareti düğmeleri alanın ne olduğunu ve nasıl kullanılacağını küçük yardım penceresinde gösterir. Escape kapatır, odak açan düğmeye döner. Pencere/kopyalama/toplu seçim gibi etkileşimler JavaScript kullanır.
 
-Anahtar iptali, toplu anahtar değişiklikleri ve VPN oturumu sonlandırma da tarayıcıda açıklamalı onay penceresi açar. Bu işlemler için sunucudaki mevcut yetki/CSRF kontrolleri sürer. Bağlantı kimliğinin ek sunucu onay akışından farklı olarak bu küçük onay pencereleri JavaScript kullanır.
+Bağlantı kimliği yenileme önce açıklamalı onay sayfası açar. Ad, etki ve onay kutusu gösterilir; GET kimliği değiştirmez. Gönderimde güncel kimliğe bağlı onay kanıtı denetlenir; eski form 409 alır. Bu güvence JavaScript'ten bağımsızdır.
 
-## Doğrulama
-
-- `cargo clippy --workspace --all-targets --locked -- -D warnings` başarılı.
-- Çalışma alanındaki 10 test başarılı; eşzamanlı dil ayrımı, sözlük kapsamı, açık yönlendirme engeli ve HTML kaçırma dahil.
-- `tests/test_panel.py`, gerçek HTTPS/PostgreSQL/.NET ile ayrı sınama kiracılarında başarılı. Onaysız/geçersiz/tekrarlanmış onay reddi, geçerli yenileme, eski/yeni agent kimlikleri, kiracı ve rol ayrımı, üç dil, güvenli çerezler, SSE ve mevcut panel işlemleri sınandı.
-- Uygulama içi tarayıcıda yardım/Escape/odak dönüşü, kimlik onayını açıp vazgeçme, dil geçişleri, Arapça yön ve dar ekran taşması görsel olarak kontrol edildi. Sonuçlar `docs/dogrulama.md` dosyasında kaydedilir.
-
-Kullanıcının mevcut “Sınama B” kimliği bu geliştirmede tekrar yenilenmedi. Daha önce yenilenen kimliği sunucuya uygulamak ayrı bir işletim adımıdır.
-
-## Onaylanan açık/koyu tasarım — 16 Ekim 2026
-
-Kullanıcının FortiGate, Proxmox ve AtlasHub referanslarıyla onayladığı yeni kompozisyon uygulandı. Büyük karşılama alanı yerini kısa çalışma alanı başlığına bıraktı. Dört gerçek sayaç üstte; altında hizalı sunucu durum tablosu ve hızlı erişim paneli var. Panel verileri ve yönetim izinleri değişmedi.
-
-Açık temada kırık beyaz zemin, beyaz paneller ve sıcak gri sınırlar; koyu temada nötr antrasit yüzeyler kullanılır. Mor ana eylem rengidir; seçili menü ve sınırlı vurgularda kehribar bulunur. Yeşil, sarı ve kırmızı durum anlamlarını korur. Gradyen, parlak düğme ve kabartma etkileri kaldırılmıştır. Paletler CSS değişkenleriyle tanımlıdır.
-
-Tema, `__Host-vhm_theme` tercih çereziyle bir yıl saklanır (Secure, HttpOnly, SameSite=Lax, kök yol). Varsayılan açıktır. Rust ilk HTML'yi tercihle oluşturur; sayfa başında farklı tema parlaması oluşmaz. Yerel form kontrollerinin `color-scheme` değeri de seçime uyar.
-
-JavaScript çalışırken tema seçimi aynı kaynak üzerindeki `/theme` tercih uç noktasından 204 yanıtıyla kaydedilir; sayfa yenilenmez ve form verileri korunur. Hata halinde önceki seçim korunup yerelleştirilmiş hata gösterilir. JavaScript kapalıyken standart GET formu ve uygula düğmesi çalışır. Yardım ve kimlik yenileme onay akışları korunmuştur.
-
-`tests/test_preferences.py` kimliksiz, gerçek HTTPS üzerinde tema/dil tercihlerini sınar; herhangi bir sunucu veya erişim anahtarını değiştirmez.
-
-## Sunucu adresi düzenleme ve tema simgesi — 16 Ekim 2026
-
-Sunucular → Düzenle alanında kayıtlı IP/FQDN ve TCP portu değiştirilebilir. Sanal TLS adı kullanılan kayıtlarda bağlanılan gerçek IP gösterilir. Mevcut kayıt yeniden oluşturulmaz; yönetim kimliği, sunucu sırrı ve sertifikası korunur. Yeni adres/port, doğrulama sonrası kiracı bağlamında satır kilidi altında şifrelenerek kaydedilir; yeni `configCode` sunucunun sonraki bildiriminde yeniden yapılandırmayı tetikler. Değişmeyen adres sürüm üretmez; geçersiz değerler işlemi geri alır.
-
-Port değişiminde yalnız eski genel portla eşleşen TCP dinleyicilerinin portları değiştirilir; diğer dinleyiciler, UDP/QUIC ve ek politikalar korunur. Yeni erişim anahtarları güncel adresi taşır. Önceden paylaşılan statik erişim anahtarlarının adresi otomatik güncellenmez; bu sınırlama formda açıklanır.
-
-Tema artık yazısız tek güneş/ay düğmesidir. Simge ve erişilebilir açıklama gidilecek temayı gösterir. Koyu görünümde güneşle açığa, açık görünümde ayla koyuya geçilir. Açıklamalar üç dilde yerelleştirilir. Anlık geçiş, kalıcı tercih, form verilerinin korunması ve JavaScript olmadan çalışma sürer. Klavye odağı düğmede kalır.
+Anahtar iptali, toplu değişiklik ve oturum sonlandırmada açıklamalı tarayıcı onayı vardır. Sunucudaki rol/kiracı/CSRF/Origin denetimi her durumda uygulanır. Yapılandırma, PFX, AutoSign ve harici yayım gibi işlemler ayrıca kendi açık etki onaylarını gerektirir.

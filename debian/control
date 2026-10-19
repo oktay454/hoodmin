@@ -11,7 +11,7 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, adduser, ca-certificates, certbot, curl (>= 8.4), openssh-client, openssl, postgresql (>= 17), python3
 Recommends: nginx
 Suggests: age
-Description: independent VpnHood-compatible server management panel
+Description: independent VpnHood-compatible VPN management panel
  Rust management service with tenant isolation, access policies,
  encrypted server credentials and a web interface in Turkish, Arabic
  and English. VPN traffic goes directly to each tenant's own servers.

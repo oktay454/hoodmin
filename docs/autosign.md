@@ -1,17 +1,38 @@
-# Panelden AutoSign
+# VPN sertifikasını AutoSign ile yönetme
 
-Sunucu → Sertifikalar → Otomatik sertifika (AutoSign). Yönetici/sahip alan adı, CA iletişim e-postası, test/gerçek CA ve etkinlik seçer. Alan adı/e-postanın Let's Encrypt'e gönderilmesi, CA koşulları ve VPN sertifikasına etkisi açıkça onaylanır. HTTP-01 için genel DNS ve dış TCP80 VPN sunucusuna ulaşmalıdır. Joker alan adı bu doğrulama yöntemiyle desteklenmez.
+AutoSign, VPN sunucusunun Let's Encrypt sertifikasını alır ve yeniler. Panelin Nginx HTTPS sertifikasını değiştirmez. Bu ekranı sahip veya yönetici yapılandırabilir.
 
-Test CA sertifikası güvenilir değildir ve VPN sunucusuna uygulanmaz. Gerçek CA sertifikası varsayılan PFX olarak uygulanır; sunucunun configCode onayı beklenir. Eski erişim anahtarlarının parmak izi adres yayımı veya yeniden paylaşım yoluyla güncellenmelidir.
+## Ön koşullar
 
-İşler veritabanında kalıcıdır. İşçi beş saniyede bir hazır işleri bulur, 20 dakikalık kirayla alır; kesilen işler süre dolunca toparlanır. Certbot denemesi en fazla 12 dakika sürer. Başarı veya hatadan sonra 12 saatte bir kontrol edilir; Certbot yalnız sertifika yenileme zamanı geldiğinde yeniden talep gönderir. Elle tekrar en erken beş dakika sonra mümkündür. Çalışan iş düzenlenemez. Kapatmak mevcut sertifikayı veya özel dosyaları silmez.
+- VPN sunucusu Hoodmin'e bağlı ve çevrimiçi olmalıdır.
+- Kullanılacak FQDN'in DNS kayıtları VPN sunucusuna gitmelidir; IP adresi veya joker alan adı kabul edilmez.
+- İnternetten TCP 80, VPN sunucusunun HTTP-01 dinleyicisine ulaşmalıdır. NAT/güvenlik duvarı ve varsa IPv6 yolunu kontrol edin.
+- Aynı VPN sertifikasını başka bir Certbot zamanlayıcısı yönetmemelidir. Panelin kendi HTTPS yenilemesi ayrı kalır.
 
-Certbot root çalışmaz. Yapılandırma/hesap anahtarı, günlük ve sertifikalar ana anahtarın yanındaki acme/kiracı/görev/ayar-özeti dizinlerinde özel izinlerle saklanır. CA hesap anahtarı Certbot'un standart özel dosyasıdır; veritabanına veya API yanıtına konmaz. Alan adı/e-posta/CA değişince ayrı çalışma dizini kullanılır. Önceki özel dosyalar korunur; yedekleme kapsamına alınmalıdır. hoodmin-backup bu acme ağacını da özel yedeğe kopyalar ve dosya özetlerini kaydeder; kurtarmada aynı konuma vhmgr sahipliği ve özel izinleriyle geri yükleyin.
+## Adım adım kullanım
 
-HTTP-01 kancası yalnız kiracının kiralanmış görevindeki sunucuyu yönetir; bot API anahtarı veya SSH/root yetkisi kullanılmaz. Önceki HTTP-01 durumu saklanır, işlem sonunda geri yüklenir ve yalnız görevin token kaydı silinir. Eşzamanlı kullanıcı değişikliği saptanırsa üzerine yazılmaz ve hata bildirilir; işletmen HTTP-01 durumunu denetlemelidir.
+1. **Sunucular → sunucu → Sertifikalar → Otomatik sertifika (AutoSign)** bölümünü açın.
+2. VPN alan adını ve sertifika otoritesi iletişim e-postasını girin.
+3. Önce **Test CA** seçeneğiyle doğrulamayı deneyin. Alan adı/e-postanın Let's Encrypt'e gönderilmesini, hizmet koşullarını ve işlemin etkisini okuyup onaylayın.
+4. Etkinleştirip **Kaydet ve kontrol et** düğmesine basın. Durum ve son hata alanlarını izleyin.
+5. Test başarılı olunca test seçimini kaldırarak gerçek CA için aynı onaylarla kaydedin. Test sertifikası güvenilir değildir ve VPN sunucusuna uygulanmaz.
+6. Gerçek işlem tamamlanınca sertifika bitişini ve sunucunun yapılandırma onayını kontrol edin. Geçerli PFX varsayılan VPN sertifikası olur.
+7. Önceden verilmiş VPN anahtarlarının parmak izini adres yayımıyla yenileyin; yayım kullanılmıyorsa anahtarları yeniden paylaşın.
 
-GET/POST /api/manage/servers/{id}/autosign aynı rol/onay/sürüm kurallarını kullanır. POST alanları: version (ilk oluşturmada yok), domain, email, staging, enabled, confirmed, agree_tos. UI'da durum, son hata, son deneme/başarı, sertifika bitişi ve sonraki kontrol görünür. CA hata ayrıntısı özel Certbot günlüğündedir; panel özel anahtar veya challenge proof döndürmez.
+## Yenileme ve durum
 
-Aynı sertifikayı eski root/Certbot zamanlayıcısı ve AutoSign ile birlikte yönetmeyin. Geçişte eski hedef yenileme yapılandırmasını kapatın; panelin HTTPS sertifikası ayrı kalır. Bu sürüm her sunucu için bir alan adı yönetir; grup sertifikası deposuna toplu AutoSign ayrı akış olarak sunulmaz.
+Durum ekranında son deneme/başarı, sertifika bitişi ve sonraki kontrol UTC olarak gösterilir. Kontrol 12 saatte bir yapılır; Certbot yalnız yenileme gerektiğinde yeni sertifika ister. Değişmeyen sertifika yeniden uygulanmaz. Hatalı işler de 12 saat sonra tekrar kontrol edilir; elle tekrar en erken beş dakika sonra yapılabilir.
 
-Kaynak: [Certbot manual hooks](https://eff-certbot.readthedocs.io/en/stable/using.html#pre-and-post-validation-hooks).
+Çalışan iş düzenlenemez. Devre dışı bırakmak sonraki kontrolleri durdurur; son sertifikayı, CA hesabını veya özel dosyaları silmez. Görevler veritabanında kalıcıdır. Yarıda kalan işin 20 dakikalık kirası dolunca yeniden alınması mümkündür; tek Certbot denemesi en fazla 12 dakika sürer.
+
+HTTP-01 doğrulamasında önceki dinleyici durumu saklanır; işlem sonunda geri yüklenir ve yalnız o işe ait geçici token kaldırılır. Eşzamanlı kullanıcı değişikliği saptanırsa üzerine yazılmaz; hata durumunda dinleyici ayarını inceleyin.
+
+## Özel dosyalar ve sınırlar
+
+Certbot ayrıcalıksız `vhmgr` hesabında çalışır. CA hesapları, günlükler, sertifikalar ve özel anahtarlar `/var/lib/hoodmin/acme/` altında özel izinlerle saklanır. Bunlar standart özel Certbot dosyalarıdır; bütün ACME ağacı ayrıca AES-GCM ile şifrelenmez. Dosyalar API/HTML yanıtına konmaz. `hoodmin-backup` bu ağacı içerir; kurtarmada aynı yol/sahiplik/izinler korunmalıdır. [Yedekleme](yedekleme.md).
+
+Alan adı, e-posta veya CA değişince ayrı çalışma ağacı kullanılır; eski dosyalar kendiliğinden silinmez. Her VPN sunucusu için tek FQDN ve HTTP-01 desteklenir. DNS-01, joker alan adı ve grup deposuna toplu AutoSign sunulmaz. E-posta kaydı hata bildirimi hizmeti değildir; iş durumunu ve günlükleri izleyin.
+
+## API
+
+`GET/POST /api/manage/servers/{id}/autosign` aynı kiracı/rol/onay kurallarını uygular. POST alanları: `version` (ilk oluşturmada yok), `domain`, `email`, `staging`, `enabled`, `confirmed`, `agree_tos`. Yanıt hesap anahtarı veya doğrulama sırrı içermez. [Yönetim API'si](yonetim-api.md).

@@ -1,3 +1,11 @@
+hoodmin (0.1.0-7~deb13u1) unstable; urgency=medium
+
+  * Clarify VPN-specific interface text in Turkish, English and Arabic.
+  * Ship a current installation and operations handbook with working links.
+  * Document the stable service and database account names.
+
+ -- Hoodmin maintainers <vpn@oktayaktogan.com.tr>  Mon, 19 Oct 2026 20:00:00 +0300
+
 hoodmin (0.1.0-6~deb13u1) trixie; urgency=medium
 
   * Add tenant-managed AutoSign with unprivileged Debian Certbot jobs.

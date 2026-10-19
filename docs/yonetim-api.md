@@ -16,9 +16,9 @@ Yönetici, **Panel kullanıcıları → Botlar ve API anahtarları** bölümünd
 | token_writer / Erişim anahtarı yazarı | Erişim anahtarı/profili/kodu, anahtar indirme ve VPN oturumlarını kapatma; sunucu ayarını değiştiremez. |
 | viewer / Salt okunur | Liste, durum ve korunmuş gelişmiş ayarlar; erişim sırrını indiremez, değişiklik yapamaz. |
 
-Mevcut hesapların rolü kendiliğinden yükseltilmez. İlk `owner` hesabı güvenilir işletmen tarafından yerel `create-account --role owner` komutuyla oluşturulabilir. Botun rolünü değiştirmek için yeni bot oluşturup eskisini iptal edin.
+İlk `owner` hesabı yeni kurulumda `hoodmin-create-owner` komutuyla oluşturulur. Botun rolünü değiştirmek için yeni bot oluşturup eskisini iptal edin.
 
-Çerezle giriş yapan tarayıcı hâlâ CSRF ve Origin denetiminden geçer. API yalnız doğrulanmış bot Bearer kimliği kabul eder; yanlış Bearer varsa tarayıcı çerezine geri düşmez. Bot yanıtları önbelleğe alınmaz; her istek kiracı politikası ve güncel rolle denetlenir.
+Çerezle giriş yapan tarayıcı CSRF ve Origin denetiminden geçer. API yalnız doğrulanmış bot Bearer kimliği kabul eder; yanlış Bearer varsa tarayıcı çerezine geri düşmez. Bot yanıtları önbelleğe alınmaz; her istek kiracı politikası ve güncel rolle denetlenir.
 
 ## Okuma
 
@@ -74,7 +74,7 @@ Sunucu yapılandırması, sertifika, kurulum, bot yetkisi ve kimlik yenileme iş
 
 ## Harici adres yayımı
 
-Grup yayım hedeflerinin listeleme/oluşturma, tekli/toplu çalıştırma, sürümlü düzenleme ve kaldırma uçları eklendi. Liste sırları içermez; hedef ayarı yönetici, yayımlama operatör yetkisi ister. [Yollar ve istek alanları](harici-adres-yayimi.md#api).
+Grup yayım hedeflerinin listeleme/oluşturma, tekli/toplu çalıştırma, sürümlü düzenleme ve kaldırma uçları vardır. Liste sırları içermez; hedef ayarı yönetici, yayımlama operatör yetkisi ister. [Yollar ve istek alanları](harici-adres-yayimi.md#api).
 
 Grup sunucu profili ataması ve otomatik güncellemeler: [sözleşme ve sınırlar](grup-sunucu-profili.md).
 
