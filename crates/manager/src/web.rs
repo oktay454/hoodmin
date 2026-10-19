@@ -90,6 +90,10 @@ pub fn router(state: WebState) -> Router {
 		)
 		.route("/manage/server-profiles/{id}", post(edit_server_profile))
 		.route(
+			"/manage/farms/{id}/server-profile",
+			get(farm_server_profile).post(assign_farm_server_profile),
+		)
+		.route(
 			"/manage/server-profiles/{id}/apply",
 			post(apply_server_profile),
 		)
@@ -675,7 +679,9 @@ async fn edit_server(
 	let user = require(&state, &headers, Some(&form.csrf), Permission::Write).await?;
 	let name = management::valid_name(&form.name).map_err(|_| bad("Sunucu adı geçersiz."))?;
 	let mut tx = state.store.begin(user.tenant).await?;
+	crate::server_profiles::lock(&mut tx, user.tenant).await?;
 	let destination = optional_uuid(&form.farm)?;
+	let inherited = crate::server_profiles::assigned(&mut tx, user.tenant, destination).await?;
 	if let Some(farm) = destination {
 		let owned: bool =
 			query_scalar("SELECT EXISTS(SELECT FROM farms WHERE tenant_id=$1 AND id=$2)")
@@ -693,13 +699,14 @@ async fn edit_server(
 	let shared =
 		crate::farms::load_certificates(&mut tx, &state.store.vault, user.tenant, destination)
 			.await?;
-	let row =
-		query("SELECT configuration,farm_id FROM servers WHERE tenant_id=$1 AND id=$2 FOR UPDATE")
-			.bind(user.tenant)
-			.bind(id)
-			.fetch_optional(&mut *tx)
-			.await?
-			.ok_or(PanelError(StatusCode::NOT_FOUND, "Sunucu bulunamadı."))?;
+	let row = query(
+		"SELECT configuration,farm_id,management FROM servers WHERE tenant_id=$1 AND id=$2 FOR UPDATE",
+	)
+	.bind(user.tenant)
+	.bind(id)
+	.fetch_optional(&mut *tx)
+	.await?
+	.ok_or(PanelError(StatusCode::NOT_FOUND, "Sunucu bulunamadı."))?;
 	let encrypted: Vec<u8> = row.get("configuration");
 	let old_farm: Option<Uuid> = row.get("farm_id");
 	let context = format!("{}:{id}:config", user.tenant);
@@ -713,6 +720,14 @@ async fn edit_server(
 		form.port.unwrap_or(old_port),
 	)
 	.map_err(|_| bad("DNS/IP veya port geçersiz."))?;
+	let mut inherited_policy = None;
+	if old_farm != destination
+		&& let Some(profile) = inherited
+	{
+		crate::server_profiles::replace(&mut config, &profile)?;
+		inherited_policy = Some(profile.management);
+		endpoint_changed = true;
+	}
 	if old_farm != destination
 		&& let Some(shared) = shared
 	{
@@ -720,7 +735,17 @@ async fn edit_server(
 			.map_err(|_| bad("Grup sertifikası uygulanamadı."))?;
 		endpoint_changed = true;
 	}
-	if endpoint_changed {
+	if let Some(policy) = inherited_policy {
+		crate::server_profiles::save(
+			&state.store.vault,
+			&mut tx,
+			user.tenant,
+			id,
+			&mut config,
+			&policy,
+		)
+		.await?;
+	} else if endpoint_changed {
 		let code = Uuid::new_v4().to_string();
 		config["configCode"] = code.clone().into();
 		let sealed = state.store.vault.seal(
@@ -2192,7 +2217,7 @@ async fn server_profiles(
 ) -> Result<Response, PanelError> {
 	let user = require(&state, &headers, None, Permission::Read).await?;
 	let mut tx = state.store.begin(user.tenant).await?;
-	let rows=query("SELECT id,name,settings,management,version FROM server_profiles WHERE tenant_id=$1 ORDER BY name").bind(user.tenant).fetch_all(&mut *tx).await?.into_iter().map(|row|views::ServerProfile{id:row.get("id"),name:row.get("name"),settings:row.get("settings"),management:row.get("management"),version:row.get("version")}).collect();
+	let rows=query("SELECT p.id,p.name,p.settings,p.management,p.version,(SELECT count(*) FROM farms f WHERE f.tenant_id=p.tenant_id AND f.server_profile_id=p.id) AS assigned_farms FROM server_profiles p WHERE p.tenant_id=$1 ORDER BY p.name").bind(user.tenant).fetch_all(&mut *tx).await?.into_iter().map(|row|views::ServerProfile{id:row.get("id"),name:row.get("name"),settings:row.get("settings"),management:row.get("management"),version:row.get("version"),assigned_farms:row.get("assigned_farms")}).collect();
 	let servers = query("SELECT id,name FROM servers WHERE tenant_id=$1 ORDER BY name")
 		.bind(user.tenant)
 		.fetch_all(&mut *tx)
@@ -2207,6 +2232,8 @@ struct ServerProfileForm {
 	#[serde(default)]
 	csrf: String,
 	name: String,
+	#[serde(default)]
+	confirmed: bool,
 	#[serde(deserialize_with = "json_text")]
 	settings: String,
 	#[serde(deserialize_with = "json_text")]
@@ -2262,6 +2289,7 @@ async fn edit_server_profile(
 	let user = require(&state, &headers, Some(&form.csrf), Permission::Write).await?;
 	let (name, settings, management) = parse_server_profile(&form)?;
 	let mut tx = state.store.begin(user.tenant).await?;
+	crate::server_profiles::lock(&mut tx, user.tenant).await?;
 	let version: Uuid =
 		query_scalar("SELECT version FROM server_profiles WHERE tenant_id=$1 AND id=$2 FOR UPDATE")
 			.bind(user.tenant)
@@ -2275,6 +2303,22 @@ async fn edit_server_profile(
 			"Profil değişti. Sayfayı yenileyin.",
 		));
 	}
+	let farms: Vec<Uuid> = query_scalar(
+		"SELECT id FROM farms WHERE tenant_id=$1 AND server_profile_id=$2 ORDER BY id FOR SHARE",
+	)
+	.bind(user.tenant)
+	.bind(id)
+	.fetch_all(&mut *tx)
+	.await?;
+	if !farms.is_empty() && !form.confirmed {
+		return Err(bad("Bağlı gruplardaki sunucuların değişmesini onaylayın."));
+	}
+	let members=query("SELECT id,configuration,management FROM servers WHERE tenant_id=$1 AND farm_id=ANY($2) ORDER BY id FOR UPDATE").bind(user.tenant).bind(&farms).fetch_all(&mut *tx).await?;
+	let profile = crate::server_profiles::Profile {
+		settings: settings.clone(),
+		management: management.clone(),
+	};
+	crate::server_profiles::apply(&state.store, &mut tx, user.tenant, members, &profile).await?;
 	query("UPDATE server_profiles SET name=$3,settings=$4,management=$5,version=$6 WHERE tenant_id=$1 AND id=$2").bind(user.tenant).bind(id).bind(name).bind(settings).bind(management).bind(Uuid::new_v4()).execute(&mut *tx).await?;
 	auth::audit(
 		&mut tx,
@@ -2315,6 +2359,7 @@ async fn apply_server_profile(
 		return Err(bad("Sunucu seçimi geçersiz."));
 	}
 	let mut tx = state.store.begin(user.tenant).await?;
+	crate::server_profiles::lock(&mut tx, user.tenant).await?;
 	let profile = query(
 		"SELECT settings,management,version FROM server_profiles WHERE tenant_id=$1 AND id=$2 FOR SHARE",
 	)
@@ -2818,6 +2863,10 @@ fn management_api() -> Router<WebState> {
 		)
 		.route("/server-profiles/{id}", post(api_edit_server_profile))
 		.route(
+			"/farms/{id}/server-profile",
+			get(api_farm_server_profile).post(api_assign_farm_server_profile),
+		)
+		.route(
 			"/server-profiles/{id}/apply",
 			post(api_apply_server_profile),
 		)
@@ -2901,6 +2950,130 @@ async fn api_list_result(
 	let more = rows.len() > 100;
 	rows.truncate(100);
 	Ok(axum::Json(json!({"items":rows,"page":filter.p,"hasMore":more})).into_response())
+}
+
+json_read!(api_farm_server_profile, Uuid, farm_server_profile);
+json_write!(
+	api_assign_farm_server_profile,
+	Uuid,
+	FarmServerProfileForm,
+	assign_farm_server_profile
+);
+#[derive(Deserialize)]
+struct FarmServerProfileForm {
+	#[serde(default)]
+	csrf: String,
+	version: Uuid,
+	#[serde(default)]
+	profile: String,
+	profile_version: Option<Uuid>,
+	#[serde(default)]
+	confirmed: bool,
+}
+async fn farm_server_profile(
+	State(state): State<WebState>,
+	headers: HeaderMap,
+	Path(id): Path<Uuid>,
+) -> Result<Response, PanelError> {
+	let user = require(&state, &headers, None, Permission::Read).await?;
+	let mut tx = state.store.begin(user.tenant).await?;
+	let farm=query("SELECT name,version,server_profile_id,(SELECT count(*) FROM servers s WHERE s.tenant_id=f.tenant_id AND s.farm_id=f.id) AS members FROM farms f WHERE tenant_id=$1 AND id=$2").bind(user.tenant).bind(id).fetch_optional(&mut *tx).await?.ok_or(PanelError(StatusCode::NOT_FOUND,"Sunucu grubu bulunamadı."))?;
+	let profiles =
+		query("SELECT id,name,version FROM server_profiles WHERE tenant_id=$1 ORDER BY name")
+			.bind(user.tenant)
+			.fetch_all(&mut *tx)
+			.await?
+			.into_iter()
+			.map(|r| {
+				(
+					r.get::<Uuid, _>("id"),
+					r.get::<String, _>("name"),
+					r.get::<Uuid, _>("version"),
+				)
+			})
+			.collect::<Vec<_>>();
+	if user.bot {
+		return Ok(axum::Json(json!({"id":id,"name":farm.get::<String,_>("name"),"version":farm.get::<Uuid,_>("version"),"profile":farm.get::<Option<Uuid>,_>("server_profile_id"),"members":farm.get::<i64,_>("members"),"profiles":profiles.iter().map(|(id,name,version)|json!({"id":id,"name":name,"version":version})).collect::<Vec<_>>()})).into_response());
+	}
+	Ok(views::farm_server_profile(
+		&user,
+		id,
+		&farm.get::<String, _>("name"),
+		farm.get("version"),
+		farm.get("server_profile_id"),
+		farm.get("members"),
+		profiles,
+	)
+	.into_response())
+}
+async fn assign_farm_server_profile(
+	State(state): State<WebState>,
+	headers: HeaderMap,
+	Path(id): Path<Uuid>,
+	Form(form): Form<FarmServerProfileForm>,
+) -> Result<Response, PanelError> {
+	let user = require(&state, &headers, Some(&form.csrf), Permission::Write).await?;
+	if !form.confirmed {
+		return Err(bad("Bağlı gruplardaki sunucuların değişmesini onaylayın."));
+	}
+	let mut tx = state.store.begin(user.tenant).await?;
+	crate::server_profiles::lock(&mut tx, user.tenant).await?;
+	let version: Uuid =
+		query_scalar("SELECT version FROM farms WHERE tenant_id=$1 AND id=$2 FOR UPDATE")
+			.bind(user.tenant)
+			.bind(id)
+			.fetch_optional(&mut *tx)
+			.await?
+			.ok_or(PanelError(
+				StatusCode::NOT_FOUND,
+				"Sunucu grubu bulunamadı.",
+			))?;
+	if version != form.version {
+		return Err(PanelError(
+			StatusCode::CONFLICT,
+			"Grup değişti. Sayfayı yenileyin.",
+		));
+	}
+	let profile_id = optional_uuid(&form.profile)?;
+	if let Some(profile_id) = profile_id {
+		let row = query(
+			"SELECT settings,management,version FROM server_profiles WHERE tenant_id=$1 AND id=$2 FOR SHARE",
+		)
+		.bind(user.tenant)
+		.bind(profile_id)
+		.fetch_optional(&mut *tx)
+		.await?
+		.ok_or(PanelError(StatusCode::NOT_FOUND, "Profil bulunamadı."))?;
+		if form.profile_version != Some(row.get::<Uuid, _>("version")) {
+			return Err(PanelError(
+				StatusCode::CONFLICT,
+				"Profil değişti. Sayfayı yenileyin.",
+			));
+		}
+		let members=query("SELECT id,configuration,management FROM servers WHERE tenant_id=$1 AND farm_id=$2 ORDER BY id FOR UPDATE").bind(user.tenant).bind(id).fetch_all(&mut *tx).await?;
+		let profile = crate::server_profiles::Profile {
+			settings: row.get("settings"),
+			management: row.get("management"),
+		};
+		crate::server_profiles::apply(&state.store, &mut tx, user.tenant, members, &profile)
+			.await?;
+	}
+	query("UPDATE farms SET server_profile_id=$3,version=$4 WHERE tenant_id=$1 AND id=$2")
+		.bind(user.tenant)
+		.bind(id)
+		.bind(profile_id)
+		.bind(Uuid::new_v4())
+		.execute(&mut *tx)
+		.await?;
+	auth::audit(
+		&mut tx,
+		&user,
+		"Grup sunucu profili ataması değiştirildi",
+		&format!("{id}/{}", form.profile),
+	)
+	.await?;
+	tx.commit().await?;
+	Ok(Redirect::to(&format!("/manage/farms/{id}/server-profile")).into_response())
 }
 
 async fn farm_publication(

@@ -541,5 +541,22 @@
 	"Şifreli grup adresi harici hedeflere gönderilecek. Devam edilsin mi?": "Şifreli grup adresi harici hedeflere gönderilecek. Devam edilsin mi?",
 	"Şifreli grup adresini kendi dosya veya CDN hizmetinize gönderin. Doğrulanan adresler yalnız seçilen başlangıç sunucusunun yeni grup anahtarlarına eklenir. Eski anahtarlar yeniden paylaşılmalıdır.": "Şifreli grup adresini kendi dosya veya CDN hizmetinize gönderin. Doğrulanan adresler yalnız seçilen başlangıç sunucusunun yeni grup anahtarlarına eklenir. Eski anahtarlar yeniden paylaşılmalıdır.",
 	"Şimdi yayımla": "Şimdi yayımla",
-	"← Önceki": "← Önceki"
+	"← Önceki": "← Önceki",
+	"Grup sunucu profili": "Grup sunucu profili",
+	"Bağlı grup sayısı": "Bağlı grup sayısı",
+	"Bağlı gruplardaki tüm sunuculara bu değişikliği uygulamayı onaylıyorum.": "Bağlı gruplardaki tüm sunuculara bu değişikliği uygulamayı onaylıyorum.",
+	"Gruba bağlı profil kaydedildiğinde değişiklikler tüm grup üyelerine uygulanır. Bağlı olmayan profiller yalnız seçilerek uygulanır. Dinleyici, ağ ve kapasite değişebilir; sertifika, kimlik ve duyurulan adres korunur.": "Gruba bağlı profil kaydedildiğinde değişiklikler tüm grup üyelerine uygulanır. Bağlı olmayan profiller yalnız seçilerek uygulanır. Dinleyici, ağ ve kapasite değişebilir; sertifika, kimlik ve duyurulan adres korunur.",
+	"Atanmış profil": "Atanmış profil",
+	"Mevcut ve gelecekteki grup üyelerine bu profilin uygulanmasını onaylıyorum.": "Mevcut ve gelecekteki grup üyelerine bu profilin uygulanmasını onaylıyorum.",
+	"Ata ve uygula": "Ata ve uygula",
+	"Otomatik profil uygulaması": "Otomatik profil uygulaması",
+	"Atama mevcut üyelere hemen uygulanır. Yeni veya gruba taşınan sunucu güncel profili alır. Profil kaydedilince bağlı tüm gruplar tek veritabanı işleminde güncellenir; çevrimdışı sunucu yeniden bağlandığında alır. Tekil ayarlar sonraki profil değişiminde üzerine yazılır. Atamayı kaldırmak son ayarları geri almaz.": "Atama mevcut üyelere hemen uygulanır. Yeni veya gruba taşınan sunucu güncel profili alır. Profil kaydedilince bağlı tüm gruplar tek veritabanı işleminde güncellenir; çevrimdışı sunucu yeniden bağlandığında alır. Tekil ayarlar sonraki profil değişiminde üzerine yazılır. Atamayı kaldırmak son ayarları geri almaz.",
+	"Grup üyesi sayısı": "Grup üyesi sayısı",
+	"Bu işlem dinleyici, ağ ve kapasite ayarlarını değiştirebilir. Sertifika, sunucu sırrı ve istemci adresi korunur. Dinleyici portlarının duyurulan adres ve güvenlik duvarıyla uyumunu denetleyin.": "Bu işlem dinleyici, ağ ve kapasite ayarlarını değiştirebilir. Sertifika, sunucu sırrı ve istemci adresi korunur. Dinleyici portlarının duyurulan adres ve güvenlik duvarıyla uyumunu denetleyin.",
+	"Profil atanmamış": "Profil atanmamış",
+	"Profil atamasını kaldır": "Profil atamasını kaldır",
+	"Otomatik profil uygulamasını durdurmayı onaylıyorum. Son ayarlar korunacak.": "Otomatik profil uygulamasını durdurmayı onaylıyorum. Son ayarlar korunacak.",
+	"Atamayı kaldır": "Atamayı kaldır",
+	"Bağlı gruplardaki sunucuların değişmesini onaylayın.": "Bağlı gruplardaki sunucuların değişmesini onaylayın.",
+	"Grup sunucu profili ataması değiştirildi": "Grup sunucu profili ataması değiştirildi"
 }

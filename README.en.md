@@ -73,7 +73,7 @@ For packaged deployments use `hoodmin-create-owner EMAIL HTTPS_ORIGIN`, describe
 ## Limitations and remaining work
 
 - Real ACME issuance/renewal and PFX deployment are verified through an external Certbot worker. Tenant self-service AutoSign configuration is not implemented.
-- Encrypted address publishing supports HTTPS GET and external PUT/POST or multipart uploads, with durable scheduling, file verification, bot API and tenant isolation. See [usage and limits](docs/harici-adres-yayimi.md). Automatic configuration propagation through farm-level server profile assignment remains unimplemented.
+- Encrypted address publishing supports HTTPS GET and external PUT/POST or multipart uploads, with durable scheduling, file verification, bot API and tenant isolation. See [usage and limits](docs/harici-adres-yayimi.md). Farm server profile assignment, application to new or moved members, and automatic propagation to assigned groups are also supported. See [behavior and limits](docs/grup-sunucu-profili.md).
 - Client policies are advertised; closed-source commercial country-plan decisions are not claimed to be identical. Rewarded ads require a trusted server verifier, not an unverified client report or direct ad-network integration.
 - Debian packaging, encrypted remote backups and isolated recovery work. Master-key rotation and external failure notifications remain unfinished. Job states persist, but interrupted installations are not retried automatically.
 - Tenant creation uses CLI; public signup/platform administration is absent.

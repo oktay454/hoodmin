@@ -1,3 +1,11 @@
+hoodmin (0.1.0-5~deb13u1) trixie; urgency=medium
+
+  * Add explicit farm server profile assignment and atomic propagation.
+  * Apply current profiles on server registration and membership changes.
+  * Add multilingual confirmation, version checks and bot API support.
+
+ -- Hoodmin maintainers <vpn@oktayaktogan.com.tr>  Mon, 19 Oct 2026 03:48:51 +0300
+
 hoodmin (0.1.0-4~deb13u1) trixie; urgency=medium
 
   * Add encrypted external publishing destinations with durable jobs,

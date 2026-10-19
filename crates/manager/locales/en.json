@@ -541,5 +541,22 @@
 	"Şifreli grup adresi harici hedeflere gönderilecek. Devam edilsin mi?": "The encrypted farm address will be sent to external destinations. Continue?",
 	"Şifreli grup adresini kendi dosya veya CDN hizmetinize gönderin. Doğrulanan adresler yalnız seçilen başlangıç sunucusunun yeni grup anahtarlarına eklenir. Eski anahtarlar yeniden paylaşılmalıdır.": "Publish the encrypted farm address to your own file or CDN service. Verified URLs are added only to new farm keys for the selected bootstrap server. Existing keys must be shared again.",
 	"Şimdi yayımla": "Publish now",
-	"← Önceki": "← Previous"
+	"← Önceki": "← Previous",
+	"Grup sunucu profili": "Group server profile",
+	"Bağlı grup sayısı": "Assigned groups",
+	"Bağlı gruplardaki tüm sunuculara bu değişikliği uygulamayı onaylıyorum.": "I confirm applying this change to all servers in the assigned groups.",
+	"Gruba bağlı profil kaydedildiğinde değişiklikler tüm grup üyelerine uygulanır. Bağlı olmayan profiller yalnız seçilerek uygulanır. Dinleyici, ağ ve kapasite değişebilir; sertifika, kimlik ve duyurulan adres korunur.": "Saving an assigned profile updates all group members. Unassigned profiles are applied only to selected servers. Listeners, network and capacity may change; certificates, identity and advertised address are preserved.",
+	"Atanmış profil": "Assigned profile",
+	"Mevcut ve gelecekteki grup üyelerine bu profilin uygulanmasını onaylıyorum.": "I confirm applying this profile to current and future group members.",
+	"Ata ve uygula": "Assign and apply",
+	"Otomatik profil uygulaması": "Automatic profile application",
+	"Atama mevcut üyelere hemen uygulanır. Yeni veya gruba taşınan sunucu güncel profili alır. Profil kaydedilince bağlı tüm gruplar tek veritabanı işleminde güncellenir; çevrimdışı sunucu yeniden bağlandığında alır. Tekil ayarlar sonraki profil değişiminde üzerine yazılır. Atamayı kaldırmak son ayarları geri almaz.": "Assignment updates current members immediately. New or moved servers receive the current profile. Saving the profile updates all assigned groups in one database transaction; offline servers receive it when reconnecting. Individual settings are overwritten by the next profile change. Removing the assignment keeps the latest settings.",
+	"Grup üyesi sayısı": "Group members",
+	"Bu işlem dinleyici, ağ ve kapasite ayarlarını değiştirebilir. Sertifika, sunucu sırrı ve istemci adresi korunur. Dinleyici portlarının duyurulan adres ve güvenlik duvarıyla uyumunu denetleyin.": "This can change listeners, network and capacity. Certificates, server secret and client address are preserved. Check that listener ports match the advertised address and firewall.",
+	"Profil atanmamış": "No assigned profile",
+	"Profil atamasını kaldır": "Remove profile assignment",
+	"Otomatik profil uygulamasını durdurmayı onaylıyorum. Son ayarlar korunacak.": "I confirm stopping automatic profile updates. Current settings will be kept.",
+	"Atamayı kaldır": "Remove assignment",
+	"Bağlı gruplardaki sunucuların değişmesini onaylayın.": "Confirm changes to servers in the assigned groups.",
+	"Grup sunucu profili ataması değiştirildi": "Group server profile assignment changed"
 }

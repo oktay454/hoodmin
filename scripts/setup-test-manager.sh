@@ -70,6 +70,10 @@ SQL
 	then
 		runuser -u postgres -- psql -v ON_ERROR_STOP=1 -d vpnhood_manager -f "${PROJE_DIZINI}/migrations/0009_external_publications.sql"
 	fi
+	if [ "$(runuser -u postgres -- psql -d vpnhood_manager -Atqc "SELECT count(*) FROM information_schema.columns WHERE table_name='farms' AND column_name='server_profile_id'")" -eq 0 ]
+	then
+		runuser -u postgres -- psql -v ON_ERROR_STOP=1 -d vpnhood_manager -f "${PROJE_DIZINI}/migrations/0010_farm_server_profiles.sql"
+	fi
 	runuser -u postgres -- psql -v ON_ERROR_STOP=1 -d vpnhood_manager <<'SQL'
 GRANT CONNECT ON DATABASE vpnhood_manager TO vhmgr;
 GRANT USAGE ON SCHEMA public TO vhmgr;

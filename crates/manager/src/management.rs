@@ -192,6 +192,11 @@ pub async fn register(
 	mut config: Value,
 ) -> Result<(Uuid, String)> {
 	use sha2::{Digest, Sha256};
+	crate::server_profiles::lock(tx, tenant).await?;
+	let profile = crate::server_profiles::assigned(tx, tenant, farm).await?;
+	if let Some(profile) = &profile {
+		crate::server_profiles::replace(&mut config, profile)?;
+	}
 	if let Some(shared) = crate::farms::load_certificates(tx, vault, tenant, farm).await? {
 		crate::farms::apply_certificates(&mut config, &shared)?;
 	}
@@ -204,8 +209,8 @@ pub async fn register(
 		&serde_json::to_vec(&config)?,
 		&format!("{tenant}:{id}:config"),
 	)?;
-	query("INSERT INTO servers(tenant_id,id,name,farm_id,credential_hash,configuration,config_code,agent_credential) VALUES($1,$2,$3,$4,$5,$6,$7,$8)")
-		.bind(tenant).bind(id).bind(name).bind(farm).bind(hash).bind(encrypted).bind(code).bind(vault.seal(credential.as_bytes(),&format!("{tenant}:{id}:agent"))?).execute(&mut **tx).await?;
+	query("INSERT INTO servers(tenant_id,id,name,farm_id,credential_hash,configuration,config_code,agent_credential,management) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)")
+		.bind(tenant).bind(id).bind(name).bind(farm).bind(hash).bind(encrypted).bind(code).bind(vault.seal(credential.as_bytes(),&format!("{tenant}:{id}:agent"))?).bind(profile.map(|p|p.management).unwrap_or(serde_json::to_value(crate::farms::ServerPolicy::default())?)).execute(&mut **tx).await?;
 	Ok((id, credential))
 }
 #[allow(clippy::too_many_arguments)]

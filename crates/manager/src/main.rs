@@ -11,6 +11,7 @@ mod management;
 mod policy;
 mod publication;
 mod reports;
+mod server_profiles;
 mod store;
 mod views;
 mod web;

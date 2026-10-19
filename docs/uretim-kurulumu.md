@@ -9,7 +9,7 @@ Depodaki kilitli Rust araç zinciri, Cargo bağımlılıkları ve Debian `debhel
 ## Yeni kurulum
 
 ```bash
-apt install ./hoodmin_0.1.0-4~deb13u1_amd64.deb
+apt install ./hoodmin_0.1.0-5~deb13u1_amd64.deb
 hoodmin-db-setup
 hoodmin-create-owner vpn@example.com https://hoodmin.example.com
 systemctl enable --now hoodmin.service

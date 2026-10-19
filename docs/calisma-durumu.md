@@ -24,13 +24,16 @@ Kullanıcı UID/GID taşımasını onayladı, ancak gerekliliğini sordu ve durd
 
 Hoodmin'e yönetici onaylı hedef ekleme/düzenleme/kaldırma, tekli/toplu yayım, 5–1440 dakika zamanlama ve panel yeniden başlatmasından sonra toparlanan kalıcı görevler eklendi. Ham metin JSON ile sarılmaz; multipart, URL/başlık/gövde yer tutucuları ve ayrı içerik türü desteklenir. Kimlik ve şablonlar şifreli saklanır; GET'e yükleme kimliği taşınmaz. Doğrulanmış URL yalnız ilgili başlangıç sunucusunun yeni grup anahtarlarına eklenir.
 
-Gerçek HTTPS dosyası .NET ile çözüldü ve hazır VPN sunucusuna gerçek istemci bağlandı. PUT/POST, multipart, bot API, rol/RLS, SSRF ve iş kirası/yeniden başlatma sınamaları geçti. Üç dilde arayüz, yardım pencereleri, `0009_external_publications.sql` ve Debian paket bağımlılığı güncellendi. Eski QA kullanıldı; yeni üretim bu kilometre taşında değiştirilmez. [Kullanım ve sınırlar](harici-adres-yayimi.md), [Console gözlemi](console-harici-yayim-sinamasi.md).
+Gerçek HTTPS dosyası .NET ile çözüldü ve hazır VPN sunucusuna gerçek istemci bağlandı. PUT/POST, multipart, bot API, rol/RLS, SSRF ve iş kirası/yeniden başlatma sınamaları geçti. Üç dilde arayüz, yardım pencereleri, `0009_external_publications.sql` ve Debian paket bağımlılığı güncellendi. Eski QA kullanıldı; yeni üretim bu kilometre taşında değiştirilmedi. [Kullanım ve sınırlar](harici-adres-yayimi.md), [Console gözlemi](console-harici-yayim-sinamasi.md).
+
+## Yeni tamamlanan: gruba sunucu profili atama
+
+Aynı profil birden çok gruba atanabilir. Onaylı atama mevcut üyelere, güncel profil yeni ve gruba taşınan sunucuya uygulanır. Profil düzenlemesi onaylandığında bütün bağlı grup üyeleri tek veritabanı işleminde güncellenir. Bir üyede hata bütün işlemi geri alır; üyelik ve profil güncellemesi kiracı düzeyinde sıralanır. Atama kaldırıldığında son ayarlar korunur. Çevrimdışı üyeler normal agent bağlantısında yeni sürümü alır; tüm makinelerde aynı anda uygulama garantisi yoktur. [Kullanım ve API](grup-sunucu-profili.md).
 
 ## Sonraki özellikler
 
-1. Grup düzeyinde sunucu profili atama ve otomatik değişiklik yayma; açık seçili toplu uygulama zaten çalışır.
-2. Kiracının panelden kendi ACME işini oluşturduğu AutoSign akışı. Mevcut root/Certbot entegrasyonu gerçek sunucuda çalışır.
-3. Ana anahtar döndürme, harici hata bildirimi, yedek saklama/disk politikası ve uzun süreli yük/kesinti sınamaları.
-4. Masaüstü işletim sistemi VPN rotalarının tümü, Windows kurulum çalıştırması ve kapalı kaynak davranışı gözlenmeyen ticari özellikler ayrıca değerlendirilir.
+1. Kiracının panelden kendi ACME işini oluşturduğu AutoSign akışı. Mevcut root/Certbot entegrasyonu gerçek sunucuda çalışır.
+2. Ana anahtar döndürme, harici hata bildirimi, yedek saklama/disk politikası ve uzun süreli yük/kesinti sınamaları.
+3. Masaüstü işletim sistemi VPN rotalarının tümü, Windows kurulum çalıştırması ve kapalı kaynak davranışı gözlenmeyen ticari özellikler ayrıca değerlendirilir.
 
 Eski `yapayzeka`/`vpnhood` ortamları gerileme sınaması için korunur. Kullanıcının eski `vpnhood-test` kaydı değiştirilmedi. Kaynak kardeş `VpnHood-Current` salt okunur kalmıştır. Özel sınama verileri, kimlikler ve kurtarma anahtarları `work/` içinde Git dışındadır; yayımlanmamalıdır.

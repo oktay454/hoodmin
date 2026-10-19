@@ -541,5 +541,22 @@
 	"Şifreli grup adresi harici hedeflere gönderilecek. Devam edilsin mi?": "سيُرسل عنوان المجموعة المشفر إلى وجهات خارجية. هل تريد المتابعة؟",
 	"Şifreli grup adresini kendi dosya veya CDN hizmetinize gönderin. Doğrulanan adresler yalnız seçilen başlangıç sunucusunun yeni grup anahtarlarına eklenir. Eski anahtarlar yeniden paylaşılmalıdır.": "انشر عنوان المجموعة المشفر في خدمة الملفات أو CDN الخاصة بك. تُضاف الروابط المتحقق منها فقط إلى مفاتيح المجموعة الجديدة لخادم الاتصال الأولي المحدد. يجب إعادة مشاركة المفاتيح القديمة.",
 	"Şimdi yayımla": "انشر الآن",
-	"← Önceki": "السابق →"
+	"← Önceki": "السابق →",
+	"Grup sunucu profili": "ملف خوادم المجموعة",
+	"Bağlı grup sayısı": "المجموعات المرتبطة",
+	"Bağlı gruplardaki tüm sunuculara bu değişikliği uygulamayı onaylıyorum.": "أوافق على تطبيق هذا التغيير على جميع خوادم المجموعات المرتبطة.",
+	"Gruba bağlı profil kaydedildiğinde değişiklikler tüm grup üyelerine uygulanır. Bağlı olmayan profiller yalnız seçilerek uygulanır. Dinleyici, ağ ve kapasite değişebilir; sertifika, kimlik ve duyurulan adres korunur.": "يؤدي حفظ ملف مرتبط إلى تحديث جميع أعضاء المجموعة. تطبق الملفات غير المرتبطة على الخوادم المختارة فقط. قد تتغير منافذ الاستماع والشبكة والسعة؛ وتحفظ الشهادات والهوية والعنوان المعلن.",
+	"Atanmış profil": "الملف المرتبط",
+	"Mevcut ve gelecekteki grup üyelerine bu profilin uygulanmasını onaylıyorum.": "أوافق على تطبيق هذا الملف على أعضاء المجموعة الحاليين والمستقبليين.",
+	"Ata ve uygula": "ربط وتطبيق",
+	"Otomatik profil uygulaması": "تطبيق الملف تلقائياً",
+	"Atama mevcut üyelere hemen uygulanır. Yeni veya gruba taşınan sunucu güncel profili alır. Profil kaydedilince bağlı tüm gruplar tek veritabanı işleminde güncellenir; çevrimdışı sunucu yeniden bağlandığında alır. Tekil ayarlar sonraki profil değişiminde üzerine yazılır. Atamayı kaldırmak son ayarları geri almaz.": "يحدث الربط الأعضاء الحاليين فوراً. تتلقى الخوادم الجديدة أو المنقولة الملف الحالي. يحدث حفظ الملف جميع المجموعات المرتبطة ضمن معاملة قاعدة بيانات واحدة؛ وتتلقى الخوادم غير المتصلة الإعدادات عند اتصالها. تستبدل الإعدادات الفردية عند التغيير التالي للملف. إلغاء الربط يبقي الإعدادات الأخيرة.",
+	"Grup üyesi sayısı": "أعضاء المجموعة",
+	"Bu işlem dinleyici, ağ ve kapasite ayarlarını değiştirebilir. Sertifika, sunucu sırrı ve istemci adresi korunur. Dinleyici portlarının duyurulan adres ve güvenlik duvarıyla uyumunu denetleyin.": "قد يغير هذا منافذ الاستماع والشبكة والسعة. تحفظ الشهادات وسر الخادم وعنوان العميل. تحقق من توافق المنافذ مع العنوان المعلن وجدار الحماية.",
+	"Profil atanmamış": "لا يوجد ملف مرتبط",
+	"Profil atamasını kaldır": "إزالة ربط الملف",
+	"Otomatik profil uygulamasını durdurmayı onaylıyorum. Son ayarlar korunacak.": "أوافق على إيقاف تحديث الملف تلقائياً. ستبقى الإعدادات الحالية.",
+	"Atamayı kaldır": "إلغاء الربط",
+	"Bağlı gruplardaki sunucuların değişmesini onaylayın.": "أكد التغييرات على خوادم المجموعات المرتبطة.",
+	"Grup sunucu profili ataması değiştirildi": "تم تغيير ربط ملف خوادم المجموعة"
 }

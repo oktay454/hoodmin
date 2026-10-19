@@ -153,7 +153,13 @@ fn safe_management_path(path: &str) -> bool {
 		&& ((parts[2] == "servers"
 			&& ["configuration", "certificates", "routing", "installation"].contains(&parts[4]))
 			|| (parts[2] == "farms"
-				&& ["publication", "certificates", "destinations"].contains(&parts[4]))
+				&& [
+					"publication",
+					"certificates",
+					"destinations",
+					"server-profile",
+				]
+				.contains(&parts[4]))
 			|| (parts[2] == "tokens" && parts[4] == "policy"))
 }
 pub async fn middleware(request: Request, next: Next) -> Response {
@@ -269,6 +275,7 @@ mod tests {
 	fn publishing_pages_keep_language_and_theme_return_paths() {
 		for path in [
 			"/manage/farms/50331fb8-2282-467b-b6a5-fc8a1fea9c71/destinations",
+			"/manage/farms/50331fb8-2282-467b-b6a5-fc8a1fea9c71/server-profile",
 			"/manage/publications/50331fb8-2282-467b-b6a5-fc8a1fea9c71",
 		] {
 			assert_eq!(safe_return_to(path), path)

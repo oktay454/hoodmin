@@ -116,7 +116,7 @@ Console'da görünen UseUdpProxy2, bu kaynakta ve hazır sunucunun son uygulanan
 ### Açık kalan işler
 
 - Gerçek DNS/TCP80 sunucusunda Certbot kancalarıyla CA alma/yenileme ve PFX dağıtımı doğrulandı. Çok kiracılı panelden kendi ACME işini oluşturma/yönetme ekranı halen eksiktir.
-- Grup düzeyinde sunucu profili atama/otomatik yayma. Harici POST/PUT yayıncısı daha sonra QA üzerinde uygulanıp doğrulandı.
+- Grup düzeyinde sunucu profili atama/otomatik yayma ve harici POST/PUT yayıncısı daha sonra QA üzerinde uygulanıp doğrulandı. Güncel davranış: [grup profili](grup-sunucu-profili.md), [harici yayım](harici-adres-yayimi.md).
 - Beş ekip rolü ve bağımsız bot yönetim API'si son aşamada eklendi; Console'un özel yönetim API sözleşmesiyle birebir aynı olduğu iddia edilmez.
 - İstemci politikalarının (`cpols`) ülkeye göre ticari karar kuralları. Kaynak, bu kararların kapalı kaynak sunucu tarafındaki anlamını bütünüyle tanımlamaz; root politika süreleri Hoodmin'de açıkça seçilir.
 - Locked IPs kaydının çalışma etkisi, bulut IP siparişi ve markalama bu kaynak sözleşmesinden çıkarılamaz; gözlenmeyen davranış uydurulmadı.
