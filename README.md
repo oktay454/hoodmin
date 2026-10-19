@@ -16,12 +16,13 @@ Her kuruluş kendi VPN sunucusunu getirir (bring your own server, BYOS). Sunucu 
 
 ## Kurulum özeti
 
-Debian 13 amd64 üzerinde, root olarak, indirdiğiniz `.deb` dosyasının bulunduğu dizinde:
+Debian 13 amd64 üzerinde root olarak çalışın. Bağlantı dizesini 0600 izinli `/root/hoodmin-db.url` dosyasına yazın. PostgreSQL sunucusunu yerel veya uzak ortamda ayrıca hazırlayın; paket bunu zorunlu bağımlılık olarak kurmaz. Yerel örnek:
 
 ```bash
-apt install ./hoodmin_0.1.0-8~deb13u1_amd64.deb
-hoodmin-db-setup
-hoodmin-create-owner vpn@example.com https://hoodmin.example.com
+apt install ./hoodmin_0.2.0-1~deb13u1_amd64.deb
+hoodmin-cli config set --database-url-file /root/hoodmin-db.url --public-origin https://hoodmin.example.com
+hoodmin-cli database init --local
+hoodmin-cli owner-init --email vpn@example.com
 ```
 
 Ardından [kurulum kılavuzundaki](docs/uretim-kurulumu.md) Nginx/HTTPS adımlarını tamamlayıp `hoodmin.service` hizmetini başlatın. İlk parolanız yalnız kurulum makinesindeki `/root/hoodmin-first-owner.json` dosyasına yazılır. İlk girişten sonra **Hesabım** bölümünden değiştirin. Paket VPN sunucusunu içermez; onu panelin ürettiği resmî kurulum komutuyla ayrı kurarsınız.
@@ -40,9 +41,9 @@ Ardından [kurulum kılavuzundaki](docs/uretim-kurulumu.md) Nginx/HTTPS adımlar
 
 ## Teknik başvuru
 
-[Mimari](docs/mimari.md) · [API](docs/yonetim-api.md) · [Protokol ve destek sınırları](docs/protokol-uyumlulugu.md) · [Console özellik karşılığı](docs/console-karsilastirmasi.md) · [Geliştirme ve doğrulama](docs/dogrulama.md)
+[Rust CLI](docs/cli.md) · [Mimari](docs/mimari.md) · [API](docs/yonetim-api.md) · [Protokol ve destek sınırları](docs/protokol-uyumlulugu.md) · [Console özellik karşılığı](docs/console-karsilastirmasi.md) · [Geliştirme ve doğrulama](docs/dogrulama.md)
 
-Hizmet hesabı, grubu ve PostgreSQL rolü **`hoodmin`** adını kullanır. Sistem hesabı ile rol, yerel eş kimlik doğrulaması (peer authentication) için eşleştirilir. Veritabanı adı **`vpnhood_manager`** olur. Ayrıntılar: [dosyalar ve teknik adlar](docs/uretim-kurulumu.md#dosyalar-ve-teknik-adlar).
+Hizmet hesabı, grubu ve PostgreSQL rolü **`hoodmin`** adını kullanır. Yerel sokette PostgreSQL rolü de bu adla eşleştirilir; uzak bağlantıda rol, adres ve veritabanı bağlantı dizesinden okunur. Ayrıntılar: [dosyalar ve teknik adlar](docs/uretim-kurulumu.md#dosyalar-ve-işletim).
 
 ## Destek sınırları
 

@@ -15,13 +15,9 @@ override_dh_auto_install:
 	install -d debian/hoodmin/usr/share/doc/hoodmin/docs
 	install -m0644 docs/*.md debian/hoodmin/usr/share/doc/hoodmin/docs/
 	cargo metadata --locked --format-version 1 | python3 scripts/dependency-licenses.py >debian/hoodmin/usr/share/doc/hoodmin/dependency-licenses.json
-	install -Dm0755 target/release/vpnhood-manager debian/hoodmin/usr/bin/hoodmin
-	install -Dm0755 scripts/hoodmin-db-setup debian/hoodmin/usr/sbin/hoodmin-db-setup
-	install -Dm0755 scripts/hoodmin-create-owner debian/hoodmin/usr/sbin/hoodmin-create-owner
-	install -Dm0755 scripts/hoodmin-acme debian/hoodmin/usr/sbin/hoodmin-acme
-	install -Dm0755 scripts/hoodmin-backup-export debian/hoodmin/usr/sbin/hoodmin-backup-export
-	install -Dm0755 scripts/hoodmin-backup debian/hoodmin/usr/sbin/hoodmin-backup
-	install -Dm0644 deploy/hoodmin.env debian/hoodmin/etc/hoodmin/hoodmin.env
+	install -Dm0755 target/release/hoodmin debian/hoodmin/usr/bin/hoodmin
+	install -Dm0755 target/release/hoodmin-cli debian/hoodmin/usr/bin/hoodmin-cli
+	install -Dm0644 deploy/hoodmin.json debian/hoodmin/etc/hoodmin/hoodmin.json
 	install -d debian/hoodmin/usr/share/hoodmin/migrations
 	install -m0644 migrations/*.sql debian/hoodmin/usr/share/hoodmin/migrations/
 

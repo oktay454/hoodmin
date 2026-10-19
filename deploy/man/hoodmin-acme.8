@@ -1,9 +1,0 @@
-.TH HOODMIN-ACME 8 "2026-10-18" "Hoodmin 0.1.0" "System Administration"
-.SH NAME
-hoodmin-acme \- Certbot hooks for a Hoodmin-managed VPN server
-.SH SYNOPSIS
-.B hoodmin-acme auth|cleanup|deploy ROOT_ONLY_CONFIG.json
-.SH DESCRIPTION
-Run as root through Certbot hooks. Configuration must be root-owned with mode 0600 and include origin, domain, server UUID and authorization. The auth hook relays HTTP01 through Hoodmin; cleanup disables the listener; deploy uploads the renewed PFX and verifies the public CA-validated TLS certificate. API credentials are never printed.
-.SH SEE ALSO
-certbot(1)

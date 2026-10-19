@@ -17,7 +17,7 @@ control=json.loads((ROOT/'work/ssh-install-qa/control.json').read_text())
 admin=Browser();assert admin.login(control['email'],control['password'])[0]==303;admin.request('/panel')
 tenant=control['tenant'];target=control['server'];target_credential=control['credential']
 old_query=f"SELECT json_build_object('name',name,'farm',farm_id,'paused',paused) FROM servers WHERE tenant_id='{tenant}' AND id='{target}'"
-old=json.loads(subprocess.run(['runuser','-u','postgres','--','psql','-d','vpnhood_manager','-Atqc',old_query],check=True,capture_output=True,text=True).stdout)
+old=json.loads(subprocess.run(['runuser','-u','postgres','--','psql','-d','hoodmin','-Atqc',old_query],check=True,capture_output=True,text=True).stdout)
 def restore():
 	admin.request('/panel')
 	fields=dict(name=old['name'],farm=old['farm'] or '')

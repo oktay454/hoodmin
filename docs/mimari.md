@@ -6,7 +6,7 @@ Hoodmin, VpnHood VPN ortamını yöneten modüler bir Rust uygulamasıdır. Gene
 
 - Rust/Tokio/Axum: HTTPS vekilinin arkasındaki uygulama, yönetim ve agent API'leri.
 - Leptos sunucuda sayfa üretimi (SSR): standart HTML formları; küçük JavaScript ile tema, yardım, kopyalama, toplu seçim ve canlı sayaçlar. Tarayıcıda WASM/hidrasyon kullanılmaz.
-- PostgreSQL/SQLx: kiracı kaynakları, oturum kararları, denetim ve kalıcı AutoSign/yayım işleri.
+- PostgreSQL/SQLx: yerel Unix soketi veya sunucu adı/CA doğrulamalı uzak TLS bağlantısıyla kiracı kaynakları, oturum kararları, denetim ve kalıcı AutoSign/yayım işleri.
 - Nginx: panelin TLS sonlandırması; Rust `127.0.0.1:3080` üzerinde dinler.
 - Resmî VpnHood sunucusu: panelin `/api/agent/` yoluna HTTPS isteği yapar. VPN trafiği istemci ile bu sunucu arasındadır; panelden geçmez.
 - SSH yürütücüsü: yalnız resmî kurulum/yeniden kurulum işi. Agent protokolünde genel kabuk komutu yoktur.
@@ -20,7 +20,7 @@ Beş rol owner/admin/operator/token_writer/viewer vardır. Kiracı kaynakları o
 
 ## Kiracı ve sır yalıtımı
 
-Kaynak tablolarında zorunlu satır düzeyi güvenlik (FORCE RLS) ve kiracı içeren yabancı anahtarlar vardır. İşlem kapsamındaki kiracı ayarı bağlantı havuzuna sızmaz. Giriş öncesi hesap/oturum kimlik tabloları küreseldir. `hoodmin` veritabanı rolü süper kullanıcı değildir ve RLS atlayamaz. Sistem hesabı/grubu da `hoodmin` adını kullanır.
+Kaynak tablolarında zorunlu satır düzeyi güvenlik (FORCE RLS) ve kiracı içeren yabancı anahtarlar vardır. İşlem kapsamındaki kiracı ayarı bağlantı havuzuna sızmaz. Giriş öncesi hesap/oturum kimlik tabloları küreseldir. Uygulamanın veritabanı rolü süper kullanıcı değildir ve RLS atlayamaz. Rol/veritabanı bağlantı dizesinden seçilir; sistem hesabı/grubu `hoodmin` olur.
 
 Sunucu yapılandırmaları, PFX ve yayıncı sırları kaynak/kimlik bağlamına bağlı AES-256-GCM ile korunur. Ana anahtar ayrı 0600 dosyadadır. AutoSign'ın standart Certbot hesap/sertifika dosyaları özel izinlerle ACME ağacında tutulur; bu dosyalar ayrıca veritabanı kasasıyla şifrelenmez. Yedekleme ikisini de kapsar.
 
@@ -37,3 +37,11 @@ HTTP-01 ve harici yayım işleri kalıcı, süreli iş kirasıyla çalışır. K
 Cihaz sayımı/oturum açma anahtar satır kilidi altında yapılır. Oturum sonlandırma ve politika değişimi kalıcı bekleyen bildirim oluşturur; agent kapanışı onaylayana kadar karar tekrar iletilir. Kota bildirimin sıklığına bağlıdır. Tekil kullanım rapor kimliği olmadığından kesintilerde tam bir kez muhasebe garanti edilmez.
 
 Aynı kiracı grubunda uygun konum ve kapasiteye göre yönlendirme yapılır. Sunucu sırları ve sertifikaları ortak kimliğe dönüştürülmez. İlk adrese erişilemediğinde grup adres yayımı kullanılabilir. [Protokol](protokol-uyumlulugu.md), [grup profili](grup-sunucu-profili.md), [harici yayım](harici-adres-yayimi.md).
+
+## Hizmet yaşam döngüsü ve CLI
+
+`hoodmin`, HTTP dinleyicisini veritabanı bağlantısından bağımsız başlatır. Yapılandırma/anahtar/veritabanı hazır değilken statik durum sayfası ve 503 API yanıtı verir; ayrıntı sunucu günlüğündedir. `/healthz` süreç sağlığı, `/readyz` uygulama hazırlığıdır. Denetleyici bağlantıyı tekrar deneyip toparlar; veritabanı erişimi olmadan yetki kontrolü atlanmaz.
+
+`hoodmin-cli` aynı Rust kitaplığını ve yönetim API'sini kullanır. Kurulum, şema, ilk sahip ve yedekleme bu ikili içindedir. PostgreSQL sunucusu paket bağımlılığı değildir. CLI yerel veya uzak veritabanını ayrı yönetici bağlantısıyla hazırlayabilir; hizmete yönetici rolü verilmez.
+
+Ana arayüz Leptos SSR'dir. Tüm formları kapsayan istemci taraflı uygulamaya (SPA) geçiş ayrı bir arayüz çalışmasıdır. Mevcut sürümde statik kullanılabilirlik ekranı ve ortak insan/bot JSON API'si vardır; tam SPA olduğu iddia edilmez.

@@ -170,7 +170,10 @@ async fn run(store: &Store, tenant: Uuid, id: Uuid, key: &Path, db: &str) -> Res
 	tokio::fs::create_dir_all(&dir).await?;
 	use std::os::unix::fs::PermissionsExt;
 	std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700))?;
-	let binary = std::env::current_exe()?.to_string_lossy().into_owned();
+	let binary = std::env::current_exe()?
+		.with_file_name("hoodmin-cli")
+		.to_string_lossy()
+		.into_owned();
 	ensure!(
 		binary
 			.bytes()

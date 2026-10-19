@@ -23,6 +23,7 @@ pub struct User {
 	pub role: String,
 	pub csrf: String,
 	pub bot: bool,
+	pub json: bool,
 }
 impl User {
 	pub fn can_write(&self) -> bool {
@@ -128,6 +129,9 @@ pub async fn user(store: &Store, headers: &HeaderMap) -> Result<Option<User>> {
 		role: membership.get("role"),
 		csrf: session.get("csrf"),
 		bot: false,
+		json: headers
+			.get("accept")
+			.is_some_and(|v| v == "application/json"),
 	}))
 }
 pub async fn bot_user(store: &Store, headers: &HeaderMap) -> Result<Option<User>> {
@@ -165,6 +169,7 @@ pub async fn bot_user(store: &Store, headers: &HeaderMap) -> Result<Option<User>
 		role: row.get("role"),
 		csrf: String::new(),
 		bot: true,
+		json: true,
 	}))
 }
 pub async fn create_account(

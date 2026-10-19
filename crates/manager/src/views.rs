@@ -11,11 +11,12 @@ use serde_json::{Value, json};
 use sqlx_core::{query::query, query_scalar::query_scalar, row::Row};
 use uuid::Uuid;
 
-#[derive(Clone)]
+#[derive(Clone, serde::Serialize)]
 pub struct Farm {
 	pub id: String,
 	pub name: String,
 }
+#[derive(serde::Serialize)]
 pub struct Server {
 	pub id: String,
 	pub name: String,
@@ -31,6 +32,7 @@ pub struct Server {
 	pub sessions: i64,
 	pub seen: String,
 }
+#[derive(serde::Serialize)]
 pub struct Token {
 	pub id: String,
 	pub name: String,
@@ -42,6 +44,7 @@ pub struct Token {
 	pub expires: String,
 	pub revoked: bool,
 }
+#[derive(serde::Serialize)]
 pub struct Session {
 	pub id: i64,
 	pub token: String,
@@ -49,24 +52,28 @@ pub struct Session {
 	pub created: String,
 	pub closed: bool,
 }
+#[derive(serde::Serialize)]
 pub struct Account {
 	pub id: String,
 	pub email: String,
 	pub role: String,
 	pub active: bool,
 }
+#[derive(serde::Serialize)]
 pub struct Audit {
 	pub time: String,
 	pub email: String,
 	pub action: String,
 	pub resource: String,
 }
+#[derive(serde::Serialize)]
 pub struct Profile {
 	pub id: Uuid,
 	pub name: String,
 	pub is_public: bool,
 	pub policy: Value,
 }
+#[derive(serde::Serialize)]
 pub struct Data {
 	pub profiles: Vec<Profile>,
 	pub stats: Value,
@@ -613,6 +620,7 @@ pub fn installation(user: &User, id: Uuid, settings: &str) -> Html<String> {
 	let (linux, windows) = crate::install::commands(&value);
 	layout(user,"Sunucu bağlantısı hazır","servers",view!{<section class="card"><h2>{tr("Sunucu bağlantısı hazır")}</h2><p class="muted">{tr("Resmi hazır VpnHood kurulumu kullanılır. Kimlik içeren komut ve ayarları güvenli saklayın.")}</p><a class="button primary" href=format!("/manage/servers/{id}/installation")>{tr("SSH ile parola veya özel anahtar kullanarak kur")}</a></section><section class="card"><h2>{tr("Linux: elle komut çalıştır")}</h2><textarea dir="ltr" rows="5" readonly>{linux}</textarea></section><section class="card"><h2>{tr("Windows: PowerShell komutu")}</h2><textarea dir="ltr" rows="5" readonly>{windows}</textarea></section><section class="card"><h2>"appsettings.json"</h2><p class="muted">{tr("Mevcut kurulumda storage/appsettings.json dosyasına kaydedin. Bu sayfa önbelleğe alınmaz.")}</p><textarea id="secret-output" dir="ltr" rows="12" readonly>{settings.to_owned()}</textarea><div class="actions"><button class="button secondary" type="button" data-copy="secret-output">{tr("Kopyala")}</button><span id="copy-feedback" role="status" class="small muted"></span></div><a class="button secondary" href="/panel/servers">{tr("Sunuculara dön")}</a></section>}.into_any())
 }
+#[derive(serde::Serialize)]
 pub struct InstallJob {
 	pub id: Uuid,
 	pub status: String,
@@ -624,6 +632,7 @@ pub fn ssh_installation(user: &User, id: Uuid, name: &str, jobs: Vec<InstallJob>
 	layout(user,"Kurulum / yeniden kurulum","servers",view!{<div class="section-heading"><h2>{name.to_owned()}</h2><a class="button secondary" href=format!("/manage/servers/{id}/configuration")>{tr("Gelişmiş ayarlar")}</a></div><section class="card"><h2>{tr("SSH ile resmi sunucu kurulumu")}</h2><div class="alert warning">{tr("Hedefte root yetkisiyle resmi kurulum betiği çalışır ve appsettings.json değiştirilir. Önceki dosya hedefte yedeklenir. SSH parolası ve özel anahtarı iş tamamlanınca silinir. Şifreli agent kimliği sonraki kurulumlar için saklanır.")}</div><form method="post" action=format!("/manage/servers/{id}/installation") class="stack">{csrf(&user.csrf)}<div class="form-fields"><label>{tr("SSH adresi")}<input name="host" required maxlength="253"/></label><label>{tr("SSH portu")}<input name="port" type="number" min="1" max="65535" value="22" required/></label><label>{tr("SSH kullanıcısı")}<input name="username" value="root" maxlength="64" required/></label><label>{tr("Sunucu anahtarı parmak izi (SHA256)")}<input name="fingerprint" dir="ltr" placeholder="SHA256:..." required/>{help("SSH sunucu doğrulaması","Parmak izini hedefte güvenilir bir oturumdan ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub -E sha256 ile okuyun. Anahtar eşleşmezse bağlantı kurulmaz.")}</label></div><label>{tr("SSH parolası (parola ile kurulum)")}<input type="password" name="password" autocomplete="off" maxlength="1024"/></label><label>{tr("SSH özel anahtarı (anahtar ile kurulum)")}<textarea name="private_key" dir="ltr" rows="5" maxlength="65536" autocomplete="off"/></label><p class="small muted">{tr("Parola veya özel anahtardan yalnız birini girin. Parolalı özel anahtar desteklenmez. root dışındaki kullanıcı için parolasız sudo veya aşağıdaki sudo parolası gerekir.")}</p><label>{tr("sudo parolası (gerekiyorsa)")}<input type="password" name="sudo_password" autocomplete="off" maxlength="1024"/></label><details><summary>{tr("Eski kayıt için bağlantı kimliği")}</summary><label>{tr("Sunucu bağlantı kimliği")}<input name="credential" type="password" autocomplete="off" maxlength="200"/></label></details><label class="checkbox"><input type="checkbox" name="confirmed" value="true" required/>{tr("Hedefte kurulum ve yapılandırma değişikliğini onaylıyorum.")}</label><button class="button primary" type="submit">{tr("Kurulumu başlat")}</button></form></section>{jobs}}.into_any())
 }
 
+#[derive(serde::Serialize)]
 pub struct ServerProfile {
 	pub assigned_farms: i64,
 	pub id: Uuid,
@@ -681,6 +690,7 @@ pub fn reports(
 	layout(user,"Kullanım raporları","reports",view!{<div class="section-heading"><h2>{tr("Kullanım raporları")}</h2><form method="get" action="/reports" class="actions"><label>{tr("Sunucu")}<select name="server"><option value="" selected=server.is_none()>{tr("Tüm sunucular")}</option>{options}</select></label><label>{tr("Dönem")}<select name="hours">{periods}</select></label><button class="button secondary" type="submit">{tr("Göster")}</button></form></div><p class="muted">{tr("Grafikler bildirilen ölçümlerin zaman aralığı ortalamasıdır; boş aralıklar sıfır kullanım sayılmaz. Tüm sunucular seçildiğinde sunucuların ortalaması gösterilir. Veriler 31 gün saklanır.")}</p><p class="small muted"><bdi dir="ltr">{range}</bdi></p><div class="form-grid">{charts}</div><section class="card table-wrap"><h2>{tr("Ülkelere göre cihazlar")}</h2><p class="muted">{tr("Seçili dönemde açılan oturumların bildirdiği ülke ve benzersiz cihaz sayısıdır. Soru işareti bilinmeyen ülkedir; IP konumlandırması yapılmaz.")}</p><table><thead><tr><th>{tr("Ülke")}</th><th>{tr("Kullanılan cihazlar")}</th></tr></thead><tbody>{countries}</tbody></table></section>}.into_any())
 }
 
+#[derive(serde::Serialize)]
 pub struct Bot {
 	pub id: Uuid,
 	pub name: String,

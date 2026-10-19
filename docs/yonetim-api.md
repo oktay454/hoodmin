@@ -6,7 +6,7 @@ Bu, Hoodmin'in bağımsız API'sidir. Kapalı kaynak Console'un özel API sözle
 
 Yönetici, **Panel kullanıcıları → Botlar ve API anahtarları** bölümünde bir bot oluşturur. Rol ve 1–365 günlük süre açıkça seçilir; anahtar yalnız oluşturulunca gösterilir. Veritabanında SHA-256 özeti tutulur. İptal veya süre sonu sonraki istekte geçerlidir. Botun parolayla tarayıcı oturumu açması mümkün değildir.
 
-İstek başlığı `Authorization: Bearer <bot-anahtarı>`, JSON gövdelerde `Content-Type: application/json`. Anahtarı URL'ye koymayın. API kökü `/api/manage`.
+Bot istek başlığı `Authorization: Bearer <bot-anahtarı>`, JSON gövdelerde `Content-Type: application/json`. Anahtarı URL'ye koymayın. API kökü `/api/manage`.
 
 | Rol | Yetki |
 |---|---|
@@ -16,9 +16,9 @@ Yönetici, **Panel kullanıcıları → Botlar ve API anahtarları** bölümünd
 | token_writer / Erişim anahtarı yazarı | Erişim anahtarı/profili/kodu, anahtar indirme ve VPN oturumlarını kapatma; sunucu ayarını değiştiremez. |
 | viewer / Salt okunur | Liste, durum ve korunmuş gelişmiş ayarlar; erişim sırrını indiremez, değişiklik yapamaz. |
 
-İlk `owner` hesabı yeni kurulumda `hoodmin-create-owner` komutuyla oluşturulur. Botun rolünü değiştirmek için yeni bot oluşturup eskisini iptal edin.
+İlk `owner` hesabı yeni kurulumda `hoodmin-cli owner-init` komutuyla oluşturulur. Botun rolünü değiştirmek için yeni bot oluşturup eskisini iptal edin.
 
-Çerezle giriş yapan tarayıcı CSRF ve Origin denetiminden geçer. API yalnız doğrulanmış bot Bearer kimliği kabul eder; yanlış Bearer varsa tarayıcı çerezine geri düşmez. Bot yanıtları önbelleğe alınmaz; her istek kiracı politikası ve güncel rolle denetlenir.
+Çerezle giriş yapan tarayıcı CSRF ve Origin denetiminden geçer. API doğrulanmış bot Bearer kimliğini veya insan hesabının güvenli oturum çerezini kabul eder; yanlış Bearer varsa çereze geri düşmez. İnsan oturumunda JSON yazma gövdesine `csrf` ve isteğe doğru `Origin` başlığı eklenir. Bot yanıtları önbelleğe alınmaz; her istek kiracı politikası ve güncel rolle denetlenir.
 
 ## Okuma
 
@@ -32,7 +32,7 @@ Yönetici, **Panel kullanıcıları → Botlar ve API anahtarları** bölümünd
 
 ## Yazma
 
-POST işlemleri paneldeki aynı işlevleri, kilitleri, denetim kaydını ve doğrulamayı kullanır. Tarayıcıya özgü `csrf` alanı bot gövdesinde gerekmez. UUID'ler yalnız botun kiracısında çözülür; başka kiracının kaydı 404 olur. Genel başarısızlıklar JSON `error` ve uygun HTTP durumudur. Gövde tür/boyut hataları Axum'un 400/413/422 durumlarını kullanır.
+POST işlemleri paneldeki aynı işlevleri, kilitleri, denetim kaydını ve doğrulamayı kullanır. `csrf` alanı bot gövdesinde gerekmez; insan oturumunda zorunludur. `Accept: application/json` ile JSON yanıtı seçilir. UUID'ler yalnız botun kiracısında çözülür; başka kiracının kaydı 404 olur. Genel başarısızlıklar JSON `error` ve uygun HTTP durumudur. Gövde tür/boyut hataları Axum'un 400/413/422 durumlarını kullanır.
 
 | POST yolu | Gerekli veya anlamlı alanlar |
 |---|---|
@@ -79,3 +79,11 @@ Grup yayım hedeflerinin listeleme/oluşturma, tekli/toplu çalıştırma, sür�
 Grup sunucu profili ataması ve otomatik güncellemeler: [sözleşme ve sınırlar](grup-sunucu-profili.md).
 
 Sunucu AutoSign yönetimi: [GET/POST alanları ve CA onayı](autosign.md).
+
+## İnsan oturumu ve CLI
+
+`GET /api/manage/login`, giriş CSRF değerini ve giriş çerezini verir. `POST /api/manage/login`, aynı Origin ve CSRF kurallarıyla `email`, `password`, `csrf` kabul eder; oturum çerezini döndürür. `GET /api/manage/me` kimlik/rol/kiracı ve oturum CSRF bilgisidir. `POST /api/manage/logout` oturumu kapatır; `POST /api/manage/password` mevcut parolayla yeni parolayı kaydeder ve açık oturumları kapatır.
+
+Ek okuma yolları: `/dashboard`, `/panel/audit`, `/panel/account`, `/reports?hours=24`, `/usage.csv`; sunucuda `/servers/{id}/routing`, `/certificates`, `/installation` GET yolları ayar/sertifika/iş metaverisi döndürür. CSV ve anahtar indirme metin/dosya yanıtıdır; diğerleri JSON için `Accept: application/json` kullanır. Görüntülenen kaynakların kiracı/rol sınırları web ile aynıdır.
+
+`hoodmin-cli api login|get|post|logout` bu sözleşmeyi kullanır. İnsan isteklerine CSRF/Origin otomatik eklenir; onay/sürüm kanıtları kendiliğinden üretilmez. [CLI kılavuzu](cli.md).

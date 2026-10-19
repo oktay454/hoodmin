@@ -9,16 +9,17 @@ Hoodmin **لوحة مستقلة لإدارة VPN، متوافقة مع VpnHood**
 ## التثبيت على Debian 13 amd64
 
 1. وجّه اسم نطاق اللوحة، مثل `hoodmin.example.com`، إلى مضيفها وافتح TCP 80/443. يمكن تشغيل اللوحة وخادم VPN على جهازين وباسمَي نطاق منفصلين.
-2. نفّذ بصلاحيات root من مجلد الحزمة:
+2. جهّز ملف `/root/hoodmin-db.url` بصلاحيات 0600 يتضمن رابط اتصال التطبيق. يُجهّز PostgreSQL بشكل منفصل محليًا أو على خادم بعيد؛ الحزمة لا تفرض تثبيت خادم PostgreSQL. المثال التالي يستخدم خادمًا محليًا مثبتًا بشكل منفصل:
 
 ```bash
-apt install ./hoodmin_0.1.0-8~deb13u1_amd64.deb
+apt install ./hoodmin_0.2.0-1~deb13u1_amd64.deb
 systemctl enable --now postgresql
-hoodmin-db-setup
-hoodmin-create-owner vpn@example.com https://hoodmin.example.com
+hoodmin-cli config set --database-url-file /root/hoodmin-db.url --public-origin https://hoodmin.example.com
+hoodmin-cli database init --local
+hoodmin-cli owner-init --email vpn@example.com
 ```
 
-3. اضبط Nginx وشهادة HTTPS موثوقة باتباع [دليل التثبيت التفصيلي](docs/uretim-kurulumu.md). الدليل التفصيلي ودليل الاستخدام باللغة التركية. يجب أن تطابق `VHM_PUBLIC_ORIGIN` عنوان HTTPS العام تمامًا، دون شرطة مائلة نهائية. يوجّه Nginx الطلبات إلى `127.0.0.1:3080` ويستبدل رؤوس عنوان العميل بالقيمة الفعلية.
+3. اضبط Nginx وشهادة HTTPS موثوقة باتباع [دليل التثبيت التفصيلي](docs/uretim-kurulumu.md). الدليل التفصيلي ودليل الاستخدام باللغة التركية. يجب أن تطابق `public_origin` عنوان HTTPS العام تمامًا، دون شرطة مائلة نهائية. يوجّه Nginx الطلبات إلى `127.0.0.1:3080` ويستبدل رؤوس عنوان العميل بالقيمة الفعلية.
 4. بعد إعداد HTTPS شغّل اللوحة:
 
 ```bash
@@ -46,15 +47,16 @@ curl --fail --show-error https://hoodmin.example.com/healthz
 
 ## التشغيل والمراجع
 
+- [Rust CLI](docs/cli.md): التهيئة والصيانة وعمليات واجهة الإدارة.
 - [دليل Hoodmin](docs/elkitabi.md): القوائم والخادم الأول والمفاتيح والملفات والصلاحيات.
 - [AutoSign](docs/autosign.md): يجب أن يصل DNS وTCP 80 الخارجي إلى خادم VPN. ابدأ بهيئة الاختبار؛ لا تُطبّق شهادتها على VPN. يطبّق الوضع الحقيقي PFX بعد التحقق ويفحص التجديد كل 12 ساعة. لا تستخدم مؤقّت Certbot آخر لإدارة الشهادة نفسها.
-- [النسخ الاحتياطي والاستعادة](docs/yedekleme.md): نفّذ `hoodmin-backup` بصلاحيات root. احفظ نسخة قاعدة البيانات و`/var/lib/hoodmin/master.key` والإعدادات وشجرة `acme` معًا. انقل نسخة مشفرة إلى جهاز مستقل. يحتاج `hoodmin-backup-export` إلى حزمة `age` الاختيارية ومفتاح استعادة محفوظ بشكل مستقل. لا تُحذف النسخ القديمة تلقائيًا.
+- [النسخ الاحتياطي والاستعادة](docs/yedekleme.md): نفّذ `hoodmin-cli backup create` بصلاحيات root. احفظ نسخة قاعدة البيانات و`/var/lib/hoodmin/master.key` والإعدادات وشجرة `acme` معًا. انقل نسخة مشفرة إلى جهاز مستقل. يحتاج `hoodmin-cli backup export` إلى حزمة `age` الاختيارية ومفتاح استعادة محفوظ بشكل مستقل. لا تُحذف النسخ القديمة تلقائيًا.
 - [استكشاف الأخطاء](docs/sorun-giderme.md): استخدم `systemctl status hoodmin` و`journalctl -u hoodmin`.
 - [المعمارية](docs/mimari.md)، [API](docs/yonetim-api.md)، [البروتوكول](docs/protokol-uyumlulugu.md)، [البناء والتحقق](docs/dogrulama.md).
 
-البرنامج `/usr/bin/hoodmin`، والخدمة `hoodmin.service`، والإعدادات `/etc/hoodmin/hoodmin.env`، والبيانات `/var/lib/hoodmin`. اسم حساب الخدمة والمجموعة ودور PostgreSQL للتحقق المحلي هو `hoodmin`. اسم قاعدة البيانات `vpnhood_manager`. هذا الحساب هوية نظام محلية وليس حساب دخول للوحة. تستخدم الإعدادات `VHM_*` وملفات الارتباط `__Host-vhm_*`.
+البرنامج `/usr/bin/hoodmin`، والخدمة `hoodmin.service`، والإعدادات `/etc/hoodmin/hoodmin.json`، والبيانات `/var/lib/hoodmin`. اسم حساب الخدمة والمجموعة `hoodmin`. يُحدّد عنوان قاعدة البيانات والمنفذ واسمها وحسابها صراحة في إعدادات JSON. تستخدم الاتصالات المحلية peer، وتفرض اتصالات TCP القيمة `sslmode=verify-full`. هذا الحساب هوية نظام محلية وليس حساب دخول للوحة. تستخدم ملفات الارتباط `__Host-vhm_*`.
 
-يتطلب هذا الإصدار تثبيتًا جديدًا؛ لا تُنقل الحزم الأقدم من `0.1.0-8~deb13u1` تلقائيًا. للترقيات اللاحقة خذ نسخة احتياطية وأوقف الخدمة، ثم ثبّت الحزمة الجديدة ونفّذ `hoodmin-db-setup` وأعد تشغيل الخدمة. احتفظ بالمفتاح الرئيسي وملف البيئة. تحقّق من الاستعادة في قاعدة منفصلة قبل استبدال تثبيت قائم.
+يتطلب هذا الإصدار تثبيتًا جديدًا؛ لا تُنقل الحزم الأقدم من `0.2.0-1~deb13u1` تلقائيًا. للترقيات اللاحقة خذ نسخة احتياطية وأوقف الخدمة، ثم ثبّت الحزمة الجديدة ونفّذ `hoodmin-cli database init --local` وأعد تشغيل الخدمة. احتفظ بالمفتاح الرئيسي وملف إعدادات JSON. تحقّق من الاستعادة في قاعدة منفصلة قبل استبدال تثبيت قائم.
 
 ## نطاق الدعم
 

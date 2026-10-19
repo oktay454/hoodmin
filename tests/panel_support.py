@@ -21,8 +21,8 @@ import uuid
 ROOT = Path(__file__).resolve().parents[1]
 BASE = os.environ.get("VHM_TEST_ORIGIN", "https://vhm-test.oktayaktogan.com.tr")
 CONTEXT = ssl.create_default_context(cafile=os.environ.get("VHM_TEST_CA"))
-BINARY = "/usr/lib/vpnhood-manager/vpnhood-manager"
-ENV = dict(os.environ, DATABASE_URL="postgresql:///vpnhood_manager?host=/var/run/postgresql&user=hoodmin", VHM_MASTER_KEY_FILE="/var/lib/vpnhood-manager/master.key")
+BINARY = os.environ.get("VHM_TEST_BINARY", "/usr/bin/hoodmin-cli")
+ENV = dict(os.environ, DATABASE_URL=os.environ.get("VHM_TEST_DATABASE_URL", "postgresql:///hoodmin?host=/var/run/postgresql&user=hoodmin"), VHM_MASTER_KEY_FILE="/var/lib/hoodmin/master.key")
 WORK = Path(tempfile.mkdtemp(prefix="panel-test.", dir=ROOT / "work"))
 USER = pwd.getpwnam("hoodmin")
 os.chown(WORK, USER.pw_uid, USER.pw_gid)

@@ -41,7 +41,7 @@ real_ip_header X-Real-IP;
 
 Arka uçtan Rust'a `X-Forwarded-For $remote_addr` yazılmalıdır. İstemcinin kendi başlığını aynen geçirmeyin; tüm interneti güvenilir vekil saymayın.
 
-5. `/etc/hoodmin/hoodmin.env` içindeki `VHM_PUBLIC_ORIGIN` değerini genel HTTPS adresiyle eşleştirip Hoodmin'i yeniden başlatın.
+5. `/etc/hoodmin/hoodmin.json` içindeki `public_origin` değerini genel HTTPS adresiyle eşleştirip Hoodmin'i yeniden başlatın.
 6. Her Nginx'te `nginx -t` başarılı olduktan sonra yeniden yükleyin. Genel `/healthz`, giriş/form gönderimi ve canlı olay akışını kontrol edin.
 
 Genel ve arka uç sertifikalarının ikisinin de yenilemesini izleyin. WAF kullanılıyorsa agent ve yükleme isteklerinin gerçek içerik türlerini koruyun; şifreli düz metni otomatik JSON'a dönüştürmeyin. Ürünün standart veri biçimini vekil güvenlik kuralına göre değiştirmeyin.

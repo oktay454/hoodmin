@@ -145,7 +145,7 @@ request = urllib.request.Request(BASE + "/events")
 with admin.open.open(request, timeout=20) as response:
 	lines = [response.readline().decode() for _ in range(2)]
 	check(any("stats" in line for line in lines), "Canlı SSE göstergeleri HTTPS üzerinden iletildi")
-result = subprocess.run(["runuser", "-u", "hoodmin", "--", "psql", "-d", "vpnhood_manager", "-c", "DELETE FROM audit_events"], capture_output=True, text=True)
+result = subprocess.run(["runuser", "-u", "hoodmin", "--", "psql", "-d", "hoodmin", "-c", "DELETE FROM audit_events"], capture_output=True, text=True)
 check(result.returncode != 0, "Uygulama veri tabanı rolü denetim kayıtlarını silemedi")
 
 check(admin.post(f"/manage/servers/{server_a}/credential")[0] == 400, "Onaysız doğrudan kimlik yenileme reddedildi")
@@ -172,7 +172,8 @@ check("configCode" in agent(new_credential, "status", {}), "Tekrarlanan gönderi
 # Gerçek uzak sunucu sınamasında kullanılacak özel dosyalar Git dışında kalır.
 (WORK / "server-settings.json").write_text(json.dumps(settings))
 (WORK / "server-settings.json").chmod(0o600)
-(ROOT / "work/latest-panel-test").write_text(str(WORK))
+if not os.environ.get("VHM_TEST_ISOLATED"):
+	(ROOT / "work/latest-panel-test").write_text(str(WORK))
 # Ayrı hesapla giriş sınırını doğrular; mevcut panel hesaplarını kilitlemez.
 throttle_email, _ = account(TENANT_B, "viewer")
 throttled = Browser()

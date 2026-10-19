@@ -11,7 +11,7 @@ class Inputs(html.parser.HTMLParser):
 		if tag=='input' and 'name' in a:self.values[a['name']]=a.get('value','')
 
 def sql(query):
-	return subprocess.run(['runuser','-u','postgres','--','psql','-X','-v','ON_ERROR_STOP=1','-d','vpnhood_manager','-Atqc',query],text=True,capture_output=True,check=True).stdout.strip()
+	return subprocess.run(['runuser','-u','postgres','--','psql','-X','-v','ON_ERROR_STOP=1','-d','hoodmin','-Atqc',query],text=True,capture_output=True,check=True).stdout.strip()
 def version(browser,path):
 	return Inputs(browser.request(path)[1]).values['version']
 def native(credential):

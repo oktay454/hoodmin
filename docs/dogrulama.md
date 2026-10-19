@@ -29,12 +29,13 @@ dpkg-buildpackage -b -us -uc
 
 Bunlar **ayrılmış QA ortamı** içindir; üretimde doğrudan çalıştırmayın. Bazıları sunucu ayarlarını/sertifikasını değiştirir, HTTP alıcısı açar veya hizmeti yeniden başlatır. Önce her dosyanın ön koşullarını ve hedefini okuyun.
 
-`tests/panel_support.py` varsayılan olarak QA `vpnhood-manager` ikilisini, `vpnhood_manager` veritabanını ve `hoodmin` rolünü kullanır; paket kurulumunun yollarıyla aynı değildir. HTTPS kökü `VHM_TEST_ORIGIN`, özel CA `VHM_TEST_CA` ile seçilir. Origin denetimi açık kalmalıdır; sertifika denetimini kapatmayın.
+`tests/panel_support.py` varsayılan olarak `/usr/bin/hoodmin-cli`, yerel `hoodmin` veritabanı ve rolünü kullanır. HTTPS kökü `VHM_TEST_ORIGIN`, özel CA `VHM_TEST_CA` ile seçilir. Origin denetimi açık kalmalıdır; sertifika denetimini kapatmayın.
 
 | Araç | Amaç |
 |---|---|
 | `scripts/test-contract.sh`, `tests/ContractProbe` | Gerçek .NET türleriyle protokol/anahtar/istemci kanıtı karşılaştırması. |
 | `tests/test_panel.py` | Panel oturumu, roller, kiracı ayrımı, anahtarlar ve kimlik yenileme onayı. |
+| `tests/test_runtime_cli.py` | Yapılandırılmamış başlangıç, TLS veritabanı, CLI/insan/bot API, bağlantı kaybı ve toparlanma. |
 | `tests/test_preferences.py` | Dil, tema, güvenli çerezler ve yönlendirme sınırları. |
 | `tests/test_contract_features.py` | Gelişmiş ayarlar ve erişim sözleşmeleri. |
 | `tests/test_farm_rewards.py` | Grup yönlendirmesi, kota/ödül kararları. |

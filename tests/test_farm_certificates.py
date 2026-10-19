@@ -14,7 +14,7 @@ class Values(html.parser.HTMLParser):
 
 control=json.loads((ROOT/'work/ssh-install-qa/control.json').read_text());tenant=control['tenant'];target=control['server']
 admin=Browser();assert admin.login(control['email'],control['password'])[0]==303;admin.request('/panel')
-def sql(query):return subprocess.run(['runuser','-u','postgres','--','psql','-d','vpnhood_manager','-v','ON_ERROR_STOP=1','-At'],input=query,text=True,capture_output=True,check=True).stdout.strip()
+def sql(query):return subprocess.run(['runuser','-u','postgres','--','psql','-d','hoodmin','-v','ON_ERROR_STOP=1','-At'],input=query,text=True,capture_output=True,check=True).stdout.strip()
 old=json.loads(sql(f"SELECT json_build_object('name',name,'farm',farm_id,'configuration',encode(configuration,'base64'),'code',config_code) FROM servers WHERE tenant_id='{tenant}' AND id='{target}'"))
 p=WORK/'target-before.json';p.write_text(json.dumps(old));p.chmod(0o600)
 def applied():

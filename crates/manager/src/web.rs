@@ -210,7 +210,7 @@ impl From<sqlx_core::error::Error> for PanelError {
 	}
 }
 fn secret_response(user: &User, title: &str, description: &str, value: &str) -> Response {
-	if user.bot {
+	if user.json {
 		axum::Json(json!({"value":value})).into_response()
 	} else {
 		views::secret(user, title, description, value).into_response()
@@ -378,6 +378,7 @@ async fn login(
 			role,
 			csrf,
 			bot: false,
+			json: false,
 		},
 		"Oturum açıldı",
 		"panel",
@@ -471,7 +472,11 @@ async fn render(
 		return Err(bad("Arama veya sayfa numarası geçersiz."));
 	}
 	let data = views::load(&state.store, &user, &filter.q, filter.p, page).await?;
-	Ok(views::panel(page, &user, data, &filter.notice).into_response())
+	Ok(if user.json {
+		axum::Json(serde_json::to_value(data).map_err(anyhow::Error::from)?).into_response()
+	} else {
+		views::panel(page, &user, data, &filter.notice).into_response()
+	})
 }
 #[derive(Deserialize)]
 struct FarmForm {
@@ -560,7 +565,7 @@ async fn add_server(
 	let settings =
 		serde_json::to_string_pretty(&crate::install::settings(&state.origin, &credential))
 			.map_err(anyhow::Error::from)?;
-	Ok(if user.bot {
+	Ok(if user.json {
 		axum::Json(json!({"id":id,"settings":serde_json::from_str::<serde_json::Value>(&settings).map_err(anyhow::Error::from)?})).into_response()
 	} else {
 		views::installation(&user, id, &settings).into_response()
@@ -587,7 +592,7 @@ async fn confirm_credential(
 		.await?
 		.ok_or(PanelError(StatusCode::NOT_FOUND, "Sunucu bulunamadı."))?;
 	let proof = rotation_confirmation(&row.get::<Vec<u8>, _>("credential_hash"), &user.csrf);
-	Ok(if user.bot {
+	Ok(if user.json {
 		axum::Json(json!({"confirmation":proof})).into_response()
 	} else {
 		views::confirm_credential(&user, id, &row.get::<String, _>("name"), &proof).into_response()
@@ -815,7 +820,7 @@ async fn server_configuration(
 		&format!("{}:{id}:config", user.tenant),
 	)?)
 	.map_err(anyhow::Error::from)?;
-	if user.bot {
+	if user.json {
 		return Ok(axum::Json(json!({"id":id,"name":row.get::<String,_>("name"),"base_code":row.get::<String,_>("config_code"),"settings":vpnhood_protocol::config::editable(&config),"status":row.get::<Option<serde_json::Value>,_>("status")})).into_response());
 	}
 	Ok(views::configuration(
@@ -874,7 +879,7 @@ async fn save_configuration(
 		.map_err(|e| e.to_string())
 		.and_then(vpnhood_protocol::config::validate);
 	if let Err(error) = validation {
-		if user.bot {
+		if user.json {
 			return Ok(
 				(StatusCode::BAD_REQUEST, axum::Json(json!({"error":error}))).into_response(),
 			);
@@ -1010,7 +1015,7 @@ async fn add_tokens(
 	)
 	.await?;
 	tx.commit().await?;
-	if user.bot {
+	if user.json {
 		return Ok(axum::Json(json!({"keys":keys.into_iter().map(|(id,name,key)|json!({"id":id,"name":name,"key":key})).collect::<Vec<_>>()})).into_response());
 	}
 	let text = keys
@@ -1628,6 +1633,9 @@ async fn server_routing(
 	.map_err(anyhow::Error::from)?;
 	let policy: crate::farms::ServerPolicy =
 		serde_json::from_value(row.get("management")).map_err(anyhow::Error::from)?;
+	if user.json {
+		return Ok(axum::Json(json!({"id":id,"base_code":row.get::<String,_>("config_code"),"policy":policy,"advertisement":crate::farms::advertisement(&config)})).into_response());
+	}
 	Ok(views::routing(
 		&user,
 		id,
@@ -1813,7 +1821,11 @@ async fn installation(
 	query("UPDATE install_jobs SET status='Failed',finished_at=now(),log='Yürütücü tamamlanamadı veya yeniden başlatıldı. Hedefi kontrol edip yeniden deneyin.' WHERE tenant_id=$1 AND server_id=$2 AND ((status='Queued' AND created_at<now()-interval '15 minutes') OR (status='Running' AND started_at<now()-interval '15 minutes'))").bind(user.tenant).bind(id).execute(&mut *tx).await?;
 	let jobs=query("SELECT id,status,log,created_at FROM install_jobs WHERE tenant_id=$1 AND server_id=$2 ORDER BY created_at DESC LIMIT 25").bind(user.tenant).bind(id).fetch_all(&mut *tx).await?.into_iter().map(|r|views::InstallJob{id:r.get("id"),status:r.get("status"),log:r.get("log"),time:r.get::<DateTime<Utc>,_>("created_at").to_rfc3339()}).collect();
 	tx.commit().await?;
-	Ok(views::ssh_installation(&user, id, &name, jobs).into_response())
+	Ok(if user.json {
+		axum::Json(json!({"id":id,"name":name,"jobs":jobs})).into_response()
+	} else {
+		views::ssh_installation(&user, id, &name, jobs).into_response()
+	})
 }
 #[derive(Deserialize)]
 struct InstallForm {
@@ -2054,6 +2066,9 @@ async fn server_certificates(
 		&format!("{}:{id}:config", user.tenant),
 	)?)
 	.map_err(anyhow::Error::from)?;
+	if user.json {
+		return Ok(axum::Json(json!({"id":id,"base_code":row.get::<String,_>("config_code"),"certificates":crate::certificates::describe(&config)})).into_response());
+	}
 	Ok(views::certificates(
 		&user,
 		id,
@@ -2477,6 +2492,9 @@ async fn reports(
 			)
 		})
 		.unwrap_or_default();
+	if user.json {
+		return Ok(axum::Json(json!({"servers":servers,"server":server,"hours":filter.hours,"samples":samples,"countries":countries,"range":range})).into_response());
+	}
 	Ok(views::reports(
 		&user,
 		servers,
@@ -2671,18 +2689,53 @@ fn json_text<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<String
 		.unwrap_or_else(|| value.to_string()))
 }
 fn api_result(result: Result<Response, PanelError>) -> Response {
-	match result{
-		Err(PanelError(code,message))=>(code,axum::Json(json!({"error":message}))).into_response(),
-		Ok(response) if response.status().is_redirection()=>(StatusCode::ACCEPTED,axum::Json(json!({"status":"accepted","location":response.headers().get(header::LOCATION).and_then(|v|v.to_str().ok())}))).into_response(),
-		Ok(response) if response.headers().get(header::CONTENT_TYPE).and_then(|v|v.to_str().ok()).is_some_and(|v|v.starts_with("text/html"))=>(response.status(),axum::Json(if response.status().is_success(){json!({"status":"ok"})}else{json!({"error":"İstek tamamlanamadı."})})).into_response(),
-		Ok(response)=>response
+	match result {
+		Err(PanelError(code, message)) => {
+			(code, axum::Json(json!({"error":message}))).into_response()
+		}
+		Ok(response) if response.status().is_redirection() => {
+			let location = response
+				.headers()
+				.get(header::LOCATION)
+				.and_then(|v| v.to_str().ok())
+				.map(str::to_owned);
+			let mut result = (
+				StatusCode::ACCEPTED,
+				axum::Json(json!({"status":"accepted","location":location})),
+			)
+				.into_response();
+			for cookie in response.headers().get_all(header::SET_COOKIE) {
+				result
+					.headers_mut()
+					.append(header::SET_COOKIE, cookie.clone());
+			}
+			result
+		}
+		Ok(response)
+			if response
+				.headers()
+				.get(header::CONTENT_TYPE)
+				.and_then(|v| v.to_str().ok())
+				.is_some_and(|v| v.starts_with("text/html")) =>
+		{
+			(
+				response.status(),
+				axum::Json(if response.status().is_success() {
+					json!({"status":"ok"})
+				} else {
+					json!({"error":"İstek tamamlanamadı."})
+				}),
+			)
+				.into_response()
+		}
+		Ok(response) => response,
 	}
 }
 async fn api_preflight(state: &WebState, headers: &HeaderMap) -> Result<(), PanelError> {
-	if auth::bot_user(&state.store, headers).await?.is_none() {
+	if auth::user(&state.store, headers).await?.is_none() {
 		return Err(PanelError(
 			StatusCode::UNAUTHORIZED,
-			"Geçerli bot API anahtarı gerekli.",
+			"Geçerli oturum veya bot API anahtarı gerekli.",
 		));
 	}
 	Ok(())
@@ -2728,6 +2781,8 @@ macro_rules! json_read {
 		}
 	};
 }
+json_write!(api_logout, CsrfForm, logout);
+json_write!(api_password, PasswordForm, change_password);
 json_write!(api_add_server, ServerForm, add_server);
 json_write!(api_add_farm, FarmForm, add_farm);
 json_write!(
@@ -2791,6 +2846,9 @@ json_write!(api_tenant, FarmForm, update_tenant);
 json_write!(api_integration, ConfirmForm, configure_ad_hook);
 json_write!(api_add_bot, BotForm, create_bot);
 json_write!(api_revoke_bot, Uuid, ConfirmForm, revoke_bot);
+json_read!(api_get_routing, Uuid, server_routing);
+json_read!(api_get_certificates, Uuid, server_certificates);
+json_read!(api_get_installation, Uuid, installation);
 json_read!(api_get_configuration, Uuid, server_configuration);
 json_read!(api_get_credential, Uuid, confirm_credential);
 json_read!(api_get_key, Uuid, token_key);
@@ -2823,17 +2881,34 @@ json_list!(api_users, "users");
 json_list!(api_bots, "bots");
 fn management_api() -> Router<WebState> {
 	Router::new()
+		.route("/login", get(api_login_form).post(api_login))
+		.route("/me", get(api_me))
+		.route("/logout", post(api_logout))
+		.route("/password", post(api_password))
+		.route("/dashboard", get(dashboard))
+		.route("/panel/{page}", get(page))
+		.route("/reports", get(reports))
+		.route("/usage.csv", get(export_csv))
 		.route("/servers", get(api_servers).post(api_add_server))
 		.route("/servers/{id}", post(api_edit_server))
 		.route(
 			"/servers/{id}/configuration",
 			get(api_get_configuration).post(api_configuration),
 		)
-		.route("/servers/{id}/routing", post(api_routing))
-		.route("/servers/{id}/certificates", post(api_certificates))
+		.route(
+			"/servers/{id}/routing",
+			get(api_get_routing).post(api_routing),
+		)
+		.route(
+			"/servers/{id}/certificates",
+			get(api_get_certificates).post(api_certificates),
+		)
 		.route("/servers/{id}/challenge", post(api_challenge))
 		.route("/servers/{id}/publish", post(api_publish))
-		.route("/servers/{id}/installation", post(api_install))
+		.route(
+			"/servers/{id}/installation",
+			get(api_get_installation).post(api_install),
+		)
 		.route(
 			"/servers/{id}/credential",
 			get(api_get_credential).post(api_rotate),
@@ -3000,7 +3075,7 @@ async fn farm_server_profile(
 				)
 			})
 			.collect::<Vec<_>>();
-	if user.bot {
+	if user.json {
 		return Ok(axum::Json(json!({"id":id,"name":farm.get::<String,_>("name"),"version":farm.get::<Uuid,_>("version"),"profile":farm.get::<Option<Uuid>,_>("server_profile_id"),"members":farm.get::<i64,_>("members"),"profiles":profiles.iter().map(|(id,name,version)|json!({"id":id,"name":name,"version":version})).collect::<Vec<_>>()})).into_response());
 	}
 	Ok(views::farm_server_profile(
@@ -3433,7 +3508,7 @@ async fn destination_page(
 		.iter()
 		.map(crate::publication::overview)
 		.collect::<Vec<_>>();
-	if user.bot {
+	if user.json {
 		return Ok(axum::Json(json!({"items":destinations})).into_response());
 	}
 	let servers =
@@ -3799,7 +3874,7 @@ async fn autosign(
 		.await?
 		.ok_or(PanelError(StatusCode::NOT_FOUND, "Sunucu bulunamadı."))?;
 	let data:Option<serde_json::Value>=query_scalar("SELECT jsonb_build_object('id',id,'version',version,'domain',domain,'email',email,'staging',staging,'enabled',enabled,'status',status,'message',message,'last_attempt',last_attempt,'last_success',last_success,'expires_at',expires_at,'next_due',next_due) FROM acme_orders WHERE tenant_id=$1 AND server_id=$2").bind(user.tenant).bind(server).fetch_optional(&mut *tx).await?;
-	if user.bot {
+	if user.json {
 		return Ok(axum::Json(json!({"server":server,"order":data})).into_response());
 	}
 	Ok(views::autosign(&user, server, &name, data).into_response())
@@ -3878,4 +3953,29 @@ async fn save_autosign(
 	.await?;
 	tx.commit().await?;
 	Ok(Redirect::to(&format!("/manage/servers/{server}/autosign")).into_response())
+}
+
+async fn api_login_form() -> Response {
+	let csrf = auth::nonce();
+	(
+		[(
+			header::SET_COOKIE,
+			auth::cookie_header(auth::LOGIN_COOKIE, &csrf, 600),
+		)],
+		axum::Json(json!({"csrf":csrf})),
+	)
+		.into_response()
+}
+async fn api_login(
+	State(state): State<WebState>,
+	headers: HeaderMap,
+	axum::Json(form): axum::Json<LoginForm>,
+) -> Response {
+	api_result(login(State(state), headers, Form(form)).await)
+}
+async fn api_me(State(state): State<WebState>, headers: HeaderMap) -> Response {
+	api_result(async {
+		let user=require(&state,&headers,None,Permission::Read).await?;
+		Ok(axum::Json(json!({"id":user.id,"tenant":user.tenant,"email":user.email,"role":user.role,"csrf":user.csrf,"bot":user.bot})).into_response())
+	}.await)
 }

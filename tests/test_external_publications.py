@@ -12,7 +12,7 @@ class Values(html.parser.HTMLParser):
 		if tag=='input' and 'name' in a:self.values[a['name']]=a.get('value','')
 
 def sql(query):
-	return subprocess.run(['runuser','-u','postgres','--','psql','-X','-d','vpnhood_manager','-Atqc',query],capture_output=True,text=True,check=True).stdout.strip()
+	return subprocess.run(['runuser','-u','postgres','--','psql','-X','-d','hoodmin','-Atqc',query],capture_output=True,text=True,check=True).stdout.strip()
 
 control=json.loads((ROOT/'work/ssh-install-qa/control.json').read_text())
 admin=Browser();assert admin.login(control['email'],control['password'])[0]==303;admin.request('/panel')
@@ -105,7 +105,7 @@ check(viewer.post(endpoint,**form,confirmed='true')[0]==403,'Gözlemci yayım he
 outsider=Browser();email,_=account(str(uuid.uuid4()),'admin');assert outsider.login(email)[0]==303;outsider.request('/panel')
 check(outsider.post(endpoint,**form,confirmed='true')[0]==404,'Başka kiracı grubuna yayım hedefi eklenemedi')
 other_tenant=str(uuid.uuid4())
-assert subprocess.run(['runuser','-u','hoodmin','--','psql','-X','-d','vpnhood_manager','-Atqc',f"SET app.tenant_id='{other_tenant}'; SELECT count(*) FROM external_publications WHERE tenant_id='{tenant}';"],capture_output=True,text=True,check=True).stdout.strip()=='0'
+assert subprocess.run(['runuser','-u','hoodmin','--','psql','-X','-d','hoodmin','-Atqc',f"SET app.tenant_id='{other_tenant}'; SELECT count(*) FROM external_publications WHERE tenant_id='{tenant}';"],capture_output=True,text=True,check=True).stdout.strip()=='0'
 check(True,'Uygulama DB rolü başka kiracının yayım satırlarını RLS üzerinden okuyamadı')
 for bad_url in ['https://127.0.0.1/','https://169.254.169.254/','http://example.com/','https://user:pass@example.com/','https://[::1]/']:
 	invalid={**form,'upload_url':bad_url}

@@ -322,7 +322,7 @@ pub async fn launch(store: Store, tenant: Uuid, job: Uuid, parameters: SshInstal
 		Ok(v) => v,
 		Err(_) => return,
 	};
-	let path = PathBuf::from("/run/vpnhood-manager").join(job.to_string());
+	let path = PathBuf::from("/run/hoodmin").join(job.to_string());
 	let result=async{
 		let mut tx=store.begin(tenant).await?;let updated=query("UPDATE install_jobs SET status='Running',started_at=now() WHERE tenant_id=$1 AND id=$2 AND status='Queued'").bind(tenant).bind(job).execute(&mut *tx).await?;ensure!(updated.rows_affected()==1,"İş artık sırada değil");tx.commit().await?;
 		std::fs::create_dir(&path)?;std::fs::set_permissions(&path,std::fs::Permissions::from_mode(0o700))?;

@@ -1,3 +1,12 @@
+hoodmin (0.2.0-1~deb13u1) unstable; urgency=medium
+
+  * Support external PostgreSQL with verified TLS; no server dependency.
+  * Keep the HTTP service running while configuration/database is unavailable.
+  * Add the Rust hoodmin-cli for setup, maintenance and shared management API.
+  * Support human API sessions with CSRF and the existing bot authorization.
+
+ -- Hoodmin maintainers <vpn@oktayaktogan.com.tr>  Tue, 20 Oct 2026 00:00:00 +0300
+
 hoodmin (0.1.0-8~deb13u1) unstable; urgency=medium
 
   * Use hoodmin for the system account, group and PostgreSQL peer role.

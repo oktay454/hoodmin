@@ -9,7 +9,7 @@ class Inputs(html.parser.HTMLParser):
 		a=dict(attrs)
 		if tag=='input' and 'name' in a:self.values[a['name']]=a.get('value','')
 def sql(q):
-	return subprocess.run(['runuser','-u','postgres','--','psql','-X','-Atqc',q,'vpnhood_manager'],check=True,capture_output=True,text=True).stdout.strip()
+	return subprocess.run(['runuser','-u','postgres','--','psql','-X','-Atqc',q,'hoodmin'],check=True,capture_output=True,text=True).stdout.strip()
 tenant=str(uuid.uuid4());email,_=account(tenant,'admin');reader,_=account(tenant,'viewer');outsider,_=account(str(uuid.uuid4()),'admin')
 admin,viewer,other=Browser(),Browser(),Browser()
 for b,e in [(admin,email),(viewer,reader),(other,outsider)]:

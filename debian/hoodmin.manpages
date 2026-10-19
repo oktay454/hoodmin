@@ -1,6 +1,2 @@
 deploy/man/hoodmin.8
-deploy/man/hoodmin-db-setup.8
-deploy/man/hoodmin-create-owner.8
-deploy/man/hoodmin-backup.8
-deploy/man/hoodmin-acme.8
-deploy/man/hoodmin-backup-export.8
+deploy/man/hoodmin-cli.8

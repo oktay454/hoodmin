@@ -44,7 +44,7 @@ check(other.request('/reports?hours=24&server='+a)[0]==404,'Başka kiracının r
 check(admin.request('/reports?hours=0')[0]==400,'Desteklenmeyen rapor dönemi reddedildi')
 check(admin.request('/reports?hours=744&server=')[0]==200,'Boş sunucu filtresiyle 31 günlük rapor çalıştı')
 query=f"SELECT heartbeat_seconds FROM servers WHERE tenant_id='{first}' AND id='{a}'"
-value=subprocess.run(['runuser','-u','postgres','--','psql','-d','vpnhood_manager','-Atqc',query],check=True,capture_output=True,text=True).stdout.strip()
+value=subprocess.run(['runuser','-u','postgres','--','psql','-d','hoodmin','-Atqc',query],check=True,capture_output=True,text=True).stdout.strip()
 check(value=='360','Çevrimiçi toleransı ayarlanan 120 saniyenin üç katına uyarlandı')
 code,body,_=admin.post('/manage/tokens',server=a,name='Bilgi sınaması',count=1,max_clients=1,max_gib=0,profile='',expires='')
 key='vh://'+Fields(body).output.split('vh://',1)[1].strip()

@@ -17,6 +17,7 @@ using VpnHood.Net.Toolkit.Utils;
 if (args.Length < 2)
 	throw new ArgumentException("prepare <work-directory> | probe <work-directory> [base-url]");
 var work = Path.GetFullPath(args[1]);
+var managerBaseUrl = Environment.GetEnvironmentVariable("VHM_TEST_AGENT_ORIGIN") ?? "http://127.0.0.1:3080";
 Directory.CreateDirectory(work);
 if (args[0] == "prepare") {
 	using var cert = CertificateUtil.CreateSelfSigned("CN=vpnhood-test.invalid", DateTimeOffset.UtcNow.AddDays(30));
@@ -46,7 +47,7 @@ if (args[0] == "prepare") {
 }
 if (args[0] == "check-config") {
 	var credential = File.ReadAllText(Path.Combine(work, "server-a.credential")).Trim();
-	using var manager = new HttpAccessManager(new HttpAccessManagerOptions(new Uri("http://127.0.0.1:3080"), "Bearer " + credential));
+	using var manager = new HttpAccessManager(new HttpAccessManagerOptions(new Uri(managerBaseUrl), "Bearer " + credential));
 	using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(10));
 	var config = await manager.Server_Configure(new ServerInfo {
 		Version = new Version("9.0.856"), EnvironmentVersion = Environment.Version,
@@ -77,7 +78,7 @@ if (args[0] == "check-extended") {
 	var options = new JsonSerializerOptions(JsonSerializerDefaults.Web) { UnmappedMemberHandling = System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow };
 	var expected = JsonSerializer.Deserialize<ServerConfig>(File.ReadAllText(Path.Combine(work, "expected-settings.json")), options)!;
 	var credential = File.ReadAllText(Path.Combine(work, "server-a.credential")).Trim();
-	using var manager = new HttpAccessManager(new HttpAccessManagerOptions(new Uri("http://127.0.0.1:3080"), "Bearer " + credential));
+	using var manager = new HttpAccessManager(new HttpAccessManagerOptions(new Uri(managerBaseUrl), "Bearer " + credential));
 	using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(10));
 	var actual = await manager.Server_Configure(new ServerInfo { Version = new Version("9.0.856"), EnvironmentVersion = Environment.Version, PrivateIpAddresses = [], PublicIpAddresses = [], Status = new ServerStatus() }, deadline.Token);
 	var expectedNode = JsonSerializer.SerializeToNode(expected,options)!.AsObject();
@@ -101,7 +102,7 @@ if (args[0] == "make-request") {
 if (args[0] == "one-session") {
 	var credential = File.ReadAllText(Path.Combine(work, "server-a.credential")).Trim();
 	var token = Token.FromAccessKey(File.ReadAllText(Path.Combine(work, "token-a.vh")));
-	using var manager = new HttpAccessManager(new HttpAccessManagerOptions(new Uri("http://127.0.0.1:3080"), "Bearer " + credential));
+	using var manager = new HttpAccessManager(new HttpAccessManagerOptions(new Uri(managerBaseUrl), "Bearer " + credential));
 	using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(10));
 	var session = await manager.Session_Create(Request(token, Guid.NewGuid().ToString()), deadline.Token);
 	if (session.ErrorCode != SessionErrorCode.Ok) throw new InvalidOperationException("Sınama oturumu açılamadı.");

@@ -1,9 +1,12 @@
-.TH HOODMIN 8 "2026-10-18" "Hoodmin 0.1.0" "System Administration"
+.TH HOODMIN 8 "2026-10-19" "Hoodmin 0.2.0" "System Administration"
 .SH NAME
-hoodmin \- independent VPN management panel
+hoodmin \- VPN management HTTP service
 .SH SYNOPSIS
-.B hoodmin --help
+.B hoodmin --config /etc/hoodmin/hoodmin.json
 .SH DESCRIPTION
-Run as the unprivileged hoodmin account. DATABASE_URL and VHM_MASTER_KEY_FILE are required. The serve command listens only on loopback and requires an HTTPS reverse proxy. Configuration is in /etc/hoodmin/hoodmin.env. See the packaged production setup guide before initializing an instance.
+Run as the unprivileged hoodmin account behind a trusted HTTPS reverse proxy.
+The HTTP service remains available when configuration or PostgreSQL is unavailable.
+/healthz reports process liveness; /readyz reports application readiness.
+Connection details are logged server-side and are not sent to the browser.
 .SH SEE ALSO
-/usr/share/doc/hoodmin/docs/uretim-kurulumu.md
+hoodmin-cli(8), /usr/share/doc/hoodmin/docs/uretim-kurulumu.md

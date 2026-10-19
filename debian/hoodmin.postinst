@@ -18,7 +18,7 @@ then
 		head -c 32 /dev/urandom >/var/lib/hoodmin/master.key
 		chown hoodmin:hoodmin /var/lib/hoodmin/master.key
 	fi
-	chown root:hoodmin /etc/hoodmin/hoodmin.env
-	chmod 0640 /etc/hoodmin/hoodmin.env
+	chown root:hoodmin /etc/hoodmin/hoodmin.json
+	chmod 0640 /etc/hoodmin/hoodmin.json
 fi
 #DEBHELPER#

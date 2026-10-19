@@ -5,20 +5,23 @@ Komutlar panel makinesinde root oturumu içindir. Kapsayıcı kullanıyorsanız 
 ## Panel açılmıyor
 
 ```bash
-systemctl status hoodmin.service nginx postgresql --no-pager
+hoodmin-cli service status
+systemctl status nginx --no-pager
 journalctl -u hoodmin.service -n 100 --no-pager
 nginx -t
 curl --fail --show-error http://127.0.0.1:3080/healthz
+curl --fail --show-error http://127.0.0.1:3080/readyz
 ```
 
-- Hizmet başlamıyorsa `/etc/hoodmin/configured`, ortam dosyası, veritabanı geçişleri ve ana anahtarın sahiplik/izinlerini kontrol edin.
+- HTTP hizmeti çalışıp `/readyz` 503 veriyorsa veritabanı bağlantısı, TLS, şema ve ana anahtarı denetleyin. Hizmet bunlar olmadan da ayakta kalır; ayrıntı günlüktedir.
+- Hizmet başlamıyorsa yapılandırma JSON dosyası, veritabanı geçişleri ve ana anahtarın sahiplik/izinlerini kontrol edin.
 - İç sağlık yolu çalışıp genel HTTPS çalışmıyorsa DNS, sertifika, Nginx ve NAT yolunu kontrol edin.
 - `502/504` için ters vekil hata günlüğüne bakın. Çok katmanlı vekilde her bağlantıyı kendi sertifika adıyla doğrulayın; TLS doğrulamasını kapatmayın.
-- Formlar 403 alıyorsa `VHM_PUBLIC_ORIGIN` ile tarayıcının adresi (şema, ad ve port) eşleşmelidir. Alan adı değişince yeniden giriş yapın.
+- Formlar 403 alıyorsa `public_origin` ile tarayıcının adresi (şema, ad ve port) eşleşmelidir. Alan adı değişince yeniden giriş yapın.
 
 ## İlk erişim bilgileri nerede?
 
-Kurulum sırasında verdiğiniz e-posta ve rastgele parola `/root/hoodmin-first-owner.json` içindedir. Dosya **panelin kurulduğu makinede/kapsayıcıdadır**. `hoodmin` panel kullanıcı adı değildir. Parola ilk girişten sonra değiştirildiyse dosyadaki ilk parola artık geçerli değildir. Mevcut hesapta `hoodmin-create-owner` çalıştırmak parolayı sıfırlamaz.
+Kurulum sırasında verdiğiniz e-posta ve rastgele parola `/root/hoodmin-first-owner.json` içindedir. Dosya **panelin kurulduğu makinede/kapsayıcıdadır**. `hoodmin` panel kullanıcı adı değildir. Parola ilk girişten sonra değiştirildiyse dosyadaki ilk parola artık geçerli değildir. Mevcut hesapta `hoodmin-cli owner-init` çalıştırmak parolayı sıfırlamaz.
 
 ## VPN sunucusu çevrimdışı
 

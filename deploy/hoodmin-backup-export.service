@@ -1,14 +1,14 @@
 [Unit]
 Description=Create an encrypted Hoodmin backup
-After=postgresql.service
+After=network-online.target
 [Service]
 Type=oneshot
-ExecStart=/usr/sbin/hoodmin-backup-export
+ExecStart=/usr/bin/hoodmin-cli backup export
 UMask=0077
 NoNewPrivileges=yes
 PrivateTmp=yes
 ProtectSystem=strict
 ProtectHome=read-only
 ReadWritePaths=/var/backups/hoodmin
-RestrictAddressFamilies=AF_UNIX
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 TimeoutStartSec=30min

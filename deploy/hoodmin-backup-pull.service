@@ -4,7 +4,7 @@ After=network-online.target
 Wants=network-online.target
 [Service]
 Type=oneshot
-ExecStart=/usr/local/sbin/hoodmin-backup-pull
+ExecStart=/usr/bin/hoodmin-cli backup pull --host panel.example.com --user root --identity /root/.ssh/hoodmin-backup-pull --known-hosts /root/.ssh/hoodmin-backup-known-hosts
 UMask=0077
 NoNewPrivileges=yes
 PrivateTmp=yes
