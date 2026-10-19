@@ -64,7 +64,7 @@ cargo clippy --workspace --all-targets --locked -- -D warnings
 cargo audit --deny warnings
 ```
 
-`cargo audit` must be installed separately. The latest recorded checks passed 22 Rust tests, the real HTTPS/PostgreSQL/.NET panel/protocol/profile/report suites and theme/language HTTPS checks; this is not a general security guarantee.
+`cargo audit` must be installed separately. The latest recorded checks passed 25 Rust tests, the real HTTPS/PostgreSQL/.NET panel/protocol/profile/report suites and theme/language HTTPS checks; this is not a general security guarantee.
 
 A Debian 13 amd64 `.deb` package is available; fresh installation, upgrade, migration checksums and recovery have been tested. See the [production guide](docs/uretim-kurulumu.md) and [deployment record](docs/uretim-ortami.md). `scripts/setup-test-manager.sh` and `scripts/setup-test-tls.sh` target dedicated test environments only; do not blindly rerun them on an existing deployment. The TLS script creates a private, short-lived test CA rather than a production certificate solution. Consult the [VPS reverse-proxy notes](docs/vps-ters-vekil.md) for the legacy test deployment. Keep certificate verification enabled.
 
@@ -73,7 +73,7 @@ For packaged deployments use `hoodmin-create-owner EMAIL HTTPS_ORIGIN`, describe
 ## Limitations and remaining work
 
 - Real ACME issuance/renewal and PFX deployment are verified through an external Certbot worker. Tenant self-service AutoSign configuration is not implemented.
-- Encrypted server/group address publishing supports HTTPS GET. External POST/PUT publishing jobs and automatic propagation through farm-level server profile assignment remain unimplemented.
+- Encrypted address publishing supports HTTPS GET and external PUT/POST or multipart uploads, with durable scheduling, file verification, bot API and tenant isolation. See [usage and limits](docs/harici-adres-yayimi.md). Automatic configuration propagation through farm-level server profile assignment remains unimplemented.
 - Client policies are advertised; closed-source commercial country-plan decisions are not claimed to be identical. Rewarded ads require a trusted server verifier, not an unverified client report or direct ad-network integration.
 - Debian packaging, encrypted remote backups and isolated recovery work. Master-key rotation and external failure notifications remain unfinished. Job states persist, but interrupted installations are not retried automatically.
 - Tenant creation uses CLI; public signup/platform administration is absent.

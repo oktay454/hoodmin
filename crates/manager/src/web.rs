@@ -54,6 +54,17 @@ pub fn router(state: WebState) -> Router {
 		.route("/manage/bots/{id}/revoke", post(revoke_bot))
 		.route("/manage/farms", post(add_farm))
 		.route(
+			"/manage/farms/{id}/destinations",
+			get(destination_page).post(destination_create),
+		)
+		.route("/manage/farms/{id}/push", post(destinations_push_all))
+		.route(
+			"/manage/publications/{id}",
+			get(destination_edit).post(destination_update),
+		)
+		.route("/manage/publications/{id}/push", post(destination_push))
+		.route("/manage/publications/{id}/remove", post(destination_remove))
+		.route(
 			"/manage/farms/{id}/publication",
 			get(farm_publication).post(enable_farm_publication),
 		)
@@ -2780,6 +2791,14 @@ fn management_api() -> Router<WebState> {
 		)
 		.route("/install-jobs/{id}", get(api_install_status))
 		.route("/farms", get(api_farms).post(api_add_farm))
+		.route(
+			"/farms/{id}/destinations",
+			get(api_destinations).post(api_destination_create),
+		)
+		.route("/farms/{id}/push", post(api_destinations_push_all))
+		.route("/publications/{id}", post(api_destination_update))
+		.route("/publications/{id}/push", post(api_destination_push))
+		.route("/publications/{id}/remove", post(api_destination_remove))
 		.route("/farms/{id}/publication", post(api_farm_publication))
 		.route("/farms/{id}/certificates", post(api_farm_certificates))
 		.route("/tokens", get(api_tokens).post(api_add_tokens))
@@ -3170,3 +3189,399 @@ mod tests {
 		assert_eq!(csv_cell("a\"b"), "\"a\"\"b\"");
 	}
 }
+
+#[derive(Deserialize)]
+struct DestinationForm {
+	#[serde(default)]
+	csrf: String,
+	#[serde(default)]
+	version: Option<Uuid>,
+	name: String,
+	seed: Uuid,
+	publish_url: String,
+	#[serde(default)]
+	enabled: bool,
+	#[serde(default)]
+	auto_minutes: i32,
+	#[serde(default)]
+	replace_settings: bool,
+	#[serde(default)]
+	upload_url: String,
+	#[serde(default)]
+	method: String,
+	#[serde(default)]
+	secret: String,
+	#[serde(default)]
+	headers: String,
+	#[serde(default)]
+	form_data: String,
+	#[serde(default)]
+	body: String,
+	#[serde(default = "plain_content_type")]
+	content_type: String,
+	#[serde(default)]
+	confirmed: bool,
+}
+fn plain_content_type() -> String {
+	"text/plain; charset=utf-8".into()
+}
+async fn destination_page(
+	State(state): State<WebState>,
+	headers: HeaderMap,
+	Path(farm): Path<Uuid>,
+) -> Result<Response, PanelError> {
+	let user = require(&state, &headers, None, Permission::Read).await?;
+	let mut tx = state.store.begin(user.tenant).await?;
+	let name: String = query_scalar("SELECT name FROM farms WHERE tenant_id=$1 AND id=$2")
+		.bind(user.tenant)
+		.bind(farm)
+		.fetch_optional(&mut *tx)
+		.await?
+		.ok_or(PanelError(
+			StatusCode::NOT_FOUND,
+			"Sunucu grubu bulunamadı.",
+		))?;
+	let rows = query(
+		"SELECT p.*,s.name AS seed_name FROM external_publications p JOIN servers s ON s.tenant_id=p.tenant_id AND s.id=p.seed_id WHERE p.tenant_id=$1 AND p.farm_id=$2 ORDER BY p.name,p.id",
+	)
+	.bind(user.tenant)
+	.bind(farm)
+	.fetch_all(&mut *tx)
+	.await?;
+	let destinations = rows
+		.iter()
+		.map(crate::publication::overview)
+		.collect::<Vec<_>>();
+	if user.bot {
+		return Ok(axum::Json(json!({"items":destinations})).into_response());
+	}
+	let servers =
+		query("SELECT id,name FROM servers WHERE tenant_id=$1 AND farm_id=$2 ORDER BY name,id")
+			.bind(user.tenant)
+			.bind(farm)
+			.fetch_all(&mut *tx)
+			.await?
+			.into_iter()
+			.map(|r| (r.get("id"), r.get("name")))
+			.collect();
+	Ok(views::destinations(&user, farm, &name, destinations, servers).into_response())
+}
+async fn destination_edit(
+	State(state): State<WebState>,
+	headers: HeaderMap,
+	Path(id): Path<Uuid>,
+) -> Result<Response, PanelError> {
+	let user = require(&state, &headers, None, Permission::Admin).await?;
+	let mut tx = state.store.begin(user.tenant).await?;
+	let row = query("SELECT p.*,s.name AS seed_name FROM external_publications p JOIN servers s ON s.tenant_id=p.tenant_id AND s.id=p.seed_id WHERE p.tenant_id=$1 AND p.id=$2")
+		.bind(user.tenant)
+		.bind(id)
+		.fetch_optional(&mut *tx)
+		.await?
+		.ok_or(PanelError(StatusCode::NOT_FOUND, "Yayım kaydı bulunamadı."))?;
+	let item = crate::publication::overview(&row);
+	let servers =
+		query("SELECT id,name FROM servers WHERE tenant_id=$1 AND farm_id=$2 ORDER BY name,id")
+			.bind(user.tenant)
+			.bind(item.farm)
+			.fetch_all(&mut *tx)
+			.await?
+			.into_iter()
+			.map(|r| (r.get("id"), r.get("name")))
+			.collect();
+	Ok(views::destination_edit(&user, item, servers).into_response())
+}
+async fn destination_create(
+	State(state): State<WebState>,
+	headers: HeaderMap,
+	Path(farm): Path<Uuid>,
+	Form(form): Form<DestinationForm>,
+) -> Result<Response, PanelError> {
+	destination_save(state, headers, farm, None, form).await
+}
+async fn destination_update(
+	State(state): State<WebState>,
+	headers: HeaderMap,
+	Path(id): Path<Uuid>,
+	Form(form): Form<DestinationForm>,
+) -> Result<Response, PanelError> {
+	destination_save(state, headers, Uuid::nil(), Some(id), form).await
+}
+async fn destination_save(
+	state: WebState,
+	headers: HeaderMap,
+	mut farm: Uuid,
+	id: Option<Uuid>,
+	mut form: DestinationForm,
+) -> Result<Response, PanelError> {
+	let user = require(&state, &headers, Some(&form.csrf), Permission::Admin).await?;
+	if !form.confirmed {
+		return Err(bad("Harici yayımı onaylayın."));
+	}
+	let name = management::valid_name(&form.name).map_err(|_| bad("Ad geçersiz."))?;
+	if !(form.auto_minutes == 0 || (5..=1440).contains(&form.auto_minutes)) {
+		return Err(bad("Yayım aralığı 0 veya 5–1440 dakika olmalı."));
+	}
+	let normalized = crate::publication::validate_url(&form.publish_url)
+		.map_err(|_| bad("Yayım adresi genel ağda HTTPS olmalı."))?;
+	if form.publish_url.len() > 2048 || form.publish_url.contains("{access_token}") {
+		return Err(bad("Yayım adresi geçersiz."));
+	}
+	form.publish_url = normalized.to_string();
+	let mut tx = state.store.begin(user.tenant).await?;
+	let old = if let Some(id) = id {
+		let row=query("SELECT *,lease_until>now() AS busy FROM external_publications WHERE tenant_id=$1 AND id=$2 FOR UPDATE").bind(user.tenant).bind(id).fetch_optional(&mut *tx).await?.ok_or(PanelError(StatusCode::NOT_FOUND,"Yayım kaydı bulunamadı."))?;
+		if form.version != Some(row.get("version")) {
+			return Err(PanelError(
+				StatusCode::CONFLICT,
+				"Yayım kaydı değişti. Sayfayı yenileyin.",
+			));
+		}
+		if row.get::<Option<bool>, _>("busy") == Some(true) {
+			return Err(PanelError(
+				StatusCode::CONFLICT,
+				"Yayım çalışıyor. Tamamlanmasını bekleyin.",
+			));
+		}
+		farm = row.get("farm_id");
+		Some(row)
+	} else {
+		None
+	};
+	// A single file cannot be encrypted for two different bootstrap secrets.
+	query("SELECT id FROM tenants WHERE id=$1 FOR UPDATE")
+		.bind(user.tenant)
+		.fetch_one(&mut *tx)
+		.await?;
+	let conflict:bool=query_scalar("SELECT EXISTS(SELECT FROM external_publications WHERE tenant_id=$1 AND publish_url=$2 AND seed_id<>$3 AND id<>$4)").bind(user.tenant).bind(&form.publish_url).bind(form.seed).bind(id.unwrap_or(Uuid::nil())).fetch_one(&mut *tx).await?;
+	if conflict {
+		return Err(bad(
+			"Aynı yayım dosyası farklı başlangıç sunucuları için kullanılamaz.",
+		));
+	}
+	// Lock the farm to serialize the per-farm destination limit and seed membership check.
+	query("SELECT id FROM farms WHERE tenant_id=$1 AND id=$2 FOR UPDATE")
+		.bind(user.tenant)
+		.bind(farm)
+		.fetch_optional(&mut *tx)
+		.await?
+		.ok_or(PanelError(
+			StatusCode::NOT_FOUND,
+			"Sunucu grubu bulunamadı.",
+		))?;
+	let member: bool = query_scalar(
+		"SELECT EXISTS(SELECT FROM servers WHERE tenant_id=$1 AND farm_id=$2 AND id=$3)",
+	)
+	.bind(user.tenant)
+	.bind(farm)
+	.bind(form.seed)
+	.fetch_one(&mut *tx)
+	.await?;
+	if !member {
+		return Err(bad("Başlangıç sunucusu bu gruba ait olmalı."));
+	}
+	if old.is_none() {
+		let count: i64 = query_scalar(
+			"SELECT count(*) FROM external_publications WHERE tenant_id=$1 AND farm_id=$2",
+		)
+		.bind(user.tenant)
+		.bind(farm)
+		.fetch_one(&mut *tx)
+		.await?;
+		if count >= 16 {
+			return Err(bad("Bir grupta en fazla 16 yayım kaydı olabilir."));
+		}
+	}
+	let destination = id.unwrap_or_else(Uuid::new_v4);
+	let specification = match &old {
+		Some(row) if !form.replace_settings => row.get("specification"),
+		_ => {
+			let spec = crate::publication::Specification {
+				upload_url: form.upload_url,
+				method: form.method,
+				secret: form.secret,
+				headers: form.headers,
+				form_data: form.form_data,
+				body: form.body,
+				content_type: form.content_type,
+			};
+			spec.validate().map_err(|_|bad("Yükleme ayarları geçersiz. HTTPS adresini, yöntemi ve şablonları kontrol edin; Body ve Form-Data birlikte kullanılamaz."))?;
+			state.store.vault.seal(
+				&serde_json::to_vec(&spec).map_err(anyhow::Error::from)?,
+				&format!("{}:{destination}:publisher", user.tenant),
+			)?
+		}
+	};
+	// Successful publication must be repeated when public URL/seed/templates change.
+	let changed = old.as_ref().is_none_or(|r| {
+		form.replace_settings
+			|| r.get::<String, _>("publish_url") != form.publish_url
+			|| r.get::<Uuid, _>("seed_id") != form.seed
+	});
+	let status = if form.enabled { "Queued" } else { "Disabled" };
+	query("INSERT INTO external_publications(tenant_id,id,farm_id,seed_id,name,publish_url,specification,enabled,auto_minutes,status,next_due) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,CASE WHEN $8 THEN now() ELSE NULL END) ON CONFLICT(tenant_id,id) DO UPDATE SET seed_id=$4,name=$5,publish_url=$6,specification=$7,enabled=$8,auto_minutes=$9,status=$10,next_due=CASE WHEN $8 THEN now() ELSE NULL END,version=gen_random_uuid(),lease_until=NULL,message='',last_success=CASE WHEN $11 THEN NULL ELSE external_publications.last_success END").bind(user.tenant).bind(destination).bind(farm).bind(form.seed).bind(name).bind(form.publish_url).bind(specification).bind(form.enabled).bind(form.auto_minutes).bind(status).bind(changed).execute(&mut *tx).await?;
+	auth::audit(
+		&mut tx,
+		&user,
+		"Harici yayım ayarları kaydedildi",
+		&destination.to_string(),
+	)
+	.await?;
+	tx.commit().await?;
+	Ok(Redirect::to(&format!("/manage/publications/{destination}")).into_response())
+}
+#[derive(Deserialize)]
+struct PushPublicationForm {
+	#[serde(default)]
+	csrf: String,
+	version: Uuid,
+	#[serde(default)]
+	confirmed: bool,
+}
+async fn destination_push(
+	State(state): State<WebState>,
+	headers: HeaderMap,
+	Path(id): Path<Uuid>,
+	Form(form): Form<PushPublicationForm>,
+) -> Result<Response, PanelError> {
+	let user = require(&state, &headers, Some(&form.csrf), Permission::Write).await?;
+	if !form.confirmed {
+		return Err(bad("Harici yayımı onaylayın."));
+	}
+	let mut tx = state.store.begin(user.tenant).await?;
+	let row=query("SELECT version,enabled,lease_until>now() AS busy,farm_id FROM external_publications WHERE tenant_id=$1 AND id=$2 FOR UPDATE").bind(user.tenant).bind(id).fetch_optional(&mut *tx).await?.ok_or(PanelError(StatusCode::NOT_FOUND,"Yayım kaydı bulunamadı."))?;
+	if row.get::<Uuid, _>("version") != form.version {
+		return Err(PanelError(
+			StatusCode::CONFLICT,
+			"Yayım kaydı değişti. Sayfayı yenileyin.",
+		));
+	}
+	if !row.get::<bool, _>("enabled") || row.get::<Option<bool>, _>("busy") == Some(true) {
+		return Err(PanelError(
+			StatusCode::CONFLICT,
+			"Yayım kapalı veya çalışıyor.",
+		));
+	}
+	query(
+		"UPDATE external_publications SET next_due=now(),status='Queued' WHERE tenant_id=$1 AND id=$2",
+	)
+	.bind(user.tenant)
+	.bind(id)
+	.execute(&mut *tx)
+	.await?;
+	auth::audit(
+		&mut tx,
+		&user,
+		"Harici yayım sıraya alındı",
+		&id.to_string(),
+	)
+	.await?;
+	tx.commit().await?;
+	Ok(Redirect::to(&format!(
+		"/manage/farms/{}/destinations",
+		row.get::<Uuid, _>("farm_id")
+	))
+	.into_response())
+}
+async fn destinations_push_all(
+	State(state): State<WebState>,
+	headers: HeaderMap,
+	Path(farm): Path<Uuid>,
+	Form(form): Form<ConfirmForm>,
+) -> Result<Response, PanelError> {
+	let user = require(&state, &headers, Some(&form.csrf), Permission::Write).await?;
+	if !form.confirmed {
+		return Err(bad("Harici yayımı onaylayın."));
+	}
+	let mut tx = state.store.begin(user.tenant).await?;
+	query("SELECT id FROM farms WHERE tenant_id=$1 AND id=$2")
+		.bind(user.tenant)
+		.bind(farm)
+		.fetch_optional(&mut *tx)
+		.await?
+		.ok_or(PanelError(
+			StatusCode::NOT_FOUND,
+			"Sunucu grubu bulunamadı.",
+		))?;
+	query("UPDATE external_publications SET next_due=now(),status='Queued' WHERE tenant_id=$1 AND farm_id=$2 AND enabled AND (lease_until IS NULL OR lease_until<now())").bind(user.tenant).bind(farm).execute(&mut *tx).await?;
+	auth::audit(
+		&mut tx,
+		&user,
+		"Grup harici yayımları sıraya alındı",
+		&farm.to_string(),
+	)
+	.await?;
+	tx.commit().await?;
+	Ok(Redirect::to(&format!("/manage/farms/{farm}/destinations")).into_response())
+}
+json_read!(api_destinations, Uuid, destination_page);
+json_write!(
+	api_destination_create,
+	Uuid,
+	DestinationForm,
+	destination_create
+);
+json_write!(
+	api_destination_update,
+	Uuid,
+	DestinationForm,
+	destination_update
+);
+json_write!(
+	api_destination_push,
+	Uuid,
+	PushPublicationForm,
+	destination_push
+);
+json_write!(
+	api_destinations_push_all,
+	Uuid,
+	ConfirmForm,
+	destinations_push_all
+);
+
+async fn destination_remove(
+	State(state): State<WebState>,
+	headers: HeaderMap,
+	Path(id): Path<Uuid>,
+	Form(form): Form<PushPublicationForm>,
+) -> Result<Response, PanelError> {
+	let user = require(&state, &headers, Some(&form.csrf), Permission::Admin).await?;
+	if !form.confirmed {
+		return Err(bad("Harici yayımı onaylayın."));
+	}
+	let mut tx = state.store.begin(user.tenant).await?;
+	let row=query("SELECT version,lease_until>now() AS busy,farm_id FROM external_publications WHERE tenant_id=$1 AND id=$2 FOR UPDATE").bind(user.tenant).bind(id).fetch_optional(&mut *tx).await?.ok_or(PanelError(StatusCode::NOT_FOUND,"Yayım kaydı bulunamadı."))?;
+	if row.get::<Uuid, _>("version") != form.version
+		|| row.get::<Option<bool>, _>("busy") == Some(true)
+	{
+		return Err(PanelError(
+			StatusCode::CONFLICT,
+			"Yayım kaydı değişti veya çalışıyor.",
+		));
+	}
+	query("DELETE FROM external_publications WHERE tenant_id=$1 AND id=$2")
+		.bind(user.tenant)
+		.bind(id)
+		.execute(&mut *tx)
+		.await?;
+	auth::audit(
+		&mut tx,
+		&user,
+		"Harici yayım hedefi kaldırıldı",
+		&id.to_string(),
+	)
+	.await?;
+	tx.commit().await?;
+	Ok(Redirect::to(&format!(
+		"/manage/farms/{}/destinations",
+		row.get::<Uuid, _>("farm_id")
+	))
+	.into_response())
+}
+json_write!(
+	api_destination_remove,
+	Uuid,
+	PushPublicationForm,
+	destination_remove
+);

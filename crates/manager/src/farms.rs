@@ -311,6 +311,15 @@ pub async fn advertised_token(
 			token.urls = Some(vec![format!("{origin}/f/{tenant}/{farm}/{server}")]);
 			token.url = None;
 		}
+		let urls:Vec<String>=sqlx_core::query_scalar::query_scalar("SELECT publish_url FROM external_publications WHERE tenant_id=$1 AND farm_id=$2 AND seed_id=$3 AND enabled AND last_success IS NOT NULL ORDER BY id").bind(tenant).bind(farm).bind(server).fetch_all(&mut **tx).await?;
+		if !urls.is_empty() {
+			let current = token.urls.get_or_insert_with(Vec::new);
+			for url in urls {
+				if !current.contains(&url) {
+					current.push(url)
+				}
+			}
+		}
 	}
 	Ok(token)
 }

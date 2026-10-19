@@ -169,3 +169,12 @@ Deneme kayıtları silinip boş Console listesi görüldü. Önceki Nginx dosyas
 ## ModSecurity sonrası özgün gövde/Form-Data — 19 Ekim 2026
 
 Kullanıcının FQDN'de ModSecurity'yi kapattığını bildirmesinden sonra ham gövde PUT=405 → POST=201 → GET=200 ve Console OK doğrulandı; JSON sarmalama/açma kullanılmadı. Form-Data'nın multipart kodlaması, payload/key alanları, her iki yer tutucunun değişmesi, payload ile yayımlanan dosyanın birebir eşleşmesi ve Console OK de doğrulandı. [İkinci aşama kaydı](console-harici-yayim-sinamasi.md). Tek geçici kayıt ve alıcı temizlendi; Nginx önceki hâline geri getirildi. Ürün yayıncısı henüz eklenmedi; Python sınama aracı için sözdizimi kontrolü geçti.
+
+## Hoodmin harici adres yayıncısı — 19 Ekim 2026
+
+- Ham UTF-8 gövde, PUT başarısızlığında aynı gövdeyle POST ve başarılı PUT'ta POST'un atlanması, multipart alanları ve URL/başlık/gövde yer tutucuları gerçek genel HTTPS alıcısıyla doğrulandı. JSON sarmalama kullanılmaz. Yayımlanan dosya yüklenen şifreli belirteçle byte düzeyinde eşleşti.
+- Hazır .NET istemci dış dosyayı çözüp ulaşılamayan başlangıç adresi yerine TCP2550 hedefindeki gerçek hazır VpnHood sunucusuna bağlandı. Aynı dosya farklı başlangıç sırrıyla paylaşılmadı; farklı başlangıç sunucusuna aynı URL atama reddedildi.
+- Onay, rol, bot, kiracı RLS, eski sürümlü form, şifreli saklama, özel/metadata DNS hedefleri ve yönlendirme reddi sınandı. Yükleme başlıkları GET'e taşınmadı. İş kirası süresi dolduktan ve panel yeniden başlatıldıktan sonra otomatik iş toparlandı; bu kontrol zamanlayıcıyı beş dakika beklemek yerine yalnız QA kaydının zamanlarını ilerletti.
+- 25 Rust testi, uyarısız Clippy, kilitli release derlemesi ve `test_external_publications.py` başarılı. Tercihler ve önceki grup yayımı gerileme dizileri de geçti. Türkçe/İngilizce/Arapça ve RTL/LTR dönüş yolları sınandı; tarayıcıda yardım penceresi, açık/koyu tema ve sayfada kalan dil değişimi görüldü.
+- `0.1.0-4~deb13u1` amd64 Debian paketi üretildi. Lintian paket hata/uyarısı bildirmedi (root çalıştırma bildirimi dışında). Paketten çıkarılan kurulum aracı ayrı geçici PostgreSQL veritabanında iki kez çalıştırıldı; dokuz geçiş, özet/idempotans, zorunlu RLS ve görev bulma işlevinin sabit search_path/yetkisi doğrulandı. Geçici veritabanı kaldırıldı.
+- Sınama eski `yapayzeka`/`vpnhood` ortamında yapıldı. Yeni üretim paneli ve VPN sunucusu değiştirilmedi. Geçici alıcı/yol/kimlikler kaldırıldı; özel kanıtlar ve paket `work/` içinde Git dışındadır. [Kullanım ve sınırlar](harici-adres-yayimi.md).

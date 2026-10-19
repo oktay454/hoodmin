@@ -71,3 +71,7 @@ POST işlemleri paneldeki aynı işlevleri, kilitleri, denetim kaydını ve doğ
 Kaynak değiştiren işlemler 202 `{status:"accepted", location:...}` döndürebilir. Bu, veritabanına kayıt onayıdır; VPN sunucusunda uygulanmış olduğunun kanıtı değildir. Yapılandırma `status.configCode` ve dinleyici sonuçlarıyla, SSH işi kendi durum yoluyla takip edilir. Anahtar/kimlik üreten işlemler 200 ile tek seferlik sırları döndürür. Eski yapılandırma veya sunucu profil sürümü 409 olur.
 
 Sunucu yapılandırması, sertifika, kurulum, bot yetkisi ve kimlik yenileme işlemlerinde açık `confirmed:true` veya güncel kimlik yenileme kanıtı gerekir. Rol değişikliği, kurulum ve bağlantı kimliği yenileme otomasyonunda bu sonuçları işletmen değerlendirmelidir; sunucu kaydı silme veya genel kabuk komutu API'si yoktur.
+
+## Harici adres yayımı
+
+Grup yayım hedeflerinin listeleme/oluşturma, tekli/toplu çalıştırma, sürümlü düzenleme ve kaldırma uçları eklendi. Liste sırları içermez; hedef ayarı yönetici, yayımlama operatör yetkisi ister. [Yollar ve istek alanları](harici-adres-yayimi.md#api).

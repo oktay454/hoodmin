@@ -68,7 +68,11 @@ class Receiver(http.server.BaseHTTPRequestHandler):
 		with (ROOT / 'requests.jsonl').open('a') as output:
 			output.write(json.dumps(record) + '\n')
 		response = (ROOT / 'latest').read_bytes() if self.command == 'GET' and (ROOT / 'latest').exists() else b''
+		if self.command == 'GET' and 'get_body' in config:
+			response = config['get_body'].encode()
 		self.send_response(status)
+		for name, value in config.get('response_headers', {}).items():
+			self.send_header(name, value)
 		self.send_header('Content-Type', 'text/plain; charset=utf-8')
 		self.send_header('Content-Length', str(len(response)))
 		self.end_headers()

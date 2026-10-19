@@ -9,6 +9,7 @@ mod i18n;
 mod install;
 mod management;
 mod policy;
+mod publication;
 mod reports;
 mod store;
 mod views;
@@ -154,6 +155,7 @@ async fn main() -> Result<()> {
 			let listener = tokio::net::TcpListener::bind(listen).await?;
 			tracing::info!(%listen, "Erişim yöneticisi hazır");
 			let panel = web::WebState::new(state.clone(), public_origin)?;
+			tokio::spawn(publication::worker(state.clone()));
 			axum::serve(listener, agent::router(state).merge(web::router(panel)))
 				.with_graceful_shutdown(async {
 					let mut terminate =

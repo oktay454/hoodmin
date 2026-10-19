@@ -116,7 +116,7 @@ Console'da görünen UseUdpProxy2, bu kaynakta ve hazır sunucunun son uygulanan
 ### Açık kalan işler
 
 - Gerçek DNS/TCP80 sunucusunda Certbot kancalarıyla CA alma/yenileme ve PFX dağıtımı doğrulandı. Çok kiracılı panelden kendi ACME işini oluşturma/yönetme ekranı halen eksiktir.
-- Console'un harici POST/PUT token yayımı ve grup düzeyinde sunucu profili atama/otomatik yayma.
+- Grup düzeyinde sunucu profili atama/otomatik yayma. Harici POST/PUT yayıncısı daha sonra QA üzerinde uygulanıp doğrulandı.
 - Beş ekip rolü ve bağımsız bot yönetim API'si son aşamada eklendi; Console'un özel yönetim API sözleşmesiyle birebir aynı olduğu iddia edilmez.
 - İstemci politikalarının (`cpols`) ülkeye göre ticari karar kuralları. Kaynak, bu kararların kapalı kaynak sunucu tarafındaki anlamını bütünüyle tanımlamaz; root politika süreleri Hoodmin'de açıkça seçilir.
 - Locked IPs kaydının çalışma etkisi, bulut IP siparişi ve markalama bu kaynak sözleşmesinden çıkarılamaz; gözlenmeyen davranış uydurulmadı.
@@ -160,3 +160,7 @@ Debian paket kurulum/yükseltmesi, geçiş özetleri, şifreli ayrı makine yede
 [Açık onaylı QA gözlemi](console-harici-yayim-sinamasi.md): PUT başarısızsa POST'a geçiş, PUT başarılıysa POST'un atlanması, JSON gövde şablonu ve başlık yer tutucusu doğrulandı; Console OK durumu alındı. URL sorgusundaki yer tutucu değiştirilmeden geldi; Form-Data henüz doğrulanmadı. Bu gözlem Hoodmin'de harici yayıncı uygulaması veya tam eşdeğerlik iddiası değildir.
 
 Kullanıcı ModSecurity'yi sınama FQDN'inde kapattıktan sonra ham şifreli Body ve multipart Form-Data tekrar sınandı. İki akışta da Console OK alındı; form alanlarında `{farm_token}` ve `{access_token}` değişimi doğrulandı. JSON sarmalaması gerekmedi. İlk aşamadaki Form-Data belirsizliği giderildi; URL sorgusu yer tutucusu sorunu ve uzun süreli otomatik yayım sınırları korunur.
+
+## Hoodmin harici yayıncısı — 19 Ekim 2026
+
+Harici ham PUT/POST ve multipart yayıncı, kalıcı görevler ve bot API uygulandı. Kimlik şifreli saklanır; istek hedefi genel HTTPS/DNS/TLS ile sınırlandırılır. Gerçek harici dosyayı .NET istemcisi çözdü ve hazır VPN sunucusuna bağlandı. [Akış, sınırlar ve QA kanıtı](harici-adres-yayimi.md). URL yer tutucusu ve içerik türü Console'da gözlenen hataları tekrarlamaz. Bu kayıt tam ticari Console eşdeğerliği veya yeni üretime dağıtım iddiası değildir.

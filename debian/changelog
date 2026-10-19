@@ -1,3 +1,14 @@
+hoodmin (0.1.0-4~deb13u1) trixie; urgency=medium
+
+  * Add encrypted external publishing destinations with durable jobs,
+    public-DNS pinning, TLS verification and PUT/POST fallback.
+  * Add multilingual publishing controls, bot API and verified URLs
+    in matching bootstrap access keys.
+  * Verify real HTTPS, native VPN connections, multipart uploads,
+    tenant isolation and restart recovery on dedicated QA.
+
+ -- Hoodmin maintainers <vpn@oktayaktogan.com.tr>  Mon, 19 Oct 2026 03:32:16 +0300
+
 hoodmin (0.1.0-3~deb13u1) trixie; urgency=medium
 
   * Ship backup export tooling, deployment examples and operations

@@ -699,7 +699,7 @@ pub fn farm_publication(
 	enabled: bool,
 	version: Uuid,
 ) -> Html<String> {
-	layout(user,"Grup adresi yayımı","servers",view!{<div class="section-heading"><h2>{name.to_owned()}</h2><div class="actions"><a class="button secondary" href=format!("/manage/farms/{id}/certificates")>{tr("Grup sertifikaları")}</a><a class="button secondary" href="/panel/servers">{tr("Sunuculara dön")}</a></div></div><section class="card"><h2>{tr("Grup adresi yayımı")}</h2><p>{tr(if enabled{"Etkin"}else{"Kapalı"})}</p><p class="muted">{tr("Grup erişimi olan yeni anahtarlara şifreli adres yenileme bağlantısı ekler. İlk sunucu çevrimdışıysa istemci uygulaması bu bağlantıdan uygun grup sunucusunun adresini ve sertifika bilgisini alabilir. Eski anahtarlar yeniden paylaşılmalıdır. Sunucu sırları veya sertifikaları kendiliğinden ortaklaştırılmaz.")}</p>{user.can_write().then(||view!{<form method="post" action=format!("/manage/farms/{id}/publication") class="stack">{csrf(&user.csrf)}<input type="hidden" name="version" value=version.to_string()/><label class="checkbox"><input type="checkbox" name="confirmed" value="true" required/>{tr("Yeni grup anahtarlarında adres yenileme bağlantısı eklenmesini onaylıyorum.")}</label><button class="button primary" type="submit">{tr("Yayımlamayı etkinleştir")}</button></form>})}</section>}.into_any())
+	layout(user,"Grup adresi yayımı","servers",view!{<div class="section-heading"><h2>{name.to_owned()}</h2><div class="actions"><a class="button secondary" href=format!("/manage/farms/{id}/destinations")>{tr("Harici adres yayımı")}</a><a class="button secondary" href=format!("/manage/farms/{id}/certificates")>{tr("Grup sertifikaları")}</a><a class="button secondary" href="/panel/servers">{tr("Sunuculara dön")}</a></div></div><section class="card"><h2>{tr("Grup adresi yayımı")}</h2><p>{tr(if enabled{"Etkin"}else{"Kapalı"})}</p><p class="muted">{tr("Grup erişimi olan yeni anahtarlara şifreli adres yenileme bağlantısı ekler. İlk sunucu çevrimdışıysa istemci uygulaması bu bağlantıdan uygun grup sunucusunun adresini ve sertifika bilgisini alabilir. Eski anahtarlar yeniden paylaşılmalıdır. Sunucu sırları veya sertifikaları kendiliğinden ortaklaştırılmaz.")}</p>{user.can_write().then(||view!{<form method="post" action=format!("/manage/farms/{id}/publication") class="stack">{csrf(&user.csrf)}<input type="hidden" name="version" value=version.to_string()/><label class="checkbox"><input type="checkbox" name="confirmed" value="true" required/>{tr("Yeni grup anahtarlarında adres yenileme bağlantısı eklenmesini onaylıyorum.")}</label><button class="button primary" type="submit">{tr("Yayımlamayı etkinleştir")}</button></form>})}</section>}.into_any())
 }
 
 pub fn farm_certificates(
@@ -711,6 +711,61 @@ pub fn farm_certificates(
 ) -> Html<String> {
 	let rows=certificates.into_iter().map(|(name,expires,hash)|view!{<tr><td>{name}</td><td>{expires}</td><td><code dir="ltr">{hash}</code></td></tr>}).collect_view();
 	layout(user,"Grup sertifikaları","servers",view!{<div class="section-heading"><h2>{name.to_owned()}</h2><a class="button secondary" href=format!("/manage/farms/{id}/publication")>{tr("Gruba dön")}</a></div><section class="card table-wrap"><h2>{tr("Grup sertifikaları")}</h2><table><thead><tr><th>{tr("TLS adı")}</th><th>{tr("Son tarih")}</th><th>"SHA-256"</th></tr></thead><tbody>{rows}</tbody></table></section>{user.can_write().then(||view!{<section class="card"><h2>{tr("PFX sertifikası yükle")}</h2><div class="alert warning">{tr("Sertifika ve özel anahtar grubun mevcut ve yeni üyelerine dağıtılır. Varsayılan değişimi yeni bağlantıları etkiler; adres yenileme bağlantısı olmayan eski anahtarlar yeniden paylaşılmalıdır. VPN adresleri ve sunucu sırları korunur.")}</div><form method="post" action=format!("/manage/farms/{id}/certificates") class="stack">{csrf(&user.csrf)}<input type="hidden" name="base_code" value=version.to_string()/><label>{tr("TLS adı")}<input name="tls_name" required maxlength="253"/></label><label>{tr("PFX dosyası")}<input type="file" accept=".pfx,.p12" data-pfx-file="pfx-data"/></label><label>{tr("PFX verisi (Base64)")}<textarea id="pfx-data" name="pfx" dir="ltr" rows="4" required maxlength="350000"/></label><label>{tr("PFX parolası")}<input name="password" type="password" maxlength="1024" autocomplete="new-password"/></label><label class="checkbox"><input name="make_default" type="checkbox" value="true"/>{tr("Varsayılan sertifika olarak kullan")}</label><label class="checkbox"><input name="confirmed" type="checkbox" value="true" required/>{tr("Grup üyelerine özel anahtar ve sertifika dağıtılmasını onaylıyorum.")}</label><button class="button primary" type="submit">{tr("Doğrula ve yükle")}</button></form></section>})}}.into_any())
+}
+
+pub fn destinations(
+	user: &User,
+	farm: Uuid,
+	name: &str,
+	items: Vec<crate::publication::Destination>,
+	servers: Vec<(Uuid, String)>,
+) -> Html<String> {
+	let rows=items.into_iter().map(|d|view!{<tr><td>{d.name}</td><td>{d.seed_name}</td><td><bdi dir="ltr">{d.publish_url}</bdi></td><td>{tr(&d.status)}<p class="small">{publication_message(&d.message)}</p></td><td>{if d.auto_minutes==0{tr("Elle")}else{format!("{} min",d.auto_minutes)}}</td><td><bdi dir="ltr">{d.last_attempt.map(|t|t.to_rfc3339()).unwrap_or_else(||"—".into())}</bdi></td><td><bdi dir="ltr">{d.last_success.map(|t|t.to_rfc3339()).unwrap_or_else(||"—".into())}</bdi></td><td><div class="actions">{user.is_admin().then(||view!{<a class="button secondary" href=format!("/manage/publications/{}",d.id)>{tr("Düzenle")}</a><form method="post" action=format!("/manage/publications/{}/remove",d.id) data-confirm=tr("Bu yayım hedefi ve kayıtlı kimliği kaldırılacak. Eski anahtarlardaki bağlantı ve harici dosya kendiliğinden silinmez. Devam edilsin mi?")>{csrf(&user.csrf)}<input type="hidden" name="version" value=d.version.to_string()/><input type="hidden" name="confirmed" value="true"/><button class="button danger" type="submit">{tr("Kaldır")}</button></form>})}{(user.can_write() && d.enabled).then(||view!{<form method="post" action=format!("/manage/publications/{}/push",d.id) data-confirm=tr("Şifreli grup adresi harici hedeflere gönderilecek. Devam edilsin mi?")>{csrf(&user.csrf)}<input name="version" type="hidden" value=d.version.to_string()/><input name="confirmed" type="hidden" value="true"/><button class="button secondary" type="submit">{tr("Şimdi yayımla")}</button></form>})}</div></td></tr>}).collect_view();
+	layout(user,"Harici adres yayımı","servers",view!{<div class="section-heading"><h2>{name.to_owned()}</h2><a class="button secondary" href=format!("/manage/farms/{farm}/publication")>{tr("Gruba dön")}</a></div><section class="card"><h2>{tr("Harici adres yayımı")}</h2><p class="muted">{tr("Şifreli grup adresini kendi dosya veya CDN hizmetinize gönderin. Doğrulanan adresler yalnız seçilen başlangıç sunucusunun yeni grup anahtarlarına eklenir. Eski anahtarlar yeniden paylaşılmalıdır.")}</p>{user.can_write().then(||view!{<form method="post" action=format!("/manage/farms/{farm}/push") data-confirm=tr("Şifreli grup adresi harici hedeflere gönderilecek. Devam edilsin mi?")>{csrf(&user.csrf)}<input name="confirmed" type="hidden" value="true"/><button class="button primary" type="submit">{tr("Tümünü yayımla")}</button></form>})}<div class="table-wrap"><table><thead><tr><th>{tr("Ad")}</th><th>{tr("Başlangıç sunucusu")}</th><th>{tr("Yayım adresi")}</th><th>{tr("Durum")}</th><th>{tr("Otomatik yayım")}</th><th>{tr("Son deneme (UTC)")}</th><th>{tr("Son başarılı yayım (UTC)")}</th><th>{tr("İşlem")}</th></tr></thead><tbody>{rows}</tbody></table></div></section>{user.is_admin().then(||view!{<section class="card"><h2>{tr("Yayım hedefi ekle")}</h2>{destination_form(user,farm,None,servers)}</section>})}}.into_any())
+}
+pub fn destination_edit(
+	user: &User,
+	item: crate::publication::Destination,
+	servers: Vec<(Uuid, String)>,
+) -> Html<String> {
+	let farm = item.farm;
+	layout(user,"Harici adres yayımı","servers",view!{<div class="section-heading"><h2>{item.name.clone()}</h2><a class="button secondary" href=format!("/manage/farms/{farm}/destinations")>{tr("Yayım listesine dön")}</a></div><section class="card">{destination_form(user,farm,Some(item),servers)}</section>}.into_any())
+}
+fn destination_form(
+	user: &User,
+	farm: Uuid,
+	item: Option<crate::publication::Destination>,
+	servers: Vec<(Uuid, String)>,
+) -> AnyView {
+	let create = item.is_none();
+	let seed = item.as_ref().map(|d| d.seed);
+	let options = servers
+		.into_iter()
+		.map(
+			|(id, name)| view! {<option value=id.to_string() selected=seed==Some(id)>{name}</option>},
+		)
+		.collect_view();
+	let action = item
+		.as_ref()
+		.map(|d| format!("/manage/publications/{}", d.id))
+		.unwrap_or_else(|| format!("/manage/farms/{farm}/destinations"));
+	let version = item
+		.as_ref()
+		.map(|d| d.version.to_string())
+		.unwrap_or_default();
+	view!{<form method="post" action=action class="stack">{csrf(&user.csrf)}{(!create).then(||view!{<input type="hidden" name="version" value=version/>})}<label>{tr("Ad")}<input name="name" required maxlength="120" value=item.as_ref().map(|d|d.name.clone()).unwrap_or_default()/></label><label>{tr("Başlangıç sunucusu")}{help("Başlangıç sunucusu", "Her erişim anahtarı adres dosyasını ilk sunucusunun sırrıyla çözer. Farklı başlangıç sunucularının her biri için ayrı yayım hedefi oluşturun.")}<select name="seed" required>{options}</select></label><label>{tr("Yayım adresi")}<input type="url" name="publish_url" dir="ltr" required maxlength="2048" value=item.as_ref().map(|d|d.publish_url.clone()).unwrap_or_default()/></label><p class="small muted">{tr("İstemcilerin okuyacağı genel HTTPS dosya adresi. Yükleme kimliği bu adrese gönderilmez.")}</p><label>{tr("Otomatik yayım aralığı (dakika)")}<input type="number" name="auto_minutes" min="0" max="1440" value=item.as_ref().map(|d|d.auto_minutes).unwrap_or(0)/></label><p class="small muted">{tr("0 yalnız elle; 5–1440 dakika düzenli yayım. Panel yeniden başlasa da sıradaki işler korunur.")}</p><label class="checkbox"><input type="checkbox" name="enabled" value="true" checked=item.as_ref().is_none_or(|d|d.enabled)/>{tr("Etkin")}</label>{(!create).then(||view!{<label class="checkbox"><input type="checkbox" name="replace_settings" value="true"/>{tr("Yükleme ayarlarını değiştir; aşağıdaki alanları yeniden gir")}</label><p class="small muted">{tr("Kayıtlı kimlik ve şablonlar gösterilmez. Bu seçenek kapalıysa mevcut yükleme ayarları korunur.")}</p>})}{create.then(||view!{<input name="replace_settings" type="hidden" value="true"/>})}<label>{tr("Yükleme adresi")}<input type="url" name="upload_url" dir="ltr" maxlength="2048" required=create/></label><label>{tr("HTTP yöntemi")}<select name="method"><option value="PUT_POST">"PUT → POST"</option><option value="PUT">"PUT"</option><option value="POST">"POST"</option></select></label><label>{tr("Yayıncı kimliği")}<input type="password" name="secret" autocomplete="new-password" maxlength="4096"/></label><label>{tr("Başlıklar")}<textarea name="headers" dir="ltr" rows="3" maxlength="16384" placeholder="Authorization: Bearer {access_token}"/></label><label>{tr("Form verisi")}<textarea name="form_data" dir="ltr" rows="3" maxlength="16384" placeholder="payload: {farm_token}"/></label><label>{tr("Gövde")}<textarea name="body" dir="ltr" rows="3" maxlength="32768">{if create{"{farm_token}"}else{""}}</textarea></label><label>{tr("Gövde içerik türü")}{help("Yükleme ayarları", "Ham şifreli metin için text/plain kullanın. Hedef API başka bir gövde biçimi gerektiriyorsa şablonu ve içerik türünü buna göre ayarlayın. Form verisi multipart olarak gönderilir; gövdeyle birlikte kullanılmaz.")}<input name="content_type" dir="ltr" value="text/plain; charset=utf-8" maxlength="120"/></label><p class="small muted">{tr("{farm_token} şifreli adres, {access_token} yayıncı kimliğidir. Alanları Ad: Değer satırlarıyla girin. Form verisi kullanırken gövdeyi boş bırakın; multipart içerik türü otomatik belirlenir. Ham metin JSON ile sarılmaz.")}</p><label class="checkbox"><input name="confirmed" type="checkbox" value="true" required/>{tr("Şifreli adresin ve girdiğim yayıncı kimliğinin belirtilen harici hedefe gönderilmesini onaylıyorum.")}</label><button class="button primary" type="submit">{tr("Kaydet ve sıraya al")}</button></form>}.into_any()
+}
+
+fn publication_message(message: &str) -> String {
+	for (prefix, label) in [
+		("Yükleme HTTP ", "Yükleme HTTP"),
+		("Dosya denetimi HTTP ", "Dosya denetimi HTTP"),
+	] {
+		if let Some(code) = message.strip_prefix(prefix) {
+			return format!("{} {}", tr(label), code);
+		}
+	}
+	tr(message)
 }
 
 #[cfg(test)]
