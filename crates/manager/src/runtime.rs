@@ -51,6 +51,8 @@ pub async fn run() -> Result<()> {
 	let runtime = Runtime::default();
 	tokio::spawn(supervise(runtime.clone(), args.config));
 	let router = Router::new()
+		.route("/assets/spa.js", get(crate::frontend::script))
+		.route("/assets/locales/{locale}", get(crate::frontend::locale))
 		.route("/healthz", get(|| async { "ok" }))
 		.route("/readyz", get(readiness))
 		.route("/api/status", get(readiness))
@@ -63,26 +65,9 @@ pub async fn run() -> Result<()> {
 				)
 			}),
 		)
-		.route(
-			"/assets/status.js",
-			get(|| async {
-				(
-					[(header::CONTENT_TYPE, "text/javascript; charset=utf-8")],
-					include_str!("../assets/status.js"),
-				)
-			}),
-		)
-		.route(
-			"/assets/app.js",
-			get(|| async {
-				(
-					[(header::CONTENT_TYPE, "text/javascript; charset=utf-8")],
-					include_str!("../assets/app.js"),
-				)
-			}),
-		)
 		.fallback(dispatch)
-		.with_state(runtime);
+		.with_state(runtime)
+		.layer(axum::middleware::from_fn(crate::web::security));
 	tracing::info!(%listen,"Hoodmin HTTP hizmeti hazır");
 	axum::serve(listener, router)
 		.with_graceful_shutdown(async {
@@ -99,6 +84,10 @@ async fn readiness(State(state): State<Runtime>) -> Response {
 	(if ready {StatusCode::OK}else{StatusCode::SERVICE_UNAVAILABLE},axum::Json(serde_json::json!({"ready":ready,"message":if ready{"Hazır"}else{"Hizmet geçici olarak kullanılamıyor. Lütfen daha sonra yeniden deneyin."}}))).into_response()
 }
 async fn dispatch(State(state): State<Runtime>, request: Request) -> Response {
+	if request.method() == axum::http::Method::GET && crate::frontend::is_page(request.uri().path())
+	{
+		return crate::frontend::index();
+	}
 	if state.ready.load(Ordering::Acquire)
 		&& let Some(router) = state.router.read().await.clone()
 	{
@@ -107,16 +96,7 @@ async fn dispatch(State(state): State<Runtime>, request: Request) -> Response {
 			.await
 			.unwrap_or_else(|never| match never {});
 	}
-	let json = request.uri().path().starts_with("/api/");
-	let mut response = if json {
-		(StatusCode::SERVICE_UNAVAILABLE,axum::Json(serde_json::json!({"error":"Hizmet geçici olarak kullanılamıyor. Lütfen daha sonra yeniden deneyin."}))).into_response()
-	} else {
-		(
-			StatusCode::SERVICE_UNAVAILABLE,
-			axum::response::Html(include_str!("../assets/unavailable.html")),
-		)
-			.into_response()
-	};
+	let mut response=(StatusCode::SERVICE_UNAVAILABLE,axum::Json(serde_json::json!({"error":"Hizmet geçici olarak kullanılamıyor. Lütfen daha sonra yeniden deneyin."}))).into_response();
 	response.headers_mut().insert(
 		header::CACHE_CONTROL,
 		header::HeaderValue::from_static("no-store"),
@@ -156,6 +136,10 @@ async fn supervise(state: Runtime, path: PathBuf) {
 				};
 				*state.router.write().await =
 					Some(crate::agent::router(store.clone()).merge(crate::web::router(panel)));
+				let notifications = tokio::spawn(crate::notifications::worker(
+					store.clone(),
+					settings.clone(),
+				));
 				let publications = tokio::spawn(crate::publication::worker(store.clone()));
 				let acme = tokio::spawn(crate::acme::worker(
 					store.clone(),
@@ -163,15 +147,29 @@ async fn supervise(state: Runtime, path: PathBuf) {
 					settings.master_key_file.clone(),
 				));
 				loop {
-					let result = match tokio::time::timeout(
-						Duration::from_secs(3),
-						crate::config::check_schema(&store.pool),
-					)
+					let result = match tokio::time::timeout(Duration::from_secs(3), async {
+						crate::config::check_schema(&store.pool).await?;
+						let active: Option<String> = sqlx_core::query_scalar::query_scalar(
+							"SELECT active_key_id FROM vault_state WHERE id",
+						)
+						.fetch_one(&store.pool)
+						.await?;
+						anyhow::ensure!(
+							active.as_deref().is_none_or(|id| id == store.vault.id()),
+							"Anahtar değişti; yeniden yükleniyor."
+						);
+						Ok(())
+					})
 					.await
 					{
 						Ok(result) => result,
 						Err(error) => Err(error.into()),
 					};
+					if let Err(error) = &result {
+						tracing::error!(detail=%crate::config::redact(error,settings.database_url.as_deref()),"Bağımlılık denetimi başarısız; yeniden hazırlanıyor");
+						state.ready.store(false, Ordering::Release);
+						break;
+					}
 					let ready = result.is_ok();
 					let previous = state.ready.swap(ready, Ordering::AcqRel);
 					if ready && !previous {
@@ -192,6 +190,7 @@ async fn supervise(state: Runtime, path: PathBuf) {
 					}
 				}
 				state.ready.store(false, Ordering::Release);
+				notifications.abort();
 				publications.abort();
 				acme.abort();
 				*state.router.write().await = None;
@@ -205,5 +204,6 @@ async fn initialize(settings: &Settings) -> Result<Store> {
 	let vault = settings.vault()?;
 	let pool = crate::config::pool(settings.db()?).await?;
 	crate::config::check_schema(&pool).await?;
+	let vault = crate::rotation::bind(&pool, vault).await?;
 	Ok(Store { pool, vault })
 }

@@ -567,3 +567,108 @@ pub fn overview(row: &sqlx_postgres::PgRow) -> Destination {
 		last_success: row.get("last_success"),
 	}
 }
+
+pub async fn notify_webhook(url: &str, bearer: &str, body: &[u8]) -> Result<()> {
+	let path = std::env::temp_dir().join(format!("hoodmin-notify-{}", Uuid::new_v4()));
+	use std::os::unix::fs::DirBuilderExt;
+	std::fs::DirBuilder::new().mode(0o700).create(&path)?;
+	let work = Workspace(path);
+	let mut headers = vec![("Content-Type".into(), "application/json".into())];
+	if !bearer.is_empty() {
+		headers.push(("Authorization".into(), format!("Bearer {bearer}")));
+	}
+	let (code, _) = request(&work, url, "POST", &headers, Some(body)).await?;
+	ensure!(
+		(200..300).contains(&code),
+		"Bildirim hedefi isteği kabul etmedi."
+	);
+	Ok(())
+}
+#[allow(clippy::too_many_arguments)]
+pub async fn notify_smtp(
+	host: &str,
+	port: u16,
+	username: &str,
+	password: &str,
+	from: &str,
+	to: &str,
+	event: &serde_json::Value,
+) -> Result<()> {
+	let addresses = tokio::time::timeout(
+		Duration::from_secs(5),
+		tokio::net::lookup_host((host, port)),
+	)
+	.await??
+	.collect::<Vec<_>>();
+	ensure!(
+		!addresses.is_empty() && addresses.iter().all(|a| public_ip(a.ip())),
+		"SMTP hedefi genel ağda değil."
+	);
+	let ip = match addresses[0].ip() {
+		IpAddr::V6(v) => format!("[{v}]"),
+		v => v.to_string(),
+	};
+	let path = std::env::temp_dir().join(format!("hoodmin-mail-{}", Uuid::new_v4()));
+	use std::os::unix::fs::DirBuilderExt;
+	std::fs::DirBuilder::new().mode(0o700).create(&path)?;
+	let work = Workspace(path);
+	let message = format!(
+		"From: {from}\r\nTo: {to}\r\nDate: {}\r\nMessage-ID: <{}@hoodmin>\r\nSubject: Hoodmin VPN notification\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: base64\r\n\r\n{}\r\n",
+		chrono::Utc::now().to_rfc2822(),
+		Uuid::new_v4(),
+		{
+			use base64::Engine;
+			let encoded =
+				base64::engine::general_purpose::STANDARD.encode(serde_json::to_vec_pretty(event)?);
+			encoded
+				.as_bytes()
+				.chunks(76)
+				.map(|c| std::str::from_utf8(c).unwrap())
+				.collect::<Vec<_>>()
+				.join("\r\n")
+		}
+	);
+	let file = work.0.join("message");
+	crate::crypto::write_private(&file, message.as_bytes())?;
+	let config = format!(
+		"url = {}\nresolve = {}\nuser = {}\nmail-from = {}\nmail-rcpt = {}\nupload-file = {}\n",
+		quoted(&format!("smtps://{host}:{port}")),
+		quoted(&format!("{host}:{port}:{ip}")),
+		quoted(&format!("{username}:{password}")),
+		quoted(from),
+		quoted(to),
+		quoted(&file.to_string_lossy())
+	);
+	let mut child = tokio::process::Command::new("/usr/bin/curl")
+		.args([
+			"--disable",
+			"--silent",
+			"--proto",
+			"=smtps",
+			"--noproxy",
+			"*",
+			"--ssl-reqd",
+			"--tlsv1.2",
+			"--connect-timeout",
+			"5",
+			"--max-time",
+			"20",
+			"--config",
+			"-",
+		])
+		.env_clear()
+		.env("PATH", "/usr/bin:/bin")
+		.stdin(Stdio::piped())
+		.stdout(Stdio::null())
+		.stderr(Stdio::null())
+		.kill_on_drop(true)
+		.spawn()?;
+	child
+		.stdin
+		.take()
+		.unwrap()
+		.write_all(config.as_bytes())
+		.await?;
+	ensure!(child.wait().await?.success(), "SMTP aktarımı başarısız.");
+	Ok(())
+}

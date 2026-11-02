@@ -9,6 +9,6 @@ NoNewPrivileges=yes
 PrivateTmp=yes
 ProtectSystem=strict
 ProtectHome=read-only
-ReadWritePaths=/var/backups/hoodmin
+ReadWritePaths=/var/backups/hoodmin /var/lib/hoodmin
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 TimeoutStartSec=30min

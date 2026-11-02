@@ -80,6 +80,14 @@ async fn bootstrap(settings: &Settings, admin: PgConnectOptions) -> Result<()> {
 	let mut connection = PgConnection::connect_with(&admin)
 		.await
 		.context("Yönetici veritabanı bağlantısı kurulamadı.")?;
+	let bypass: bool =
+		query_scalar("SELECT rolsuper OR rolbypassrls FROM pg_roles WHERE rolname=current_user")
+			.fetch_one(&mut connection)
+			.await?;
+	ensure!(
+		bypass,
+		"Şema yöneticisi SUPERUSER veya BYPASSRLS yetkisine sahip olmalı; bu yetkiyi uygulama rolüne vermeyin."
+	);
 	query("SELECT pg_advisory_lock(684663001)")
 		.execute(&mut connection)
 		.await?;
@@ -178,7 +186,7 @@ async fn bootstrap(settings: &Settings, admin: PgConnectOptions) -> Result<()> {
 			.await?;
 		tx.commit().await?;
 	}
-	connection.execute(format!("GRANT CONNECT ON DATABASE {quoted_db} TO {quoted_role}; GRANT USAGE ON SCHEMA public TO {quoted_role}; GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA public TO {quoted_role}; GRANT USAGE,SELECT ON ALL SEQUENCES IN SCHEMA public TO {quoted_role}; REVOKE UPDATE,DELETE ON audit_events FROM {quoted_role}; REVOKE ALL ON _hoodmin_migrations FROM {quoted_role}; REVOKE ALL ON _hoodmin_migrations FROM PUBLIC; GRANT EXECUTE ON FUNCTION hoodmin_due_acme() TO {quoted_role}; GRANT EXECUTE ON FUNCTION hoodmin_due_publications() TO {quoted_role};").as_str()).await?;
+	connection.execute(format!("GRANT CONNECT ON DATABASE {quoted_db} TO {quoted_role}; GRANT USAGE ON SCHEMA public TO {quoted_role}; GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA public TO {quoted_role}; GRANT USAGE,SELECT ON ALL SEQUENCES IN SCHEMA public TO {quoted_role}; REVOKE UPDATE,DELETE ON audit_events FROM {quoted_role}; REVOKE ALL ON _hoodmin_migrations FROM {quoted_role}; REVOKE ALL ON _hoodmin_migrations FROM PUBLIC; GRANT EXECUTE ON FUNCTION hoodmin_vault_tenants() TO {quoted_role}; GRANT EXECUTE ON FUNCTION hoodmin_due_acme() TO {quoted_role}; GRANT EXECUTE ON FUNCTION hoodmin_due_publications() TO {quoted_role};").as_str()).await?;
 	query("SELECT pg_advisory_unlock(684663001)")
 		.execute(&mut connection)
 		.await?;

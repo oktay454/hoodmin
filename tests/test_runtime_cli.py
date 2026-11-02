@@ -33,6 +33,7 @@ try:
 	raise AssertionError('Test system account already exists')
 except KeyError:
 	pass
+(ROOT / 'work').mkdir(exist_ok=True)
 WORK = Path(tempfile.mkdtemp(prefix='runtime-cli.', dir=ROOT / 'work'))
 WORK.chmod(0o700)
 CONTEXT = ssl.create_default_context(cafile='/etc/vpnhood-manager/tls/ca.crt')
@@ -42,6 +43,7 @@ ENV.pop('VHM_MASTER_KEY_FILE', None)
 LOG = WORK / 'service.log'
 PROCESSES = []
 CREATED = False
+NOTIFICATION_FIXTURE = None
 
 def check(value, message):
 	assert value, message
@@ -128,7 +130,7 @@ http {{
 	proxy = subprocess.Popen(['nginx', '-c', str(nginx), '-g', 'daemon off;'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
 	PROCESSES.append(proxy)
 	wait_ready(False)
-	check(request('/healthz')[0] == 200 and request('/signin')[0] == 503 and request('/assets/app.css')[0] == 200, 'Unconfigured service stays alive and serves a simple static error')
+	check(request('/healthz')[0] == 200 and request('/signin')[0] == 200 and request('/assets/app.css')[0] == 200, 'Unconfigured service stays alive and serves the static SPA shell')
 	check('database_url' not in request('/signin')[1] and '/var/' not in request('/signin')[1], 'Browser error does not disclose configuration details')
 
 	run(['pg_createcluster', '17', CLUSTER, '--port', PORT])
@@ -160,13 +162,17 @@ http {{
 	cli('database', 'init', '--admin-url-file', admin_file)
 	cli('database', 'check')
 	local_config = json.loads(CONFIG.read_text())
+	local_key=Path('/var/lib/hoodmin/local-master.key')
+	local_key.write_bytes(secrets.token_bytes(32));local_key.chmod(0o600);run(['chown','hoodmin:hoodmin',local_key]);local_config['master_key_file']=str(local_key)
 	local_config['database_url'] = f'postgresql:///hoodmin_local?host=/var/run/postgresql&port={PORT}&user=hoodmin'
 	local_file = private(PATHS[0] / 'local-test.json', json.dumps(local_config))
 	run(['chown', 'root:hoodmin', local_file])
 	local_file.chmod(0o640)
 	run([BINARIES[1], '--config', local_file, 'database', 'init', '--local'], env=ENV)
 	run(['runuser', '-u', 'hoodmin', '--', BINARIES[1], '--config', local_file, 'database', 'check'], env=ENV)
-	check(True, 'Local Unix socket bootstrap and peer role also work through Rust CLI')
+	run([BINARIES[1], '--config', local_file, 'keys', 'status'], env=ENV)
+	run([BINARIES[1], '--config', local_file, 'keys', 'rotate','--confirmed'], env=ENV)
+	check(True, 'Local Unix socket bootstrap and root key rotation use matching peer identity')
 	check(True, 'Verified remote PostgreSQL TLS, role/database creation and idempotent migrations')
 	cli('owner-init', '--email', 'runtime-qa@example.invalid')
 	owner = json.loads(OWNER.read_text())
@@ -208,13 +214,16 @@ http {{
 	original_pid = server.pid
 	run(['pg_ctlcluster', '--skip-systemctl-redirect', '17', CLUSTER, 'stop'])
 	wait_ready(False)
-	check(server.poll() is None and server.pid == original_pid and request('/healthz')[0] == 200 and request('/signin')[0] == 503, 'Database outage does not terminate/restart HTTP service')
+	check(server.poll() is None and server.pid == original_pid and request('/healthz')[0] == 200 and request('/signin')[0] == 200, 'Database outage does not terminate/restart HTTP service')
 	run(['pg_ctlcluster', '--skip-systemctl-redirect', '17', CLUSTER, 'start'])
 	wait_ready()
 	api('get', '/servers')
 	check(True, 'Same process and human session recover after database restart')
-	regression_env = dict(ENV, VHM_TEST_ISOLATED='1', VHM_TEST_ORIGIN=ORIGIN, VHM_TEST_CA='/etc/vpnhood-manager/tls/ca.crt', VHM_TEST_DATABASE_URL=app_url, VHM_TEST_AGENT_ORIGIN='http://127.0.0.1:3108', PGPORT=PORT)
-	for script in ([] if os.environ.get('HOODMIN_TEST_SKIP_REGRESSION') else ['test_preferences.py', 'test_panel.py', 'test_team_bots.py', 'test_contract_features.py', 'test_profiles_reports.py']):
+	from notification_fixture import NotificationFixture
+	NOTIFICATION_FIXTURE=NotificationFixture(WORK,run)
+	NOTIFICATION_FIXTURE.start()
+	regression_env = dict(ENV, HOODMIN_QA_WORK=str(WORK), HOODMIN_QA_CONFIG=str(CONFIG), HOODMIN_QA_OWNER=str(OWNER), HOODMIN_QA_PORT=PORT, VHM_TEST_ISOLATED='1', VHM_TEST_ORIGIN=ORIGIN, VHM_TEST_CA='/etc/vpnhood-manager/tls/ca.crt', VHM_TEST_DATABASE_URL=app_url, VHM_TEST_AGENT_ORIGIN='http://127.0.0.1:3108', PGPORT=PORT)
+	for script in ([] if os.environ.get('HOODMIN_TEST_SKIP_REGRESSION') else ['test_operations.py']):
 		result = subprocess.run(['python3', str(ROOT / 'tests' / script)], env=regression_env, capture_output=True, text=True)
 		if result.returncode:
 			print(result.stdout[-2500:], result.stderr[-2000:], flush=True)
@@ -236,9 +245,15 @@ http {{
 	import tarfile
 	with tarfile.open(archive) as exported:
 		check(exported.extractfile('./master.key').read() == Path('/var/lib/hoodmin/master.key').read_bytes() and exported.extractfile('./database.dump').read(5) == b'PGDMP', 'Native CLI encrypted export decrypts to the exact key and valid PostgreSQL dump')
+	if os.environ.get('HOODMIN_QA_BROWSER_WAIT'):
+		print('BROWSER_READY '+str(WORK), flush=True)
+		deadline=time.monotonic()+min(600,int(os.environ['HOODMIN_QA_BROWSER_WAIT']))
+		while time.monotonic()<deadline and not (WORK/'browser-finished').exists():time.sleep(.25)
 	api('logout')
 	check(not (WORK / 'session.json').exists(), 'CLI logout revokes and removes its human session')
 finally:
+	if NOTIFICATION_FIXTURE:
+		NOTIFICATION_FIXTURE.close()
 	for process in reversed(PROCESSES):
 		if process.poll() is None:
 			os.killpg(process.pid, signal.SIGTERM)

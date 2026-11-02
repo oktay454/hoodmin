@@ -11,10 +11,10 @@ mod install;
 mod management;
 mod policy;
 mod publication;
+mod readmodels;
 mod reports;
 mod server_profiles;
 mod store;
-mod views;
 mod web;
 
 mod cli;
@@ -23,7 +23,14 @@ mod cli_database;
 mod cli_http;
 mod config;
 mod legacy;
+mod rotation;
 mod runtime;
 
 pub use cli::run as run_cli;
 pub use runtime::run as run_server;
+
+mod retention;
+
+mod notifications;
+
+mod frontend;

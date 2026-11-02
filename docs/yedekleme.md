@@ -32,7 +32,7 @@ Komut `/var/backups/hoodmin/` altında yeni 0700 dizin oluşturur. `--directory`
 | `acme/` | Varsa AutoSign hesabı, sertifikalar ve özel anahtarlar. |
 | `letsencrypt/` | Varsa panelin Certbot dosyaları. |
 | `package-version.txt` | Paket sürümü. |
-| `SHA256SUMS` | Temel dosyaların özetleri. |
+| `SHA256SUMS`, `hoodmin-backup.json` | Temel özetler, tüm dosya ağacının bütünlük kaydı ve tamamlanma işareti. |
 
 Yapılandırma dizini dışındaki özel veritabanı TLS dosyalarını ayrıca koruyun; yollarını kurtarma planına ekleyin. Yedek yönetici bağlantı dosyası ve age özel kurtarma kimliği kendiliğinden arşive eklenmez.
 
@@ -46,13 +46,13 @@ Bağımsız güvenli makinede `age-keygen` ile alıcı/kurtarma kimliği üretin
 hoodmin-cli backup export
 ```
 
-Uzak veritabanında ayrıca `--admin-url-file /root/hoodmin-backup-db.url` verin. Komut yeni yedek oluşturup `/var/backups/hoodmin/latest.age` dosyasını atomik yeniler. Bu dosyayı bağımsız makineye kopyalayın. Yalnız sabit şifreli dosyayı okuyan komut ve kaynak IP ile sınırlandırılmış SSH anahtarı kullanabilirsiniz:
+Uzak veritabanında ayrıca `--admin-url-file /root/hoodmin-backup-db.url` verin. Komut yeni yedek oluşturup `/var/backups/hoodmin/latest.age` dosyasını atomik yeniler; tarihli `.age` kopyasını da korur. Bu dosyayı bağımsız makineye kopyalayın. Yalnız sabit şifreli dosyayı okuyan komut ve kaynak IP ile sınırlandırılmış SSH anahtarı kullanabilirsiniz:
 
 ```bash
 hoodmin-cli backup pull --host panel.example.com --user root --identity /root/.ssh/hoodmin-backup-pull --known-hosts /root/.ssh/hoodmin-backup-known-hosts
 ```
 
-`/usr/share/doc/hoodmin/examples/` içindeki systemd örneklerini kendi adreslerinize/yedek bağlantınıza göre düzenleyin. Önce elle yedek oluşturarak hedef dizini hazırlayın. Zamanlayıcılar kendiliğinden etkinleşmez; eski yedekler otomatik silinmez. Saklama süresi, disk izlemesi ve temizliği ayrıca yönetin.
+`/usr/share/doc/hoodmin/examples/` içindeki systemd örneklerini kendi adreslerinize/yedek bağlantınıza göre düzenleyin. Önce elle yedek oluşturarak hedef dizini hazırlayın. Zamanlayıcılar kendiliğinden etkinleşmez. `backup policy` ile saklama kuralları tanımlanabilir; `backup prune` önce silmeden önizleme gösterir. [Politika ve güvenli silme kuralları](isletim-politikalari.md#yedek-saklama-politikasını-kurma).
 
 ## 4. Doğrulama
 
@@ -86,3 +86,5 @@ Uzak hedefte PostgreSQL istemcisinin bağlantı/TLS seçeneklerini kullanın; pa
 6. Gerekiyorsa `hoodmin-cli database init` ile desteklenen geçişleri uygulayın. Hizmeti başlatıp `/readyz`, giriş, agent bağlantısı ve anahtar üretimini doğrulayın.
 
 İlk sahip JSON dosyası yalnız ilk parolayı kaydeder; güncel parolayı sıfırlamaz. Sırlar hiçbir genel rapora eklenmemelidir.
+
+Ana anahtar döndürme ve önceki yedek anahtarlarının korunması: [işletim politikaları](isletim-politikalari.md).

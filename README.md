@@ -19,7 +19,7 @@ Her kuruluş kendi VPN sunucusunu getirir (bring your own server, BYOS). Sunucu 
 Debian 13 amd64 üzerinde root olarak çalışın. Bağlantı dizesini 0600 izinli `/root/hoodmin-db.url` dosyasına yazın. PostgreSQL sunucusunu yerel veya uzak ortamda ayrıca hazırlayın; paket bunu zorunlu bağımlılık olarak kurmaz. Yerel örnek:
 
 ```bash
-apt install ./hoodmin_0.2.0-1~deb13u1_amd64.deb
+apt install ./hoodmin_0.3.0-1~deb13u1_amd64.deb
 hoodmin-cli config set --database-url-file /root/hoodmin-db.url --public-origin https://hoodmin.example.com
 hoodmin-cli database init --local
 hoodmin-cli owner-init --email vpn@example.com
@@ -39,6 +39,8 @@ Ardından [kurulum kılavuzundaki](docs/uretim-kurulumu.md) Nginx/HTTPS adımlar
 - Beş ekip rolü, süreli bot anahtarları ve JSON yönetim API'si.
 - PostgreSQL satır düzeyi güvenlik (RLS), Argon2id parola özeti ve AES-256-GCM ile saklanan yönetim sırları.
 
+- Tam istemci taraflı statik arayüz (SPA), işlemsel anahtar döndürme, doğrulanmış yedek saklama politikası ve HTTPS webhook/SMTPS bildirimleri. [İşletim kılavuzu](docs/isletim-politikalari.md).
+
 ## Teknik başvuru
 
 [Rust CLI](docs/cli.md) · [Mimari](docs/mimari.md) · [API](docs/yonetim-api.md) · [Protokol ve destek sınırları](docs/protokol-uyumlulugu.md) · [Console özellik karşılığı](docs/console-karsilastirmasi.md) · [Geliştirme ve doğrulama](docs/dogrulama.md)
@@ -47,4 +49,4 @@ Hizmet hesabı, grubu ve PostgreSQL rolü **`hoodmin`** adını kullanır. Yerel
 
 ## Destek sınırları
 
-Uyumluluk hedefi VpnHood **9.0.856**; paket hedefi Debian 13 amd64'tür. Windows kurucu komutu üretilir; Windows kurulumu uçtan uca sınanmamıştır. AutoSign tek sunucu/tek FQDN ve HTTP-01 içindir; joker alan adı/DNS-01 yoktur. Bulut IP satın alma, başka VPN motorları, faturalama, kiracıya özel markalama ve genel kayıt portalı sunulmaz. Ana anahtar döndürme, harici alarm ve otomatik yedek silme bulunmaz. Uzun süreli yük/kesinti ve tam masaüstü rota sınamaları tamamlanmış değildir; kapalı kaynak Manager ile tam eşdeğerlik iddia edilmez.
+Uyumluluk hedefi VpnHood **9.0.856**; paket hedefi Debian 13 amd64'tür. Windows kurucu komutu üretilir; Windows kurulumu uçtan uca sınanmamıştır. AutoSign tek sunucu/tek FQDN ve HTTP-01 içindir; joker alan adı/DNS-01 yoktur. Bulut IP satın alma, başka VPN motorları, faturalama, kiracıya özel markalama ve genel kayıt portalı sunulmaz. Uzun süreli yük/kesinti ve tam masaüstü rota sınamaları tamamlanmış değildir; kapalı kaynak Manager ile tam eşdeğerlik iddia edilmez.

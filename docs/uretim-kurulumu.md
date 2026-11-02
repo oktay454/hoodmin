@@ -12,7 +12,7 @@ Uzak PostgreSQL için panelden veritabanı adresine TCP erişimi gerekir. Verita
 
 ```bash
 apt update
-apt install ./hoodmin_0.2.0-1~deb13u1_amd64.deb
+apt install ./hoodmin_0.3.0-1~deb13u1_amd64.deb
 ```
 
 Paket `hoodmin` sistem hesabını, ana anahtar dosyasını ve boş `/etc/hoodmin/hoodmin.json` yapılandırmasını hazırlar. Hizmet kendiliğinden etkinleşmez. Elle başlattığınızda henüz yapılandırılmamış olsa bile HTTP hizmeti ayakta kalır; basit bir kullanılabilirlik mesajı gösterir.
@@ -68,7 +68,7 @@ Bu komut yerel `postgres` hesabıyla rol/veritabanı ve şemayı oluşturur. Hoo
 hoodmin-cli database init --admin-url-file /root/hoodmin-db-admin.url
 ```
 
-Bu komut yönetici yetkisiyle eksik rol/veritabanını oluşturur ve şema geçişlerini uygular. Yeni rolün parolası uygulama bağlantı dizesinden alınır; var olan rolün parolası kendiliğinden değiştirilmez. Yönetici rolünü hizmet yapılandırmasına yazmayın. Uygulama rolü süper kullanıcı/BYPASSRLS olamaz. Veritabanı hizmeti rol oluşturmayı kısıtlıyorsa yöneticiniz rol/veritabanını önceden hazırlamalı ve şema kurulumuna uygun yönetim yetkisi sağlamalıdır.
+Bu komut yönetici yetkisiyle eksik rol/veritabanını oluşturur ve şema geçişlerini uygular. Yeni rolün parolası uygulama bağlantı dizesinden alınır; var olan rolün parolası kendiliğinden değiştirilmez. Şema yöneticisi, güvenlik tanımlayıcılı bakım işlevleri için SUPERUSER veya BYPASSRLS yetkisi taşımalıdır. Bu bağlantıyı yalnız kurulum/geçiş işleminde kullanın. Yönetici rolünü hizmet yapılandırmasına yazmayın. Uygulama rolü süper kullanıcı/BYPASSRLS olamaz. Veritabanı hizmeti rol oluşturmayı kısıtlıyorsa yöneticiniz rol/veritabanını önceden hazırlamalı ve şema kurulumuna uygun yönetim yetkisi sağlamalıdır.
 
 Şema geçişleri işlem (transaction), kilit ve SHA-256 kaydıyla izlenir; komut tekrar çalıştırılabilir. İzlenmeyen mevcut şema veya değiştirilmiş geçiş dosyası reddedilir.
 

@@ -77,7 +77,7 @@ pub async fn run(command: Command, database_url: String, master_key_file: PathBu
 		metadata.permissions().mode() & 0o077 == 0,
 		"Ana anahtar yalnızca sahibince okunabilir olmalı (0600)."
 	);
-	let vault = Vault::new(&std::fs::read(&master_key_file)?)?;
+	let vault = Vault::from_bytes(&std::fs::read(&master_key_file)?)?;
 	let pool = PgPoolOptions::new()
 		.max_connections(12)
 		.connect_with(crate::config::database_options(&database_url)?)
@@ -91,6 +91,7 @@ pub async fn run(command: Command, database_url: String, master_key_file: PathBu
 		!role.get::<bool, _>("rolsuper") && !role.get::<bool, _>("rolbypassrls"),
 		"Uygulama veri tabanı rolü RLS atlayamaz."
 	);
+	let vault = crate::rotation::bind(&pool, vault).await?;
 	let state = store::Store { pool, vault };
 	match command {
 		Command::AcmeHook {

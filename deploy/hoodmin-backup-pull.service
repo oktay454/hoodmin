@@ -10,5 +10,5 @@ NoNewPrivileges=yes
 PrivateTmp=yes
 ProtectSystem=strict
 ProtectHome=read-only
-ReadWritePaths=/var/backups/hoodmin-remote
+ReadWritePaths=/var/backups/hoodmin-remote /var/lib/hoodmin
 TimeoutStartSec=10min

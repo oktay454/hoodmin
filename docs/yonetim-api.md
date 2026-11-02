@@ -32,11 +32,11 @@ Bot istek başlığı `Authorization: Bearer <bot-anahtarı>`, JSON gövdelerde 
 
 ## Yazma
 
-POST işlemleri paneldeki aynı işlevleri, kilitleri, denetim kaydını ve doğrulamayı kullanır. `csrf` alanı bot gövdesinde gerekmez; insan oturumunda zorunludur. `Accept: application/json` ile JSON yanıtı seçilir. UUID'ler yalnız botun kiracısında çözülür; başka kiracının kaydı 404 olur. Genel başarısızlıklar JSON `error` ve uygun HTTP durumudur. Gövde tür/boyut hataları Axum'un 400/413/422 durumlarını kullanır.
+POST işlemleri paneldeki aynı işlevleri, kilitleri, denetim kaydını ve doğrulamayı kullanır. `csrf` alanı bot gövdesinde gerekmez; insan oturumunda zorunludur. Yönetim yolları JSON döndürür; dosya indirme yolları içerik türünü korur. UUID'ler yalnız botun kiracısında çözülür; başka kiracının kaydı 404 olur. Genel başarısızlıklar JSON `error` ve uygun HTTP durumudur. Gövde tür/boyut hataları Axum'un 400/413/422 durumlarını kullanır.
 
 | POST yolu | Gerekli veya anlamlı alanlar |
 |---|---|
-| `/servers` | `name`, `host`, `port`, `farm` (boş metin veya kendi grup UUID'si); yanıt `id`, bağlantı `settings` |
+| `/servers` | `name`, `host`, `port`, `farm` (boş metin veya kendi grup UUID'si); yanıt `id`, bağlantı `settings` ve Linux/Windows `commands` |
 | `/servers/{id}` | `name`, `farm`, `paused`; isteğe bağlı `host`, `port` |
 | `/servers/{id}/configuration` | `base_code`, `settings`, `confirmed:true` |
 | `/servers/{id}/routing` | `base_code`, `policy`, `advertisement`, `confirmed:true` |
@@ -87,3 +87,9 @@ Sunucu AutoSign yönetimi: [GET/POST alanları ve CA onayı](autosign.md).
 Ek okuma yolları: `/dashboard`, `/panel/audit`, `/panel/account`, `/reports?hours=24`, `/usage.csv`; sunucuda `/servers/{id}/routing`, `/certificates`, `/installation` GET yolları ayar/sertifika/iş metaverisi döndürür. CSV ve anahtar indirme metin/dosya yanıtıdır; diğerleri JSON için `Accept: application/json` kullanır. Görüntülenen kaynakların kiracı/rol sınırları web ile aynıdır.
 
 `hoodmin-cli api login|get|post|logout` bu sözleşmeyi kullanır. İnsan isteklerine CSRF/Origin otomatik eklenir; onay/sürüm kanıtları kendiliğinden üretilmez. [CLI kılavuzu](cli.md).
+
+## Bildirimler ve statik arayüz şeması
+
+`GET /schema`, düzenlenebilir sunucu alan kataloğunu ve yeni profil varsayılanlarını verir. `GET /me` ayrıca `tenant_name` döndürür. Statik arayüz bütün yönetim işlemlerinde bu API'yi kullanır.
+
+`GET /notifications`, `POST /notifications/{UUID}` ve `POST /notifications/{UUID}/test` yönetici yetkisi ister. Hedef sırları okuma yanıtına girmez; sürüm ve onay kuralları uygulanır. [Hedef biçimleri ve gönderim kuralları](isletim-politikalari.md#cliapi-ile-bildirimler).

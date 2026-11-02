@@ -1,4 +1,4 @@
-.TH HOODMIN-CLI 8 "2026-10-19" "Hoodmin 0.2.0" "System Administration"
+.TH HOODMIN-CLI 8 "2026-11-03" "Hoodmin 0.3.0" "System Administration"
 .SH NAME
 hoodmin-cli \- configure, maintain and manage Hoodmin
 .SH SYNOPSIS
@@ -11,6 +11,10 @@ database init|check: provision local or remote PostgreSQL and apply checksummed 
 owner-init --email ADDRESS: create the initial owner and store credentials in a root-only file.
 .br
 api login|get|post|logout|whoami: use the shared management API with a human session or bot token.
+.br
+keys status|rotate --confirmed: inspect key IDs or transactionally rewrap all encrypted fields. Keep an independent verified backup first.
+.br
+backup policy|prune [--apply]: configure retention or preview/apply removal of verified backups.
 .br
 backup create|export|pull: create, encrypt or fetch backups. pg_dump and age are optional external tools.
 .br

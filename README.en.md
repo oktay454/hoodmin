@@ -12,7 +12,7 @@ Each organization brings its own VPN servers (BYOS). A server belongs to one ten
 2. As root, prepare a private (0600) `/root/hoodmin-db.url` containing the application connection URL. PostgreSQL is configured separately, locally or remotely; the package does not depend on a PostgreSQL server. The following example uses a separately installed local server:
 
 ```bash
-apt install ./hoodmin_0.2.0-1~deb13u1_amd64.deb
+apt install ./hoodmin_0.3.0-1~deb13u1_amd64.deb
 systemctl enable --now postgresql
 hoodmin-cli config set --database-url-file /root/hoodmin-db.url --public-origin https://hoodmin.example.com
 hoodmin-cli database init --local
@@ -45,19 +45,29 @@ The package installs the panel, not the VPN server. Do not run the isolated QA s
 - Five team roles, expiring bot keys and a JSON management API.
 - PostgreSQL RLS, Argon2id passwords and AES-256-GCM protection for stored management secrets.
 
+The static client-side UI (SPA) renders all screens from the management API. JavaScript is required; session credentials remain in HttpOnly cookies. Turkish, English and Arabic (RTL), light/dark themes and explicit confirmations are supported.
+
+## Key rotation, retention and alerts
+
+As root, take a verified independent backup, run `hoodmin-cli keys status`, then `hoodmin-cli keys rotate --confirmed`. All encrypted database fields are rewrapped in one transaction. The durable keyring allows interrupted rotations to recover; previous keys remain for old backups (maximum 32 keys). VPN identities are preserved.
+
+Retention is disabled by default. Configure a private JSON policy with `hoodmin-cli backup policy --file FILE`, preview with `backup prune`, and delete with `backup prune --apply`. Only completed, checksum-validated copies are eligible; the newest `keep_min` copies are protected. Successful backup creation/export can apply an enabled policy. Disk thresholds cannot guarantee reserved filesystem space.
+
+Administrators use **Notifications** to add HTTPS webhook or implicit-TLS SMTP channels, test delivery, and inspect the persistent queue. Offline/recovery, AutoSign and publication failure/recovery events are deduplicated. Failed delivery retries up to eight times; receivers should deduplicate event IDs. Credentials are encrypted and masked. An operator may opt one tenant into backup/disk status events using `backup.notify_tenant`; a stopped service or database requires independent monitoring. [Full operations reference](docs/isletim-politikalari.md).
+
 ## Operations and reference
 
 - [Rust CLI](docs/cli.md): setup, maintenance and all management API operations.
 - [Handbook](docs/elkitabi.md): menus, first server, access keys, profiles and roles.
 - [AutoSign](docs/autosign.md): DNS and inbound TCP 80 must reach the VPN host. Start with the staging CA; staging certificates are not deployed. Production mode deploys the validated PFX and checks renewal every 12 hours. Do not manage the same VPN certificate with a second Certbot timer.
-- [Backups and recovery](docs/yedekleme.md): run `hoodmin-cli backup create` as root. Preserve the database dump, `/var/lib/hoodmin/master.key`, settings and the `acme` tree together. Store an encrypted copy off the machine. `hoodmin-cli backup export` requires the optional `age` package and a separately stored recovery identity. Backups are not automatically deleted.
+- [Backups and recovery](docs/yedekleme.md): run `hoodmin-cli backup create` as root. Preserve the database dump, `/var/lib/hoodmin/master.key`, settings and the `acme` tree together. Store an encrypted copy off the machine. `hoodmin-cli backup export` requires the optional `age` package and a separately stored recovery identity. Retention is opt-in; preview with `hoodmin-cli backup prune` before enabling deletion.
 - [Troubleshooting](docs/sorun-giderme.md): `systemctl status hoodmin` and `journalctl -u hoodmin`.
 - [Architecture](docs/mimari.md), [API](docs/yonetim-api.md), [protocol](docs/protokol-uyumlulugu.md), [build and validation](docs/dogrulama.md).
 
 The executable is `/usr/bin/hoodmin`, the service is `hoodmin.service`, settings are in `/etc/hoodmin/hoodmin.json`, and data is in `/var/lib/hoodmin`. The service account/group are `hoodmin`. Database host, port, database and login are configured explicitly in the JSON settings. Local sockets can use peer authentication; TCP requires `sslmode=verify-full`. The account name is a local identity, not a panel login. Cookies use `__Host-vhm_*`.
 
-This release requires a fresh installation; packages older than `0.2.0-1~deb13u1` are not migrated. For subsequent upgrades, back up and stop the service, install the new package, run `hoodmin-cli database init --local`, then restart. Preserve the master key and JSON configuration file. Validate restoration in a separate database before any recovery into a replacement installation.
+Packages older than `0.2.0-1~deb13u1` require a fresh installation; newer installations support schema upgrades. For subsequent upgrades, back up and stop the service, install the new package, run `hoodmin-cli database init --local`, then restart. Preserve the master key and JSON configuration file. Validate restoration in a separate database before any recovery into a replacement installation.
 
 ## Scope
 
-Compatibility target: VpnHood **9.0.856** on Debian 13 amd64. Windows installation is not end-to-end verified. AutoSign supports one FQDN per server with HTTP-01, without wildcard/DNS-01 or group-wide issuance. Other VPN engines, cloud IP ordering, billing, per-tenant branding and public signup are unavailable. Master-key rotation, external alerts and automatic backup retention are unavailable. Sustained load/outage tests and full desktop routing tests are incomplete; full commercial Manager equivalence is not claimed.
+Compatibility target: VpnHood **9.0.856** on Debian 13 amd64. Windows installation is not end-to-end verified. AutoSign supports one FQDN per server with HTTP-01, without wildcard/DNS-01 or group-wide issuance. Other VPN engines, cloud IP ordering, billing, per-tenant branding and public signup are unavailable. Sustained load/outage tests and full desktop routing tests are incomplete; full commercial Manager equivalence is not claimed.

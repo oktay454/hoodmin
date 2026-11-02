@@ -14,6 +14,7 @@ pub const DEFAULT_FILE: &str = "/etc/hoodmin/hoodmin.json";
 #[serde(default, deny_unknown_fields)]
 pub struct Settings {
 	pub database_url: Option<String>,
+	pub backup: crate::retention::Policy,
 	pub master_key_file: PathBuf,
 	pub public_origin: String,
 	pub listen: SocketAddr,
@@ -22,6 +23,7 @@ impl Default for Settings {
 	fn default() -> Self {
 		Self {
 			database_url: None,
+			backup: Default::default(),
 			master_key_file: "/var/lib/hoodmin/master.key".into(),
 			public_origin: "https://hoodmin.example.invalid".into(),
 			listen: "127.0.0.1:3080".parse().expect("loopback"),
@@ -45,6 +47,7 @@ impl Settings {
 			"Hizmet yalnız loopback üzerinde dinleyebilir."
 		);
 		validate_origin(&self.public_origin)?;
+		self.backup.validate()?;
 		if let Some(url) = &self.database_url {
 			database_options(url)?;
 		}
@@ -64,7 +67,8 @@ impl Settings {
 			metadata.permissions().mode() & 0o077 == 0,
 			"Ana anahtar dosyası 0600 olmalı."
 		);
-		crate::crypto::Vault::new(&std::fs::read(&self.master_key_file)?)
+		ensure!(metadata.len() <= 16384, "Anahtar dosyası çok büyük.");
+		crate::crypto::Vault::from_bytes(&std::fs::read(&self.master_key_file)?)
 	}
 }
 pub fn validate_origin(value: &str) -> Result<()> {
@@ -125,7 +129,7 @@ pub async fn pool(value: &str) -> Result<PgPool> {
 		.await?)
 }
 pub async fn check_schema(pool: &PgPool) -> Result<()> {
-	sqlx_core::query::query("SELECT t.id,s.id,k.id,w.token_hash,b.id,p.id,a.id,f.server_profile_id FROM tenants t,servers s,access_tokens k,web_sessions w,bots b,external_publications p,acme_orders a,farms f WHERE FALSE").execute(pool).await?;
+	sqlx_core::query::query("SELECT t.id,s.id,k.id,w.token_hash,b.id,p.id,a.id,f.server_profile_id FROM tenants t,servers s,access_tokens k,web_sessions w,bots b,external_publications p,acme_orders a,farms f,vault_state v,notification_channels nc WHERE FALSE").execute(pool).await?;
 	Ok(())
 }
 pub fn redact(error: &anyhow::Error, database_url: Option<&str>) -> String {

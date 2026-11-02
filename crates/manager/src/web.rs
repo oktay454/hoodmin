@@ -1,8 +1,7 @@
 use crate::{
 	auth::{self, User},
-	i18n, management,
+	i18n, management, readmodels as views,
 	store::Store,
-	views,
 };
 use axum::{
 	Form, Router,
@@ -149,22 +148,13 @@ pub fn router(state: WebState) -> Router {
 				)
 			}),
 		)
-		.route(
-			"/assets/app.js",
-			get(|| async {
-				(
-					[(header::CONTENT_TYPE, "text/javascript; charset=utf-8")],
-					include_str!("../assets/app.js"),
-				)
-			}),
-		)
 		.nest("/api/manage", management_api())
 		.layer(DefaultBodyLimit::max(512 * 1024))
 		.layer(middleware::from_fn(security))
 		.layer(middleware::from_fn(i18n::middleware))
 		.with_state(state)
 }
-async fn security(request: axum::extract::Request, next: Next) -> Response {
+pub(crate) async fn security(request: axum::extract::Request, next: Next) -> Response {
 	let mut response = next.run(request).await;
 	for (name, value) in [
 		("cache-control", "no-store"),
@@ -343,7 +333,7 @@ async fn login(
 	if !verified || !account.as_ref().is_some_and(|a| a.get::<bool, _>("active")) {
 		return Ok((
 			StatusCode::UNAUTHORIZED,
-			views::signin(&form.csrf, Some("E-posta veya parola hatalı.")),
+			axum::Json(json!({"error":"E-posta veya parola hatalı."})),
 		)
 			.into_response());
 	}
@@ -566,7 +556,7 @@ async fn add_server(
 		serde_json::to_string_pretty(&crate::install::settings(&state.origin, &credential))
 			.map_err(anyhow::Error::from)?;
 	Ok(if user.json {
-		axum::Json(json!({"id":id,"settings":serde_json::from_str::<serde_json::Value>(&settings).map_err(anyhow::Error::from)?})).into_response()
+		axum::Json(json!({"id":id,"settings":serde_json::from_str::<serde_json::Value>(&settings).map_err(anyhow::Error::from)?,"commands":crate::install::commands(&serde_json::from_str::<serde_json::Value>(&settings).map_err(anyhow::Error::from)?)})).into_response()
 	} else {
 		views::installation(&user, id, &settings).into_response()
 	})
@@ -658,6 +648,14 @@ async fn rotate_credential(
 	let settings =
 		serde_json::to_string_pretty(&crate::install::settings(&state.origin, &credential))
 			.map_err(anyhow::Error::from)?;
+	if user.json {
+		let settings: serde_json::Value =
+			serde_json::from_str(&settings).map_err(anyhow::Error::from)?;
+		return Ok(axum::Json(
+			json!({"id":id,"commands":crate::install::commands(&settings),"settings":settings}),
+		)
+		.into_response());
+	}
 	Ok(secret_response(
 		&user,
 		"Yeni sunucu bağlantı ayarı",
@@ -1779,7 +1777,7 @@ async fn integrations(
 		.bind(user.tenant)
 		.fetch_one(&mut *tx)
 		.await?;
-	Ok(views::integrations(&user, enabled).into_response())
+	Ok(axum::Json(json!({"enabled":enabled})).into_response())
 }
 async fn configure_ad_hook(
 	State(state): State<WebState>,
@@ -2851,6 +2849,7 @@ json_read!(api_get_certificates, Uuid, server_certificates);
 json_read!(api_get_installation, Uuid, installation);
 json_read!(api_get_configuration, Uuid, server_configuration);
 json_read!(api_get_credential, Uuid, confirm_credential);
+json_read!(api_get_farm_certificates, Uuid, farm_certificates);
 json_read!(api_get_key, Uuid, token_key);
 json_read!(api_download_key, Uuid, download_token);
 json_read!(api_install_status, Uuid, install_status);
@@ -2879,8 +2878,110 @@ json_list!(api_profiles, "profiles");
 json_list!(api_server_profiles, "server-profiles");
 json_list!(api_users, "users");
 json_list!(api_bots, "bots");
+async fn api_notifications(State(state): State<WebState>, headers: HeaderMap) -> Response {
+	api_result(
+		async {
+			api_preflight(&state, &headers).await?;
+			let user = require(&state, &headers, None, Permission::Admin).await?;
+			Ok(axum::Json(crate::notifications::list(&state.store, &user).await?).into_response())
+		}
+		.await,
+	)
+}
+async fn api_notification_save(
+	State(state): State<WebState>,
+	headers: HeaderMap,
+	Path(id): Path<Uuid>,
+	axum::Json(form): axum::Json<crate::notifications::Change>,
+) -> Response {
+	api_result(
+		async {
+			api_preflight(&state, &headers).await?;
+			let user = require(&state, &headers, Some(&form.csrf), Permission::Admin).await?;
+			if !form.confirmed || !(1..=120).contains(&form.name.trim().len()) {
+				return Err(bad("Bildirim adı veya açık onay geçersiz."));
+			}
+			if let Some(target) = &form.target {
+				target.validate().map_err(|_| {
+					bad(
+						"Bildirim hedefi geçersiz. Genel HTTPS veya doğrulanmış SMTPS hedefi kullanın.",
+					)
+				})?;
+			}
+			let result = crate::notifications::save(&state.store, &user, id, form)
+				.await
+				.map_err(|error| {
+					if error.is::<crate::notifications::Conflict>() {
+						PanelError(
+							StatusCode::CONFLICT,
+							"Bildirim hedefi değişti; listeyi yenileyin.",
+						)
+					} else {
+						error.into()
+					}
+				})?;
+			Ok(axum::Json(result).into_response())
+		}
+		.await,
+	)
+}
+async fn api_notification_test(
+	State(state): State<WebState>,
+	headers: HeaderMap,
+	Path(id): Path<Uuid>,
+	axum::Json(form): axum::Json<ConfirmForm>,
+) -> Response {
+	api_result(
+		async {
+			api_preflight(&state, &headers).await?;
+			let user = require(&state, &headers, Some(&form.csrf), Permission::Admin).await?;
+			if !form.confirmed {
+				return Err(bad("Bildirim sınamasını onaylayın."));
+			}
+			Ok(
+				axum::Json(crate::notifications::test(&state.store, &user, id).await?)
+					.into_response(),
+			)
+		}
+		.await,
+	)
+}
+static SCHEMA: tokio::sync::OnceCell<serde_json::Value> = tokio::sync::OnceCell::const_new();
+async fn api_schema(State(state): State<WebState>, headers: HeaderMap) -> Response {
+	api_result(async {
+		api_preflight(&state,&headers).await?;
+		let value=SCHEMA.get_or_try_init(||async {
+			let settings=tokio::task::spawn_blocking(||management::make_config("vpn.example.invalid",443)).await.map_err(|_|bad("Şema hazırlanamadı."))??;
+			Ok::<_,PanelError>(json!({"policy":crate::policy::AccessPolicy::default(),"management":crate::farms::ServerPolicy::default(),"settings":vpnhood_protocol::config::editable(&settings),"catalog":serde_json::from_str::<serde_json::Value>(vpnhood_protocol::config::CATALOG).map_err(anyhow::Error::from)?}))
+		}).await?;
+		Ok(axum::Json(value.clone()).into_response())
+	}.await)
+}
+
+async fn api_integrations(State(state): State<WebState>, headers: HeaderMap) -> Response {
+	api_result(integrations(State(state), headers).await)
+}
+async fn api_json(mut request: axum::extract::Request, next: Next) -> Response {
+	request.headers_mut().insert(
+		header::ACCEPT,
+		header::HeaderValue::from_static("application/json"),
+	);
+	let response = next.run(request).await;
+	if response.status().is_redirection() {
+		return (
+			StatusCode::UNAUTHORIZED,
+			axum::Json(json!({"error":"Geçerli oturum gerekli."})),
+		)
+			.into_response();
+	}
+	response
+}
 fn management_api() -> Router<WebState> {
 	Router::new()
+		.route("/schema", get(api_schema))
+		.route("/notifications", get(api_notifications))
+		.route("/notifications/{id}", post(api_notification_save))
+		.route("/notifications/{id}/test", post(api_notification_test))
 		.route("/login", get(api_login_form).post(api_login))
 		.route("/me", get(api_me))
 		.route("/logout", post(api_logout))
@@ -2924,7 +3025,10 @@ fn management_api() -> Router<WebState> {
 		.route("/publications/{id}/push", post(api_destination_push))
 		.route("/publications/{id}/remove", post(api_destination_remove))
 		.route("/farms/{id}/publication", post(api_farm_publication))
-		.route("/farms/{id}/certificates", post(api_farm_certificates))
+		.route(
+			"/farms/{id}/certificates",
+			get(api_get_farm_certificates).post(api_farm_certificates),
+		)
 		.route("/tokens", get(api_tokens).post(api_add_tokens))
 		.route("/tokens/bulk", post(api_bulk_tokens))
 		.route("/tokens/{id}/policy", post(api_token_policy))
@@ -2956,9 +3060,10 @@ fn management_api() -> Router<WebState> {
 		.route("/users", get(api_users).post(api_add_user))
 		.route("/users/{id}", post(api_edit_user))
 		.route("/tenant", post(api_tenant))
-		.route("/integrations", post(api_integration))
+		.route("/integrations", get(api_integrations).post(api_integration))
 		.route("/bots", get(api_bots).post(api_add_bot))
 		.route("/bots/{id}/revoke", post(api_revoke_bot))
+		.layer(middleware::from_fn(api_json))
 }
 #[derive(Deserialize)]
 struct ApiListQuery {
@@ -3314,6 +3419,9 @@ async fn farm_certificates(
 		None => json!([]),
 	};
 	let config = json!({"certificates":shared.as_array().into_iter().flatten().map(|e|e["certificate"].clone()).collect::<Vec<_>>()});
+	if user.json {
+		return Ok(axum::Json(json!({"id":id,"name":row.get::<String,_>("name"),"base_code":row.get::<Uuid,_>("version"),"certificates":crate::certificates::describe(&config)})).into_response());
+	}
 	Ok(views::farm_certificates(
 		&user,
 		id,
@@ -3976,6 +4084,6 @@ async fn api_login(
 async fn api_me(State(state): State<WebState>, headers: HeaderMap) -> Response {
 	api_result(async {
 		let user=require(&state,&headers,None,Permission::Read).await?;
-		Ok(axum::Json(json!({"id":user.id,"tenant":user.tenant,"email":user.email,"role":user.role,"csrf":user.csrf,"bot":user.bot})).into_response())
+		Ok(axum::Json(json!({"id":user.id,"tenant":user.tenant,"email":user.email,"role":user.role,"csrf":user.csrf,"bot":user.bot,"tenant_name":user.tenant_name})).into_response())
 	}.await)
 }

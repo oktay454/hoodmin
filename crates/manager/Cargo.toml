@@ -33,7 +33,6 @@ anyhow = "1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
-leptos = { version = "=0.8.22", default-features = false, features = ["ssr"] }
 argon2 = "0.5"
 openssl = "0.10"
 futures-util = "0.3"

@@ -5,7 +5,7 @@ Hoodmin, VpnHood VPN ortamını yöneten modüler bir Rust uygulamasıdır. Gene
 ## Bileşenler ve veri yolu
 
 - Rust/Tokio/Axum: HTTPS vekilinin arkasındaki uygulama, yönetim ve agent API'leri.
-- Leptos sunucuda sayfa üretimi (SSR): standart HTML formları; küçük JavaScript ile tema, yardım, kopyalama, toplu seçim ve canlı sayaçlar. Tarayıcıda WASM/hidrasyon kullanılmaz.
+- Statik HTML/CSS ve yerel JavaScript modülüyle istemci taraflı uygulama (SPA): sayfalar tarayıcıda oluşturulur, yönetim verisi JSON API üzerinden alınır. WASM veya harici CDN gerekmez.
 - PostgreSQL/SQLx: yerel Unix soketi veya sunucu adı/CA doğrulamalı uzak TLS bağlantısıyla kiracı kaynakları, oturum kararları, denetim ve kalıcı AutoSign/yayım işleri.
 - Nginx: panelin TLS sonlandırması; Rust `127.0.0.1:3080` üzerinde dinler.
 - Resmî VpnHood sunucusu: panelin `/api/agent/` yoluna HTTPS isteği yapar. VPN trafiği istemci ile bu sunucu arasındadır; panelden geçmez.
@@ -40,8 +40,8 @@ Aynı kiracı grubunda uygun konum ve kapasiteye göre yönlendirme yapılır. S
 
 ## Hizmet yaşam döngüsü ve CLI
 
-`hoodmin`, HTTP dinleyicisini veritabanı bağlantısından bağımsız başlatır. Yapılandırma/anahtar/veritabanı hazır değilken statik durum sayfası ve 503 API yanıtı verir; ayrıntı sunucu günlüğündedir. `/healthz` süreç sağlığı, `/readyz` uygulama hazırlığıdır. Denetleyici bağlantıyı tekrar deneyip toparlar; veritabanı erişimi olmadan yetki kontrolü atlanmaz.
+`hoodmin`, HTTP dinleyicisini veritabanı bağlantısından bağımsız başlatır. Yapılandırma/anahtar/veritabanı hazır değilken statik arayüzü sunar; API 503 verir ve tarayıcı basit bir kullanılabilirlik mesajı gösterir; ayrıntı sunucu günlüğündedir. `/healthz` süreç sağlığı, `/readyz` uygulama hazırlığıdır. Denetleyici bağlantıyı tekrar deneyip toparlar; veritabanı erişimi olmadan yetki kontrolü atlanmaz.
 
 `hoodmin-cli` aynı Rust kitaplığını ve yönetim API'sini kullanır. Kurulum, şema, ilk sahip ve yedekleme bu ikili içindedir. PostgreSQL sunucusu paket bağımlılığı değildir. CLI yerel veya uzak veritabanını ayrı yönetici bağlantısıyla hazırlayabilir; hizmete yönetici rolü verilmez.
 
-Ana arayüz Leptos SSR'dir. Tüm formları kapsayan istemci taraflı uygulamaya (SPA) geçiş ayrı bir arayüz çalışmasıdır. Mevcut sürümde statik kullanılabilirlik ekranı ve ortak insan/bot JSON API'si vardır; tam SPA olduğu iddia edilmez.
+Anahtar döndürme, bildirim kuyruğu ve yedek saklama: [işletim politikaları](isletim-politikalari.md).

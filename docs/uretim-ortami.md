@@ -41,7 +41,7 @@ VPN sunucusu resmî hazır VpnHood 9.0.856 dağıtımıdır. Kapsayıcıdaki kur
 
 Panel HTTPS sertifikasını root Certbot/Nginx yönetir. VPN sertifikasını Hoodmin'deki **Sunucu → Sertifikalar → AutoSign** işi yönetir. İkisi ayrı hedeflerdir. Son geçerlilik tarihini sabit belgeye göre değil güncel sertifika/AutoSign durumundan kontrol edin.
 
-VPN'in root Certbot yenileme kaydı `.conf.autosign-disabled` uzantısıyla devre dışıdır; ikinci yenilemeyi etkinleştirmeyin. Panelin kendi yenileme kaydı etkindir. İşletmen köprüsüne ait `/etc/hoodmin/acme/vh01.json` özel bot bilgisi içerir; geçerli AutoSign akışı bunu kullanmaz. Harici hata bildirimi hizmeti yoktur.
+VPN'in root Certbot yenileme kaydı `.conf.autosign-disabled` uzantısıyla devre dışıdır; ikinci yenilemeyi etkinleştirmeyin. Panelin kendi yenileme kaydı etkindir. İşletmen köprüsüne ait `/etc/hoodmin/acme/vh01.json` özel bot bilgisi içerir; geçerli AutoSign akışı bunu kullanmaz. Bu belgedeki kurulu sürümde harici hata bildirimi yapılandırılmamıştır. Yeni kurulumda [bildirim kanalı](isletim-politikalari.md) ayrıca tanımlanır.
 
 ## Yedekler ve bakım
 
@@ -50,6 +50,6 @@ VPN'in root Certbot yenileme kaydı `.conf.autosign-disabled` uzantısıyla devr
 - VPN ana makinesi `hoodmin-backup-pull.timer`: UTC 03:15, İstanbul 06:15 civarı. Beş dakikaya kadar rastgele gecikme vardır.
 - Uzak şifreli kopya: VPN ana makinesinde `/var/backups/hoodmin-remote/`.
 - Kurtarma kimliği panelde `/root/hoodmin-backup.agekey` yolundadır; bağımsız güvenli kopyası ayrıca saklanmalıdır. Sunucuyla birlikte kaybolacak tek kopyaya güvenmeyin.
-- Eski yedekler otomatik silinmez; disk/saklama politikasını ayrıca yönetin. [Kurtarma adımları](yedekleme.md).
+- Saklama politikasını ayrıca etkinleştirin; varsayılan otomatik silme kapalıdır. [Kurtarma adımları](yedekleme.md).
 
 `hoodmin-before-autosign-20261019` ve `vh01-before-autosign-20261019` durdurulmuş, otomatik başlamayan geri dönüş kopyalarıdır. Eski sürüm içerirler; güncel yedek yerine geçmezler. Bakım öncesi yalnız ilgili kapsayıcıyı durdurup benzersiz adla `lxc-copy` alın. Geri dönüş kopyasını asıl kapsayıcıyla aynı IP üzerinde aynı anda çalıştırmayın. Şablonları koruyun.

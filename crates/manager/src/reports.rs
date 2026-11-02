@@ -6,6 +6,7 @@ pub struct Sample {
 	pub time: DateTime<Utc>,
 	pub status: Value,
 }
+#[derive(serde::Serialize)]
 pub struct Chart {
 	pub title: &'static str,
 	pub unit: &'static str,

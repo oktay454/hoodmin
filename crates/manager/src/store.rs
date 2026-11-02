@@ -23,6 +23,18 @@ pub struct Store {
 impl Store {
 	pub async fn begin(&self, tenant: Uuid) -> Result<Transaction<'_, Postgres>> {
 		let mut tx = self.pool.begin().await?;
+		sqlx_core::query::query("SELECT pg_advisory_xact_lock_shared($1)")
+			.bind(crate::rotation::LOCK)
+			.execute(&mut *tx)
+			.await?;
+		let active: Option<String> =
+			sqlx_core::query_scalar::query_scalar("SELECT active_key_id FROM vault_state WHERE id")
+				.fetch_one(&mut *tx)
+				.await?;
+		ensure!(
+			active.as_deref().is_none_or(|id| id == self.vault.id()),
+			"Anahtar sürümü değişti; hizmet yeniden yükleniyor."
+		);
 		sqlx_core::query::query("SELECT set_config('app.tenant_id',$1,true)")
 			.bind(tenant.to_string())
 			.execute(&mut *tx)

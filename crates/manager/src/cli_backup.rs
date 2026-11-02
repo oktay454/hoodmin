@@ -10,6 +10,16 @@ use std::{
 };
 #[derive(Subcommand)]
 pub enum Action {
+	/// Tamamlanmış yedekleri incele; yalnız --apply ile sil.
+	Prune {
+		#[arg(long)]
+		apply: bool,
+	},
+	/// Saklama politikasını özel bir JSON dosyasından doğrula ve kaydet.
+	Policy {
+		#[arg(long)]
+		file: Option<PathBuf>,
+	},
 	/// Özel veritabanı dökümü, yapılandırma, anahtar ve ACME dosyaları.
 	Create {
 		#[arg(long)]
@@ -41,13 +51,82 @@ pub enum Action {
 	},
 }
 pub fn run(config: &Path, settings: &Settings, action: Action) -> Result<()> {
+	let report = !matches!(action, Action::Policy { .. });
+	let completed = matches!(
+		action,
+		Action::Create { .. } | Action::Export { .. } | Action::Pull { .. }
+	);
+	let result = run_inner(config, settings, action);
+	if report
+		&& let Err(error) = record(
+			settings,
+			if completed || result.is_err() {
+				Some(result.is_ok())
+			} else {
+				None
+			},
+		) {
+		tracing::warn!(%error,"Yedek durumu kaydedilemedi");
+	}
+	result
+}
+fn record(settings: &Settings, success: Option<bool>) -> Result<()> {
+	use std::os::unix::fs::{MetadataExt, PermissionsExt};
+	let status = settings
+		.master_key_file
+		.with_file_name("backup-status.json");
+	let tmp = status.with_file_name(format!(".backup-status-{}", uuid::Uuid::new_v4()));
+	let free = crate::retention::free_bytes(&settings.backup.directory).ok();
+	let pressure = free.is_some_and(|free| free < settings.backup.min_free_bytes)
+		|| (settings.backup.max_bytes > 0
+			&& crate::retention::prune(&settings.backup, false)
+				.is_ok_and(|r| r.total_bytes > settings.backup.max_bytes));
+	let success = success.or_else(|| {
+		fs::read(&status)
+			.ok()
+			.and_then(|b| serde_json::from_slice::<serde_json::Value>(&b).ok())
+			.and_then(|s| s["success"].as_bool())
+	});
+	let file = crate::crypto::write_private_file(
+		&tmp,
+		&serde_json::to_vec(
+			&serde_json::json!({"success":success,"pressure":pressure,"at":chrono::Utc::now()}),
+		)?,
+	)?;
+	let meta = fs::metadata(&settings.master_key_file)?;
+	std::os::unix::fs::fchown(&file, Some(0), Some(meta.gid()))?;
+	file.set_permissions(fs::Permissions::from_mode(0o640))?;
+	file.sync_all()?;
+	fs::rename(tmp, &status)?;
+	fs::File::open(status.parent().context("Durum dizini eksik.")?)?.sync_all()?;
+	Ok(())
+}
+fn run_inner(config: &Path, settings: &Settings, action: Action) -> Result<()> {
 	crate::cli::root()?;
+	let _maintenance = crate::crypto::maintenance_lock(&settings.master_key_file)?;
 	match action {
+		Action::Prune { apply } => println!(
+			"{}",
+			serde_json::to_string_pretty(&crate::retention::prune(&settings.backup, apply)?)?
+		),
+		Action::Policy { file } => {
+			if let Some(file) = file {
+				let policy: crate::retention::Policy =
+					serde_json::from_str(&crate::cli::read_secret(&file)?)?;
+				policy.validate()?;
+				let mut updated = settings.clone();
+				updated.backup = policy;
+				crate::crypto::replace_key(config, &serde_json::to_vec_pretty(&updated)?)?;
+			} else {
+				println!("{}", serde_json::to_string_pretty(&settings.backup)?);
+			}
+		}
 		Action::Create {
 			admin_url_file,
 			directory,
 		} => {
 			let path = create(config, settings, admin_url_file.as_deref(), &directory)?;
+			automatic(settings, &directory)?;
 			println!("{}", path.display());
 		}
 		Action::Export {
@@ -80,7 +159,14 @@ pub fn run(config: &Path, settings: &Settings, action: Action) -> Result<()> {
 				let _ = fs::remove_file(&tmp);
 				anyhow::bail!("Şifreli yedek oluşturulamadı; age aracını ve alıcıyı denetleyin.");
 			}
-			fs::rename(&tmp, directory.join("latest.age"))?;
+			fs::File::open(&tmp)?.sync_all()?;
+			let archive = path.with_extension("age");
+			fs::rename(&tmp, &archive)?;
+			let latest = directory.join(format!(".latest-{}", uuid::Uuid::new_v4()));
+			fs::hard_link(&archive, &latest)?;
+			fs::rename(latest, directory.join("latest.age"))?;
+			fs::File::open(&directory)?.sync_all()?;
+			automatic(settings, &directory)?;
 			println!("Şifreli yedek hazır.");
 		}
 		Action::Pull {
@@ -166,7 +252,7 @@ fn copy_tree(source: &Path, target: &Path) -> Result<()> {
 	}
 	Ok(())
 }
-fn digest(path: &Path) -> Result<String> {
+pub(crate) fn digest(path: &Path) -> Result<String> {
 	let mut file = fs::File::open(path)?;
 	let mut hash = Sha256::new();
 	let mut buffer = [0u8; 65536];
@@ -202,8 +288,21 @@ fn create(
 		"Yedek bağlantısı uygulamanın veritabanını hedeflemeli."
 	);
 	mkdir(directory)?;
+	let canonical = fs::canonicalize(directory)?;
+	for source in [
+		config.parent().context("Yapılandırma dizini eksik.")?,
+		settings
+			.master_key_file
+			.parent()
+			.context("Veri dizini eksik.")?,
+	] {
+		ensure!(
+			!canonical.starts_with(fs::canonicalize(source)?),
+			"Yedek dizini yapılandırma/veri dizininin altında olamaz."
+		);
+	}
 	let path = directory.join(format!(
-		"{}-{}",
+		"hoodmin-{}-{}",
 		chrono::Utc::now().format("%Y%m%dT%H%M%SZ"),
 		uuid::Uuid::new_v4()
 	));
@@ -313,5 +412,39 @@ fn create(
 	] {
 		writeln!(sums, "{}  {name}", digest(&path.join(name))?)?;
 	}
+	sums.sync_all()?;
+	sync_tree(&path)?;
+	crate::retention::complete(&path)?;
 	Ok(path)
+}
+
+fn automatic(settings: &Settings, directory: &Path) -> Result<()> {
+	if settings.backup.enabled
+		&& fs::canonicalize(directory)? == fs::canonicalize(&settings.backup.directory)?
+	{
+		let report = crate::retention::prune(&settings.backup, true)?;
+		if report.pressure {
+			tracing::warn!("Yedek saklama sınırları korunan kopyalar nedeniyle sağlanamadı.");
+		}
+		tracing::info!(
+			removed = report.removed.len(),
+			retained = report.retained,
+			"Yedek saklama politikası uygulandı"
+		);
+	}
+	Ok(())
+}
+
+fn sync_tree(path: &Path) -> Result<()> {
+	let metadata = fs::symlink_metadata(path)?;
+	if metadata.file_type().is_symlink() {
+		return Ok(());
+	}
+	if metadata.is_dir() {
+		for entry in fs::read_dir(path)? {
+			sync_tree(&entry?.path())?;
+		}
+	}
+	fs::File::open(path)?.sync_all()?;
+	Ok(())
 }

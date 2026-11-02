@@ -4,7 +4,7 @@ Bu belge geliştiriciler içindir. Son kullanıcı adımları [elkitabında](elk
 
 ## Kaynak ve araçlar
 
-- `crates/manager`: Rust uygulaması, SSR arayüzü, dil sözlükleri ve CLI.
+- `crates/manager`: Rust uygulaması, statik SPA, JSON veri modelleri, dil sözlükleri ve CLI.
 - `crates/protocol`: VpnHood tel sözleşmesi, anahtar biçimleri ve alan kataloğu.
 - `crates/paste-compat`: `pastey` kullanan uyumluluk katmanı.
 - `migrations`: sıralı PostgreSQL şema geçişleri. **Uygulanmış dosyalar değiştirilmez**; yeni geçiş eklenir.
@@ -29,26 +29,18 @@ dpkg-buildpackage -b -us -uc
 
 Bunlar **ayrılmış QA ortamı** içindir; üretimde doğrudan çalıştırmayın. Bazıları sunucu ayarlarını/sertifikasını değiştirir, HTTP alıcısı açar veya hizmeti yeniden başlatır. Önce her dosyanın ön koşullarını ve hedefini okuyun.
 
-`tests/panel_support.py` varsayılan olarak `/usr/bin/hoodmin-cli`, yerel `hoodmin` veritabanı ve rolünü kullanır. HTTPS kökü `VHM_TEST_ORIGIN`, özel CA `VHM_TEST_CA` ile seçilir. Origin denetimi açık kalmalıdır; sertifika denetimini kapatmayın.
+`tests/test_runtime_cli.py`, kullanılmayan QA kurulumunda ayrı PostgreSQL kümesi ve HTTPS vekili açar. Uygulama rolü ile yönetici rolünü ayırır, kendi CA/hesabını üretir ve sonunda kaldırır. Mevcut `/etc/hoodmin`, sistem hesabı veya ilk sahip dosyası varsa başlamaz. Sınama için gerekli Debian araçları önceden bulunmalıdır; betik paket kurmaz.
 
 | Araç | Amaç |
 |---|---|
-| `scripts/test-contract.sh`, `tests/ContractProbe` | Gerçek .NET türleriyle protokol/anahtar/istemci kanıtı karşılaştırması. |
-| `tests/test_panel.py` | Panel oturumu, roller, kiracı ayrımı, anahtarlar ve kimlik yenileme onayı. |
-| `tests/test_runtime_cli.py` | Yapılandırılmamış başlangıç, TLS veritabanı, CLI/insan/bot API, bağlantı kaybı ve toparlanma. |
-| `tests/test_preferences.py` | Dil, tema, güvenli çerezler ve yönlendirme sınırları. |
-| `tests/test_contract_features.py` | Gelişmiş ayarlar ve erişim sözleşmeleri. |
-| `tests/test_farm_rewards.py` | Grup yönlendirmesi, kota/ödül kararları. |
-| `tests/test_profiles_reports.py` | Profiller, grafikler, filtreler ve dışa aktarım. |
-| `tests/test_team_bots.py` | Ekip/bot rolleri ve JSON yönetim API'si. |
-| `tests/test_install_jobs.py` | Ayrılmış hedefe gerçek SSH kurulum işi. |
-| `tests/test_native_features.py` | Hazır VPN'de PFX, HTTP-01, hız ve ağ filtresi. |
-| `tests/test_farm_publication.py` | Erişilemeyen başlangıçtan grup adresi yenileme. |
-| `tests/test_farm_certificates.py` | Grup PFX dağıtımı ve gerçek TLS. |
-| `tests/test_external_publications.py` | Ham/multipart yükleme, yöntem geri dönüşü, SSRF, kalıcı görevler. |
-| `tests/test_farm_server_profiles.py` | Bağlı grup profili, yeni/taşınan üyeler ve atomik hata. |
-| `tests/test_autosign.py` | CA onayı, yetki, iş kirası, native HTTP-01 ve temizlik. |
+| `tests/test_runtime_cli.py` | Yapılandırılmamış başlangıç, doğrulanmış PostgreSQL TLS, yerel peer kimliğiyle anahtar döndürme, CLI/insan/bot API, kesinti/toparlanma ve şifreli dış yedek. |
+| `tests/test_operations.py` | Kiracı/rol/CSRF sınırları, agent yapılandırması, sürüm çatışmaları, bütün şifreli tabloların döndürülmesi, kesinti enjeksiyonu, saklama ve bildirim hata/iyileşme geçişleri. Yalnız üstteki betik çağırır. |
+| `tests/notification_fixture.py` | Yalnız QA içinde geçici IP/DNS/CA ve bağımsız TLS webhook/SMTPS alıcıları; gerçek TLS doğrulamasıyla teslim. Üst betiğin sonlandırma bloğu geçici ayarları kaldırır. |
+| `tests/test_spa.mjs` | Gerçek API'ye bağlı Chromium'da giriş, ekranlar, 47 alan, onay, tema/dil/RTL ve mobil taşma. Node.js'in yerel DevTools protokolü kullanılır; npm bağımlılığı yoktur. |
+| `scripts/test-contract.sh`, `tests/ContractProbe` | Hazır .NET türleriyle protokol/anahtar/istemci kanıtı karşılaştırması; ayrıca ayrılmış hedef/veritabanı ister. |
 | `tests/ConnectionProbe`, `tests/UdpProbe` | Hazır VPN'e gerçek istemci veri yolu/TCP/UDP/QUIC. |
+
+Tarayıcı sınamasında `HOODMIN_QA_BROWSER_WAIT=500` ile geçici çalışma aralığı açılır. `tests/browser_proxy.py` yalnız loopback üzerinde ve sabit QA adresine bağlanır; QA CA'sını ve `yapayzeka` sertifika adını doğrular. Yerel deneme çerezleri üretim `__Host` çerezleriyle karışmaz. QA sahibini `work/browser-qa/owner.json`, CA'yı `work/browser-qa/ca.crt` altında özel izinle hazırlayın. `chromium --headless --remote-debugging-port=33481 --user-data-dir=...` ve vekil çalışırken `node tests/test_spa.mjs` çalıştırın. Sertifika doğrulamasını kapatan tarayıcı seçenekleri kullanmayın. Bu vekili dağıtım paketine kurmayın.
 
 Canlı CA doğrulaması ayrıca gerçek DNS/dış TCP80, kullanıcı tarafından kabul edilmiş CA koşulları ve ayrılmış hedef gerektirir. Test CA sertifikasının uygulanmadığı, gerçek sertifikanın CA/DNS/PFX eşleşmesi ve yenileme denemesi ayrı denetlenir. Testin başarılı olması uzun süreli üretim yükü veya bağımsız güvenlik denetimi anlamına gelmez.
 

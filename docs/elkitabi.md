@@ -111,3 +111,9 @@ Sertifika/adres değişince eski anahtarların parmak izini ve adresini güncell
 4. [Kurulum kılavuzundaki yükseltme adımlarını](uretim-kurulumu.md#yükseltme) uygulayın. Ana anahtarı ve ortam dosyasını koruyun; VPN sürümünü kontrollü güncelleyin.
 5. Sertifika durumunu ve AutoSign hatalarını kontrol edin. E-posta alanı, harici alarm hizmeti kurulduğu anlamına gelmez.
 6. Hata durumunda [sorun giderme kılavuzunu](sorun-giderme.md) kullanın.
+
+## Bildirimler ve işletim
+
+**Bildirimler** menüsünde webhook/SMTPS kanalı oluşturun, sınayıp son gönderimleri kontrol edin. Anahtar döndürme ve yedek saklama panel makinesinde root yetkili `hoodmin-cli` ile yönetilir. [Adım adım işletim politikaları](isletim-politikalari.md).
+
+Arayüz tarayıcıda çalışan statik uygulamadır (SPA); JavaScript gerekir. API bağlantısı kesilirse basit hata gösterilir ve tekrar denenir. Dil/tema tercihi tarayıcıda saklanır; oturum sırrı HttpOnly çerezindedir.

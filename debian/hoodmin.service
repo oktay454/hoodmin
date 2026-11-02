@@ -12,6 +12,7 @@ Restart=on-failure
 RestartSec=5
 TimeoutStopSec=15
 NoNewPrivileges=yes
+LimitCORE=0
 PrivateTmp=yes
 ProtectSystem=strict
 ProtectHome=yes

@@ -30,9 +30,6 @@ impl Locale {
 			Self::Ar => "ar",
 		}
 	}
-	pub fn direction(self) -> &'static str {
-		if self == Self::Ar { "rtl" } else { "ltr" }
-	}
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Theme {
@@ -56,8 +53,6 @@ impl Theme {
 }
 struct RequestLanguage {
 	locale: Locale,
-	theme: Theme,
-	return_to: String,
 }
 tokio::task_local! {
 	static LANGUAGE: RequestLanguage;
@@ -66,30 +61,6 @@ pub fn locale() -> Locale {
 	LANGUAGE
 		.try_with(|value| value.locale)
 		.unwrap_or(Locale::Tr)
-}
-pub fn theme() -> Theme {
-	LANGUAGE
-		.try_with(|value| value.theme)
-		.unwrap_or(Theme::Light)
-}
-fn cookie_theme(headers: &HeaderMap) -> Theme {
-	headers
-		.get(header::COOKIE)
-		.and_then(|value| value.to_str().ok())
-		.and_then(|value| {
-			value.split(';').find_map(|part| {
-				let (key, value) = part.trim().split_once('=')?;
-				(key == "__Host-vhm_theme")
-					.then(|| Theme::parse(value))
-					.flatten()
-			})
-		})
-		.unwrap_or(Theme::Light)
-}
-pub fn return_to() -> String {
-	LANGUAGE
-		.try_with(|value| value.return_to.clone())
-		.unwrap_or("/panel".into())
 }
 fn cookie_locale(headers: &HeaderMap) -> Locale {
 	headers
@@ -172,15 +143,6 @@ fn safe_management_path(path: &str) -> bool {
 pub async fn middleware(request: Request, next: Next) -> Response {
 	let language = RequestLanguage {
 		locale: cookie_locale(request.headers()),
-		theme: cookie_theme(request.headers()),
-		return_to: safe_return_to(
-			request
-				.uri()
-				.path_and_query()
-				.map(|v| v.as_str())
-				.unwrap_or("/panel"),
-		)
-		.into(),
 	};
 	LANGUAGE.scope(language, next.run(request)).await
 }
@@ -194,7 +156,7 @@ pub async fn change(Query(query): Query<LanguageQuery>) -> Response {
 	let Some(locale) = Locale::parse(&query.lang) else {
 		return (
 			StatusCode::BAD_REQUEST,
-			crate::views::error("Desteklenmeyen dil."),
+			crate::readmodels::error("Desteklenmeyen dil."),
 		)
 			.into_response();
 	};
@@ -218,7 +180,7 @@ pub async fn change_theme(headers: HeaderMap, Query(query): Query<ThemeQuery>) -
 	let Some(theme) = Theme::parse(&query.theme) else {
 		return (
 			StatusCode::BAD_REQUEST,
-			crate::views::error("Desteklenmeyen tema."),
+			crate::readmodels::error("Desteklenmeyen tema."),
 		)
 			.into_response();
 	};
@@ -299,17 +261,10 @@ mod tests {
 	async fn concurrent_languages_are_isolated() {
 		async fn translated(locale: Locale) -> String {
 			LANGUAGE
-				.scope(
-					RequestLanguage {
-						locale,
-						theme: Theme::Light,
-						return_to: "/panel".into(),
-					},
-					async {
-						tokio::task::yield_now().await;
-						tr("Sunucular")
-					},
-				)
+				.scope(RequestLanguage { locale }, async {
+					tokio::task::yield_now().await;
+					tr("Sunucular")
+				})
 				.await
 		}
 		let (en, ar, tr) = tokio::join!(

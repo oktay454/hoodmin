@@ -356,3 +356,64 @@ pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 .report-chart h2 small { color: var(--muted); font-size: .75em; }
 
 .config-editor { font-family:ui-monospace,SFMono-Regular,Consolas,monospace; line-height:1.55; resize:vertical; tab-size:4; }
+
+/* Static application: shared visual language, bounded forms and responsive data tables. */
+.spa-content { max-width:1680px; width:100%; margin:0 auto; padding:22px; }
+.spa-card { padding:18px; margin:16px 0; min-width:0; }
+.spa-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:8px 0; }
+.spa-actions a,.spa-tab { border:1px solid var(--line); border-radius:4px; padding:7px 10px; background:var(--raised); color:var(--text); }
+.spa-actions a:hover { border-color:var(--accent); }
+.spa-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px; }
+.spa-form { display:grid; gap:12px; max-width:1050px; }
+.spa-field { display:flex; flex-direction:column; gap:6px; min-width:0; font-weight:500; }
+.spa-field>input,.spa-field>select,.spa-field>textarea { width:100%; min-width:0; }
+.spa-check { flex-direction:row-reverse; justify-content:flex-end; align-items:center; }
+.spa-check>input { width:auto; }
+.spa-editor { display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); border:1px solid var(--line); padding:16px; min-width:0; }
+.spa-editor>details { grid-column:1/-1; min-width:0; }
+.spa-editor summary { padding:8px 0; font-weight:650; }
+.spa-modal { max-width:1000px; width:min(95vw,1000px); max-height:90vh; overflow:auto; border:1px solid var(--line-strong); border-radius:8px; background:var(--panel); color:var(--text); padding:22px; }
+.spa-modal::backdrop { background:rgb(0 0 0 / 55%); }
+.spa-modal>header { display:flex; align-items:center; justify-content:space-between; gap:15px; }
+.spa-modal>header h2 { margin:0; }
+.spa-modal .spa-card { border:0; padding:12px 0; }
+.spa-modal textarea { width:100%; }
+.spa-content pre { white-space:pre-wrap; overflow-wrap:anywhere; max-height:400px; overflow:auto; direction:ltr; text-align:left; }
+.spa-content td { vertical-align:top; }
+.spa-content td small { display:block; margin-top:5px; color:var(--muted); }
+.spa-content td .spa-actions { min-width:170px; max-width:360px; }
+.spa-metric { display:block; font-size:26px; font-weight:650; }
+.spa-login { max-width:460px; margin:8vh auto; padding:20px; }
+.spa-login>header { text-align:center; }
+.spa-login>header .spa-actions { justify-content:center; }
+.spa-loading { max-width:600px; margin:12vh auto; padding:24px; line-height:2; text-align:center; }
+.spa-chart { width:100%; height:170px; background:var(--raised); }
+.spa-chart polyline { stroke:var(--warm); fill:none; stroke-width:2; }
+.spa-content .error,.spa-modal .error { color:var(--danger-text); background:var(--danger-bg); border:1px solid var(--danger-line); padding:10px; }
+.sidebar .brand { display:grid; gap:5px; padding:10px; }
+.sidebar .brand strong { font-size:24px; }
+.sidebar .workspace { padding:18px 10px; display:grid; gap:7px; border-block:1px solid var(--sidebar-line); margin:15px 0; }
+@media(max-width:760px) {
+	.spa-content { padding:12px; }
+	.spa-editor { grid-template-columns:1fr; padding:10px; }
+	.spa-content .stats { grid-template-columns:repeat(2,minmax(0,1fr)); }
+	.topbar { padding:10px; gap:8px; flex-wrap:wrap; }
+	.spa-modal { padding:14px; }
+}
+.skip-link { position:fixed; top:6px; inset-inline-start:240px; z-index:100; padding:10px; background:var(--panel); transform:translateY(-150%); border:1px solid var(--accent); }
+.skip-link:focus { transform:translateY(0); }
+.sidebar { overflow-y:auto; }
+.menu-toggle { display:none; }
+@media(max-width:800px) {
+	.sidebar .workspace { display:none; }
+	.menu-toggle { display:inline-flex; align-self:flex-start; margin:8px; }
+	.sidebar nav { display:none; }
+	.sidebar.spa-nav-open nav { display:flex; }
+	.skip-link { inset-inline-start:6px; }
+}
+.button.help-trigger { width:19px; height:19px; min-height:19px; padding:0; align-self:start; }
+.sidebar .brand { grid-template-columns:38px minmax(0,1fr); column-gap:10px; row-gap:3px; }
+.sidebar .brand-mark { grid-row:span 2; }
+.sidebar .brand strong { font-size:21px; line-height:1.1; }
+.sidebar .brand small { margin:0; }
+.notice { padding:12px 14px; margin-bottom:12px; border:1px solid var(--line); border-inline-start:3px solid var(--warm); border-radius:4px; background:var(--panel); }

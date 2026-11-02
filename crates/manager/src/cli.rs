@@ -25,6 +25,13 @@ struct Args {
 }
 #[derive(Subcommand)]
 enum Action {
+	/// Anahtar halkasını incele veya veritabanını yeni anahtarla yeniden şifrele.
+	Keys {
+		#[arg(long, hide = true)]
+		peer_helper: bool,
+		#[command(subcommand)]
+		command: crate::rotation::Action,
+	},
 	/// Sunucu bağlantı ve HTTPS ayarları.
 	Config {
 		#[command(subcommand)]
@@ -86,6 +93,18 @@ pub async fn run() -> Result<()> {
 	if let Action::Config { command } = args.command {
 		return configure(&args.config, command);
 	}
+	if let Action::Keys {
+		peer_helper: true,
+		command,
+	} = args.command
+	{
+		use std::io::Read;
+		let mut text = String::new();
+		std::io::stdin().take(65536).read_to_string(&mut text)?;
+		let settings: Settings = serde_json::from_str(&text)?;
+		settings.validate()?;
+		return crate::rotation::run(&settings, command, true).await;
+	}
 	let mut settings = Settings::load(&args.config).unwrap_or_default();
 	if let Some(value) = args.database_url {
 		settings.database_url = Some(value);
@@ -95,6 +114,7 @@ pub async fn run() -> Result<()> {
 	}
 	let dsn = settings.database_url.clone();
 	let result = match args.command {
+		Action::Keys { command, .. } => crate::rotation::run(&settings, command, false).await,
 		Action::Database { command } => crate::cli_database::run(&settings, command).await,
 		Action::OwnerInit { email } => owner_init(&args.config, &settings, &email),
 		Action::Backup { command } => crate::cli_backup::run(&args.config, &settings, command),
@@ -163,6 +183,7 @@ fn configure(path: &Path, command: ConfigAction) -> Result<()> {
 				master_key_file: key_file,
 				public_origin,
 				listen,
+				backup: Settings::load(path).unwrap_or_default().backup,
 			};
 			s.validate()?;
 			if let Ok(previous) = Settings::load(path) {

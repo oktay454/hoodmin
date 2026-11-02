@@ -101,3 +101,7 @@ Yerel sokette yönetici dökümü yerel `postgres` hesabından alınır. Uzak su
 ## Düşük seviyeli komutlar
 
 `create-account`, `register-server`, `create-token`, `revoke-token` ve dahili Certbot `acme-hook` komutları da aynı Rust CLI'dedir. Bunlar yerel/veritabanı düzeyindeki güvenilir işletmen araçlarıdır. Günlük ekip otomasyonu için web ile aynı yetki denetimini kullanan `api` komutlarını tercih edin. Sistem hesabı ve ana anahtara erişim, panel üye yetkisinden farklı bir işletmen yetkisidir.
+
+## Anahtarlar, saklama ve bildirimler
+
+`keys status`, `keys rotate --confirmed`, `backup policy [--file DOSYA]` ve `backup prune [--apply]` root işletim komutlarıdır. Anahtar döndürmeden önce doğrulanmış bağımsız yedek alın. Bildirim kanalları web ile aynı `/notifications` API yollarıyla yönetilir. Alanlar, kesinti davranışı ve sınırlar: [işletim politikaları](isletim-politikalari.md).
