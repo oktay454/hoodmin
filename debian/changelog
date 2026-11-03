@@ -1,10 +1,17 @@
+hoodmin (0.4.0-2~deb13u1) unstable; urgency=medium
+
+  * Refresh the target deployment handbook for the current CLI, service
+    identity, Nginx static serving and backup arrangement.
+
+ -- Hoodmin maintainers <vpn@oktayaktogan.com.tr>  Tue, 03 Nov 2026 12:05:00 +0300
+
 hoodmin (0.4.0-1~deb13u1) unstable; urgency=medium
 
   * Use root-level client routes without panel or manage prefixes.
   * Install one frontend tree for Hoodmin or direct Nginx static serving.
   * Add local and remote Nginx deployment examples and CLI web settings.
 
- -- Hoodmin maintainers <vpn@oktayaktogan.com.tr>  Tue, 03 Nov 2026 15:00:00 +0300
+ -- Hoodmin maintainers <vpn@oktayaktogan.com.tr>  Tue, 03 Nov 2026 11:00:00 +0300
 
 hoodmin (0.3.0-1~deb13u1) unstable; urgency=medium
 
