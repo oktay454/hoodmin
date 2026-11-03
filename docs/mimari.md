@@ -47,3 +47,5 @@ Aynı kiracı grubunda uygun konum ve kapasiteye göre yönlendirme yapılır. S
 Anahtar döndürme, bildirim kuyruğu ve yedek saklama: [işletim politikaları](isletim-politikalari.md).
 
 Arayüz dosyaları `/usr/share/hoodmin/web/` altında ayrı statik ağaçtır. `web.serve_static=true` ile Hoodmin bu ağacı okur; `false` ile Nginx doğrudan sunar ve Hoodmin’e yalnız API/dinamik VPN istekleri gelir. İki durumda da aynı SPA ve güvenlik sözleşmesi kullanılır. Ayrı Nginx makinesinde yalnız aynı sürümün statik ağacı kopyalanır. [Yerleşimler](web-sunumu.md).
+
+Yükseltme ayrı root koordinatörü `hoodmin-upgrade.service` tarafından yürütülür. Paket kurulumu sınırlı süre bekler; geçici veritabanı kesintisi kalıcı kontrol noktasıyla ertelenir. Yerel dosya kilidi ve PostgreSQL danışma kilitleri bakım işlemlerini eşgüdümler. Değişmez geçiş kataloğu ve yapılandırmaya bağlı durum eşleşmeden HTTP hizmeti API'yi açmaz. Web hesabına DDL veya yönetici sırrı verilmez. [Yükseltme işleyişi](yukseltme.md).

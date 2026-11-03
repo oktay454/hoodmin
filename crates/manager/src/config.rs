@@ -135,6 +135,7 @@ pub async fn pool(value: &str) -> Result<PgPool> {
 		.await?)
 }
 pub async fn check_schema(pool: &PgPool) -> Result<()> {
+	crate::schema::check(pool).await?;
 	sqlx_core::query::query("SELECT t.id,s.id,k.id,w.token_hash,b.id,p.id,a.id,f.server_profile_id FROM tenants t,servers s,access_tokens k,web_sessions w,bots b,external_publications p,acme_orders a,farms f,vault_state v,notification_channels nc WHERE FALSE").execute(pool).await?;
 	Ok(())
 }

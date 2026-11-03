@@ -13,6 +13,7 @@ curl --fail --show-error http://127.0.0.1:3080/healthz
 curl --fail --show-error http://127.0.0.1:3080/readyz
 ```
 
+- Güncelleme sonrasında bekliyorsa `hoodmin-cli upgrade --status` ve `journalctl -u hoodmin-upgrade.service` ile [yükseltme durumunu](yukseltme.md) inceleyin.
 - HTTP hizmeti çalışıp `/readyz` 503 veriyorsa veritabanı bağlantısı, TLS, şema ve ana anahtarı denetleyin. Hizmet bunlar olmadan da ayakta kalır; ayrıntı günlüktedir.
 - Hizmet başlamıyorsa yapılandırma JSON dosyası, veritabanı geçişleri ve ana anahtarın sahiplik/izinlerini kontrol edin.
 - İç sağlık yolu çalışıp genel HTTPS çalışmıyorsa DNS, sertifika, Nginx ve NAT yolunu kontrol edin.

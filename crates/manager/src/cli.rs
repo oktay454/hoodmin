@@ -25,6 +25,11 @@ struct Args {
 }
 #[derive(Subcommand)]
 enum Action {
+	/// Sürüm uyarlamasını uygula veya durumunu incele.
+	Upgrade {
+		#[command(flatten)]
+		options: crate::upgrade::Options,
+	},
 	/// Anahtar halkasını incele veya veritabanını yeni anahtarla yeniden şifrele.
 	Keys {
 		#[arg(long, hide = true)]
@@ -94,6 +99,9 @@ pub async fn run() -> Result<()> {
 		.with_writer(std::io::stderr)
 		.with_env_filter("hoodmin=info")
 		.init();
+	if let Action::Upgrade { options } = args.command {
+		return crate::upgrade::run(&args.config, options).await;
+	}
 	if let Action::Api { options } = args.command {
 		return crate::cli_http::run(options).await;
 	}

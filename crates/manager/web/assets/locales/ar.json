@@ -714,5 +714,10 @@
 	"Şifreli sunucu adresi yayımla": "نشر عنوان الخادم المشفر",
 	"Şifreli sunucu adresi yayımlansın mı?": "هل تريد نشر عنوان الخادم المشفر؟",
 	"Şimdi yayımla": "انشر الآن",
-	"← Önceki": "السابق →"
+	"← Önceki": "السابق →",
+	"Kurulumun tamamlanması bekleniyor.": "بانتظار إكمال الإعداد.",
+	"Veritabanı bağlantısı bekleniyor.": "بانتظار الاتصال بقاعدة البيانات.",
+	"Yükseltme için yönetici yapılandırması bekleniyor.": "بانتظار إعدادات المدير لإكمال الترقية.",
+	"Yükseltme tamamlanamadı. Lütfen yöneticiye başvurun.": "تعذر إكمال الترقية. يرجى الاتصال بالمدير.",
+	"Yükseltme tamamlanıyor. Lütfen bekleyin.": "جارٍ إكمال الترقية. يرجى الانتظار."
 }

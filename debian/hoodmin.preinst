@@ -10,4 +10,17 @@ then
 	printf '%s\n' 'An existing QA installation was detected. Install Hoodmin in a separate environment.' >&2
 	exit 1
 fi
+if [ "$1" = upgrade ] && [ -d /run/systemd/system ]
+then
+	install -d -o root -g hoodmin -m 0750 /var/lib/hoodmin-upgrade
+	if systemctl is-active --quiet hoodmin.service
+	then
+		touch /var/lib/hoodmin-upgrade/resume-service
+		deb-systemd-invoke stop hoodmin.service
+	fi
+	if systemctl cat hoodmin-upgrade.service >/dev/null 2>&1
+	then
+		deb-systemd-invoke stop hoodmin-upgrade.service
+	fi
+fi
 #DEBHELPER#

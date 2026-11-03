@@ -1,0 +1,5 @@
+# deb-systemd-invoke deliberately skips static units and disabled-but-running
+# services stopped in preinst. Start only our static helper and the explicitly
+# recorded running panel; check the standard policy-rc.d path before either.
+hoodmin: command-with-path-in-maintainer-script /usr/sbin/policy-rc.d * [postinst:*]
+hoodmin: maintainer-script-calls-systemctl [postinst:*]

@@ -12,12 +12,12 @@ Uzak PostgreSQL için panelden veritabanı adresine TCP erişimi gerekir. Verita
 
 ```bash
 apt update
-apt install ./hoodmin_0.4.0-1~deb13u1_amd64.deb
+apt install ./hoodmin_0.5.0-1~deb13u1_amd64.deb
 ```
 
 Paket `hoodmin` sistem hesabını, ana anahtar dosyasını ve boş `/etc/hoodmin/hoodmin.json` yapılandırmasını hazırlar. Hizmet kendiliğinden etkinleşmez. Elle başlattığınızda henüz yapılandırılmamış olsa bile HTTP hizmeti ayakta kalır; basit bir kullanılabilirlik mesajı gösterir.
 
-Nginx önerilen pakettir. `--no-install-recommends` kullandıysanız ayrıca kurun. PostgreSQL, PostgreSQL istemci araçları ve age zorunlu paket bağımlılığı değildir. `pg_dump` ile yedek için uygun sürümde `postgresql-client`, şifreli dışa aktarım için `age` ayrıca gerekir.
+Nginx önerilen pakettir. `--no-install-recommends` kullandıysanız ayrıca kurun. PostgreSQL, PostgreSQL istemci araçları ve age zorunlu paket bağımlılığı değildir. `pg_dump` ile elle veya otomatik yükseltme öncesi yedek için uygun sürümde `postgresql-client`, şifreli dışa aktarım için `age` ayrıca gerekir.
 
 ## 3. Bağlantı, veritabanı ve ilk hesap
 
@@ -185,7 +185,8 @@ Tarayıcıdan `https://hoodmin.example.com` adresini açın. İlk sahip e-postas
 | Kaynak | Konum |
 |---|---|
 | Hizmet / CLI | `/usr/bin/hoodmin` / `/usr/bin/hoodmin-cli` |
-| systemd hizmeti | `hoodmin.service`, `hoodmin` sistem hesabı |
+| systemd hizmetleri | `hoodmin.service` (hoodmin), `hoodmin-upgrade.service` (root) |
+| Yükseltme politikası / durum | `/etc/hoodmin/upgrade.json` (0600), `/var/lib/hoodmin-upgrade/state.json` |
 | Yapılandırma | `/etc/hoodmin/hoodmin.json`, root:hoodmin 0640 |
 | Ana anahtar | `/var/lib/hoodmin/master.key`, hoodmin:hoodmin 0600 |
 | AutoSign dosyaları | `/var/lib/hoodmin/acme/` |
@@ -199,16 +200,17 @@ Yapılandırma veya veritabanı erişilemiyorsa hizmet kapanmaz. Tarayıcı kıs
 
 ## Yükseltme
 
-Bu sürüm yeni JSON yapılandırması ve Rust CLI düzeniyle temiz kurulum içindir; önceki geliştirme paketlerinden yerinde geçiş yapılmaz. Aynı yapılandırma/şema düzenini kullanan sonraki sürümlerde önce [yedek alın](yedekleme.md), ardından bakım penceresinde:
+Yükseltme işlemlerini ayrı root hizmeti `hoodmin-upgrade.service` yürütür. `hoodmin.service` şema değiştirmez; ortamın hazır olmasını bekler. Yerel PostgreSQL eş kimliği (peer) otomatik kullanılır. Uzak veritabanında ilk güncellemeden **önce** [yükseltme yönetici bağlantısını](yukseltme.md#uzak-postgresql) yapılandırın. Bekleyen şema değişikliği varsa doğrulanmış yedek alınması için uygun sürümde `postgresql-client` ve yeterli disk alanı gerekir; araç eksikse yükseltme uygulanmaz.
 
 ```bash
-hoodmin-cli service stop
 apt install ./hoodmin_YENI_SURUM_amd64.deb
-hoodmin-cli database init --admin-url-file /root/hoodmin-db-admin.url
-hoodmin-cli service start
+hoodmin-cli upgrade --status
+journalctl -u hoodmin-upgrade.service
 ```
 
-Yerel kurulumda yönetici dosyası yerine `--local` kullanılır. Ana anahtar ve yapılandırmayı koruyun. Geri dönüşte veritabanı, anahtar ve paket sürümü birlikte değerlendirilir.
+Paketin kurulum sonrası betiği (postinst) yükseltmeyi tetikler ve en fazla 20 saniye bekler. Veritabanı geçici olarak erişilemiyorsa paket kurulumu başarılı tamamlanır; yardımcı hizmet arka planda tekrar dener. Önceden çalışan panel yeniden başlatılır; yönetici tarafından durdurulmuş panel kendiliğinden açılmaz. Her panel başlangıcı yükseltme hizmetini yeniden çağırır. Bekleme sırasında arayüz kısa durum mesajı gösterir; API hazır olana kadar 503 döndürür.
+
+Ana anahtar ve JSON yapılandırması korunur. Yeni veritabanı veya sahip hesabı yükseltme yoluyla oluşturulmaz; ilk kurulumun açık adımları kullanılır. Değiştirilmiş/bilinmeyen geçiş kayıtları kalıcı hata sayılır; bunları yok sayarak hizmet açılmaz. Geri dönüşte paket, veritabanı ve anahtar birlikte ele alınır; otomatik şema düşürme yoktur. [İşleyiş, ayarlar ve kurtarma](yukseltme.md).
 
 ## Kaynaktan derleme
 

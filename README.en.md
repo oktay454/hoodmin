@@ -12,7 +12,7 @@ Each organization brings its own VPN servers (BYOS). A server belongs to one ten
 2. As root, prepare a private (0600) `/root/hoodmin-db.url` containing the application connection URL. PostgreSQL is configured separately, locally or remotely; the package does not depend on a PostgreSQL server. The following example uses a separately installed local server:
 
 ```bash
-apt install ./hoodmin_0.4.0-1~deb13u1_amd64.deb
+apt install ./hoodmin_0.5.0-1~deb13u1_amd64.deb
 systemctl enable --now postgresql
 hoodmin-cli config set --database-url-file /root/hoodmin-db.url --public-origin https://hoodmin.example.com
 hoodmin-cli database init --local
@@ -66,7 +66,7 @@ Administrators use **Notifications** to add HTTPS webhook or implicit-TLS SMTP c
 
 The executable is `/usr/bin/hoodmin`, the service is `hoodmin.service`, settings are in `/etc/hoodmin/hoodmin.json`, and data is in `/var/lib/hoodmin`. The service account/group are `hoodmin`. Database host, port, database and login are configured explicitly in the JSON settings. Local sockets can use peer authentication; TCP requires `sslmode=verify-full`. The account name is a local identity, not a panel login. Cookies use `__Host-vhm_*`.
 
-Packages older than `0.2.0-1~deb13u1` require a fresh installation; newer installations support schema upgrades. For subsequent upgrades, back up and stop the service, install the new package, run `hoodmin-cli database init --local`, then restart. Preserve the master key and JSON configuration file. Validate restoration in a separate database before any recovery into a replacement installation.
+Package upgrades start the root-only `hoodmin-upgrade.service`, which verifies and backs up pending migrations before applying them through the native Rust PostgreSQL driver. The web service only checks readiness. Package configuration waits at most 20 seconds; a temporary database outage defers work without failing installation. The worker retries, and every web service start triggers it again. A deliberately stopped web service stays stopped. Local peer administration is automatic; for remote PostgreSQL, configure a root-owned 0600 URL file targeting the **same application database** with `hoodmin-cli upgrade --configure --admin-url-file FILE`. Require verified TLS. Keep appropriate `pg_dump` tools and backup disk space available. Configuration and master keys are preserved. Unknown or modified migration history blocks readiness; automatic schema downgrade is unsupported. Inspect `hoodmin-cli upgrade --status` and `journalctl -u hoodmin-upgrade.service`. [Upgrade guide](docs/yukseltme.md).
 
 ## Scope
 

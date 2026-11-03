@@ -8,6 +8,7 @@ hoodmin-cli config --help
 hoodmin-cli database --help
 hoodmin-cli api --help
 hoodmin-cli backup --help
+hoodmin-cli upgrade --help
 ```
 
 ## Kurulum ve yerel bakım
@@ -32,6 +33,18 @@ runuser -u hoodmin -- hoodmin-cli database check
 Yapılandırma varsayılan `/etc/hoodmin/hoodmin.json` dosyasındadır; `--config DOSYA` ile değişir. `config show` bağlantı parolasını gizler. `config set`, veritabanı henüz hazır olmadan ayarı kaydedebilir. Hizmet hazır olana kadar tarayıcı basit bir durum sayfası gösterir.
 
 `service start|stop|restart|status|enable|disable` yerel systemd hizmetini yönetir. Değişiklikler root gerektirir.
+
+## Otomatik yükseltme
+
+```bash
+hoodmin-cli upgrade --status
+hoodmin-cli upgrade --configure --admin-url-file /root/hoodmin-upgrade-admin.url
+systemctl restart hoodmin-upgrade.service
+```
+
+`upgrade` tek deneme, `upgrade --watch` tamamlanana kadar yeniden deneme yapar. Koordinatör root gerektirir. `--request` yeni kontrol isteği kaydeder; `--wait SANIYE` en fazla 60 saniye durum bekler (paket 20 kullanır). Geçici ertelemede sıfır, kalıcı hata durumunda sıfırdan farklı çıkış kodu verir. `--status` güvenli durum bilgisini JSON olarak yazar. Normalde paketin ve systemd'nin yönettiği bu işlemleri elle çağırmak gerekmez.
+
+Uzak yönetici dosyası root sahipliğinde 0600 olmalı; uygulamayla **aynı sunucu ve hedef veritabanına** bağlanmalıdır. Yerel sokette ek yönetici dosyası gerekmez. Şema komutları Rust PostgreSQL sürücüsüyle çalışır; `psql` çağrılmaz. Yedek dökümü için `pg_dump` ayrıca gerekir. [Zaman aşımları, kilitler ve kurtarma](yukseltme.md).
 
 ## Web işlemlerini API üzerinden çalıştırma
 

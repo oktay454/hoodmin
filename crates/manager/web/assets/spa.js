@@ -32,7 +32,7 @@ async function api(path, data, options = {}) {
 	const response = await fetch(`/api/manage${path}`, {method:data === undefined ? 'GET' : 'POST', credentials:'same-origin', cache:'no-store', headers, body:data === undefined ? undefined : JSON.stringify({...data, csrf:options.csrf ?? user?.csrf}), signal:options.signal || (data === undefined ? requests.signal : undefined)});
 	let body; try { body = await response.json(); } catch { body = {error:'Hizmet geçici olarak kullanılamıyor. Lütfen daha sonra yeniden deneyin.'}; }
 	if (data === undefined && requests.signal.aborted) throw new DOMException('Aborted','AbortError');
-	if (!response.ok) throw Object.assign(new Error(t(body.error || 'İşlem tamamlanamadı.')), {status:response.status});
+	if (!response.ok) throw Object.assign(new Error(t(body.error || 'İşlem tamamlanamadı.')), {status:response.status,code:body.code});
 	return body;
 }
 async function schema() { return schemaCache ||= await api('/schema'); }
@@ -328,7 +328,7 @@ async function render() {
 		if(serial!==navigation)return;
 		if(error.status===401 && location.pathname!=='/signin') return go('/signin');
 		if(!main?.isConnected){main=n('main',{class:'spa-loading'});root.replaceChildren(main);}
-		main.replaceChildren(box('İşlem tamamlanamadı.',n('p',{role:'alert'},t([502,503,504].includes(error.status)||!error.status ? 'Hizmet geçici olarak kullanılamıyor. Lütfen daha sonra yeniden deneyin.' : error.message)),b('Yeniden dene',render)));
+		main.replaceChildren(box('İşlem tamamlanamadı.',n('p',{role:'alert'},t(error.code==='upgrade_pending' ? error.message : [502,503,504].includes(error.status)||!error.status ? 'Hizmet geçici olarak kullanılamıyor. Lütfen daha sonra yeniden deneyin.' : error.message)),b('Yeniden dene',render)));
 		if([502,503,504].includes(error.status)||!error.status)retryTimer=setTimeout(render,10000);
 	}
 }

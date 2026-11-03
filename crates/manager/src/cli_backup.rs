@@ -125,7 +125,13 @@ fn run_inner(config: &Path, settings: &Settings, action: Action) -> Result<()> {
 			admin_url_file,
 			directory,
 		} => {
-			let path = create(config, settings, admin_url_file.as_deref(), &directory)?;
+			let path = create(
+				config,
+				settings,
+				admin_url_file.as_deref(),
+				&directory,
+				None,
+			)?;
 			automatic(settings, &directory)?;
 			println!("{}", path.display());
 		}
@@ -139,7 +145,13 @@ fn run_inner(config: &Path, settings: &Settings, action: Action) -> Result<()> {
 				recipient.starts_with("age1") && !recipient.chars().any(char::is_whitespace),
 				"Açık age alıcısı geçersiz."
 			);
-			let path = create(config, settings, admin_url_file.as_deref(), &directory)?;
+			let path = create(
+				config,
+				settings,
+				admin_url_file.as_deref(),
+				&directory,
+				None,
+			)?;
 			let tmp = directory.join(format!(".export-{}.age", uuid::Uuid::new_v4()));
 			let file = private_file(&tmp)?;
 			let mut tar = Command::new("tar")
@@ -265,11 +277,12 @@ pub(crate) fn digest(path: &Path) -> Result<String> {
 	}
 	Ok(format!("{:x}", hash.finalize()))
 }
-fn create(
+pub(crate) fn create(
 	config: &Path,
 	settings: &Settings,
 	admin_file: Option<&Path>,
 	directory: &Path,
+	upgrade: Option<&serde_json::Value>,
 ) -> Result<PathBuf> {
 	let app = crate::config::database_options(settings.db()?)?;
 	let local = admin_file.is_none() && app.get_socket().is_some();
@@ -413,6 +426,12 @@ fn create(
 		writeln!(sums, "{}  {name}", digest(&path.join(name))?)?;
 	}
 	sums.sync_all()?;
+	if let Some(provenance) = upgrade {
+		fs::write(
+			path.join("upgrade-provenance.json"),
+			serde_json::to_vec_pretty(provenance)?,
+		)?;
+	}
 	sync_tree(&path)?;
 	crate::retention::complete(&path)?;
 	Ok(path)

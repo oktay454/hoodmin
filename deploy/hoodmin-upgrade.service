@@ -1,0 +1,27 @@
+[Unit]
+Description=Complete Hoodmin upgrades
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=hoodmin
+ExecStart=/usr/bin/hoodmin-cli upgrade --watch
+Restart=on-failure
+RestartSec=30
+TimeoutStopSec=15
+KillMode=control-group
+UMask=0077
+LimitCORE=0
+NoNewPrivileges=yes
+# Preserve the root helper's user-switch capability across the sandbox setup.
+AmbientCapabilities=CAP_SETUID
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+ReadWritePaths=/etc/hoodmin /var/lib/hoodmin /var/lib/hoodmin-upgrade /var/backups

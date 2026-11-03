@@ -34,3 +34,6 @@ mod retention;
 mod notifications;
 
 mod frontend;
+
+mod schema;
+mod upgrade;

@@ -1,4 +1,4 @@
-.TH HOODMIN 8 "2026-11-03" "Hoodmin 0.4.0" "System Administration"
+.TH HOODMIN 8 "2026-11-03" "Hoodmin 0.5.0" "System Administration"
 .SH NAME
 hoodmin \- VPN management HTTP service
 .SH SYNOPSIS
@@ -8,6 +8,7 @@ Run as the unprivileged hoodmin account behind a trusted HTTPS reverse proxy.
 The HTTP service remains available when configuration or PostgreSQL is unavailable.
 /healthz reports process liveness; /readyz reports application readiness.
 Connection details are logged server-side and are not sent to the browser.
+The daemon never migrates the database. Each systemd start also starts the independent root-only hoodmin-upgrade.service. Until matching upgrade state and schema are ready, dynamic APIs return 503 and the frontend shows a short status message.
 .SH WEB FILES
 The complete public frontend is installed at /usr/share/hoodmin/web.
 web.serve_static defaults to true; set false when Nginx serves that tree directly.

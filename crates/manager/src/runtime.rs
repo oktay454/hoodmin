@@ -32,6 +32,7 @@ struct Runtime {
 	router: Arc<RwLock<Option<Router>>>,
 	ready: Arc<AtomicBool>,
 	web: Arc<RwLock<crate::frontend::WebSettings>>,
+	problem: Arc<RwLock<Option<&'static str>>>,
 }
 pub async fn run() -> Result<()> {
 	tracing_subscriber::fmt()
@@ -74,7 +75,7 @@ pub async fn run() -> Result<()> {
 }
 async fn readiness(State(state): State<Runtime>) -> Response {
 	let ready = state.ready.load(Ordering::Acquire);
-	(if ready {StatusCode::OK}else{StatusCode::SERVICE_UNAVAILABLE},axum::Json(serde_json::json!({"ready":ready,"message":if ready{"Hazır"}else{"Hizmet geçici olarak kullanılamıyor. Lütfen daha sonra yeniden deneyin."}}))).into_response()
+	(if ready {StatusCode::OK}else{StatusCode::SERVICE_UNAVAILABLE},axum::Json(serde_json::json!({"ready":ready,"message":if ready{"Hazır"}else{state.problem.read().await.unwrap_or("Hizmet geçici olarak kullanılamıyor. Lütfen daha sonra yeniden deneyin.")}}))).into_response()
 }
 async fn dispatch(State(state): State<Runtime>, request: Request) -> Response {
 	let path = request.uri().path();
@@ -109,7 +110,8 @@ async fn dispatch(State(state): State<Runtime>, request: Request) -> Response {
 			.await
 			.unwrap_or_else(|never| match never {});
 	}
-	let mut response=(StatusCode::SERVICE_UNAVAILABLE,axum::Json(serde_json::json!({"error":"Hizmet geçici olarak kullanılamıyor. Lütfen daha sonra yeniden deneyin."}))).into_response();
+	let problem = *state.problem.read().await;
+	let mut response=(StatusCode::SERVICE_UNAVAILABLE,axum::Json(serde_json::json!({"code":if problem.is_some(){"upgrade_pending"}else{"unavailable"},"error":problem.unwrap_or("Hizmet geçici olarak kullanılamıyor. Lütfen daha sonra yeniden deneyin.")}))).into_response();
 	response.headers_mut().insert(
 		header::CACHE_CONTROL,
 		header::HeaderValue::from_static("no-store"),
@@ -130,6 +132,12 @@ async fn supervise(state: Runtime, path: PathBuf) {
 			}
 		};
 		*state.web.write().await = settings.web.clone();
+		let problem = crate::upgrade::problem(&settings);
+		*state.problem.write().await = problem;
+		if problem.is_some() {
+			tokio::time::sleep(Duration::from_secs(2)).await;
+			continue;
+		}
 		if let Err(error) = settings.validate() {
 			tracing::error!(%error, "Hoodmin yapılandırması geçersiz");
 			tokio::time::sleep(Duration::from_secs(5)).await;
@@ -165,6 +173,10 @@ async fn supervise(state: Runtime, path: PathBuf) {
 				));
 				loop {
 					let result = match tokio::time::timeout(Duration::from_secs(3), async {
+						anyhow::ensure!(
+							crate::upgrade::problem(&settings).is_none(),
+							"Yükseltme hazırlığı bekleniyor."
+						);
 						crate::config::check_schema(&store.pool).await?;
 						let active: Option<String> = sqlx_core::query_scalar::query_scalar(
 							"SELECT active_key_id FROM vault_state WHERE id",

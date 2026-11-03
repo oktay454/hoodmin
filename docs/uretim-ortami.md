@@ -61,3 +61,18 @@ VPN'in root Certbot yenileme kaydı `.conf.autosign-disabled` uzantısıyla devr
 - Saklama politikasını ayrıca etkinleştirin; varsayılan otomatik silme kapalıdır. [Kurtarma adımları](yedekleme.md).
 
 `hoodmin-before-040-20261103`, panel geçişinden önceki tam kapsayıcıyı koruyan durdurulmuş ve otomatik başlamayan geri dönüş kopyasıdır. Eski paket/şema düzenini içerir. `hoodmin-before-autosign-20261019` ve `vh01-before-autosign-20261019` daha eski, yine durdurulmuş kopyalardır. Bu kopyalar güncel yedek yerine geçmez. Ana makinedeki `/root/hoodmin-deploy-040/` son aktarım yedeği ve bütünlük kanıtlarını içerir; yalnız root erişmelidir. Geri dönüş gerektiğinde güncel verileri önce ayrıca koruyun. Bakım öncesi yalnız ilgili kapsayıcıyı durdurup benzersiz adla `lxc-copy` alın. Geri dönüş kopyasını asıl kapsayıcıyla aynı IP üzerinde aynı anda çalıştırmayın. Şablonları koruyun.
+
+## Otomatik yükseltme
+
+Paneldeki yerel PostgreSQL için `hoodmin-upgrade.service` root hizmeti yerel `postgres` eş kimliğini kullanır; ayrı yönetici parolası yoktur. Paket kurulumu ve her panel başlangıcı kontrolü tetikler. Bekleyen geçişten önce `/var/backups/hoodmin-upgrade/` altında root'a özel doğrulanmış yedek alınır. Tamamlanan yardımcı hizmetin `inactive` olması normaldir. Güncel durum:
+
+```bash
+ssh root@hoodmin.oktayaktogan.com.tr 'lxc-attach -n hoodmin -- hoodmin-cli upgrade --status'
+ssh root@hoodmin.oktayaktogan.com.tr 'lxc-attach -n hoodmin -- journalctl -u hoodmin-upgrade.service --no-pager -n 40'
+```
+
+Politika `/etc/hoodmin/upgrade.json`, güvenli durum `/var/lib/hoodmin-upgrade/state.json` içindedir. Şifreli günlük yedek zamanlayıcısı bu ayrı yükseltme yedeğinin yerine geçmez. [Genel yükseltme kılavuzu](yukseltme.md).
+
+## Kapsayıcı günlük hizmeti
+
+Bu yerleşimde LXC iç içe kapsayıcı desteği (nesting) kapalıdır. Üretilen AppArmor profili, journald'ın isteğe bağlı credential RAM dosya sistemi bağlamasını reddeder. `journal.*` kimlik bilgisi aktarımı kullanılmadığı için `/etc/systemd/system/systemd-journald.service.d/lxc-credentials.conf` içinde yalnız `ImportCredential=` sıfırlanmıştır. journald etkindir; AppArmor profili ve nesting sınırı korunur. Bu ayar Hoodmin paketinin genel gereksinimi değildir. Günlük hizmetini `systemctl status systemd-journald` ile denetleyin.

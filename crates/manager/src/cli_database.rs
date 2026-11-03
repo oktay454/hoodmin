@@ -64,7 +64,7 @@ pub async fn run(settings: &Settings, action: Action) -> Result<()> {
 	}
 	Ok(())
 }
-fn identifier(value: &str) -> Result<String> {
+pub(crate) fn identifier(value: &str) -> Result<String> {
 	ensure!(
 		!value.is_empty() && value.len() <= 63 && !value.contains('\0'),
 		"Veritabanı veya rol adı geçersiz."
@@ -134,11 +134,25 @@ async fn bootstrap(settings: &Settings, admin: PgConnectOptions) -> Result<()> {
 		.execute(&mut connection)
 		.await?;
 	drop(connection);
-	let mut connection = PgConnection::connect_with(&admin.database(db)).await?;
+	migrate_existing(settings, admin).await
+}
+pub(crate) async fn migrate_existing(settings: &Settings, admin: PgConnectOptions) -> Result<()> {
+	let app = crate::config::database_options(settings.db()?)?;
+	let quoted_role = identifier(app.get_username())?;
+	let quoted_db = identifier(app.get_database().context("Veritabanı adı gerekli.")?)?;
+	let mut connection =
+		PgConnection::connect_with(&admin.database(app.get_database().unwrap())).await?;
+	apply_locked(&mut connection, &quoted_role, &quoted_db).await
+}
+pub(crate) async fn apply_locked(
+	connection: &mut PgConnection,
+	quoted_role: &str,
+	quoted_db: &str,
+) -> Result<()> {
 	query("SELECT pg_advisory_lock(684663001)")
-		.execute(&mut connection)
+		.execute(&mut *connection)
 		.await?;
-	let untracked:bool=query_scalar("SELECT to_regclass('public.tenants') IS NOT NULL AND to_regclass('public._hoodmin_migrations') IS NULL").fetch_one(&mut connection).await?;
+	let untracked:bool=query_scalar("SELECT to_regclass('public.tenants') IS NOT NULL AND to_regclass('public._hoodmin_migrations') IS NULL").fetch_one(&mut *connection).await?;
 	ensure!(
 		!untracked,
 		"İzlenmeyen mevcut şema bulundu; boş veritabanı kullanın."
@@ -163,7 +177,7 @@ async fn bootstrap(settings: &Settings, admin: PgConnectOptions) -> Result<()> {
 		if let Some(old) =
 			query_scalar::<_, String>("SELECT checksum FROM _hoodmin_migrations WHERE name=$1")
 				.bind(name)
-				.fetch_optional(&mut connection)
+				.fetch_optional(&mut *connection)
 				.await?
 		{
 			ensure!(old == hash, "Geçiş özeti uyuşmuyor: {name}");
@@ -186,9 +200,9 @@ async fn bootstrap(settings: &Settings, admin: PgConnectOptions) -> Result<()> {
 			.await?;
 		tx.commit().await?;
 	}
-	connection.execute(format!("GRANT CONNECT ON DATABASE {quoted_db} TO {quoted_role}; GRANT USAGE ON SCHEMA public TO {quoted_role}; GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA public TO {quoted_role}; GRANT USAGE,SELECT ON ALL SEQUENCES IN SCHEMA public TO {quoted_role}; REVOKE UPDATE,DELETE ON audit_events FROM {quoted_role}; REVOKE ALL ON _hoodmin_migrations FROM {quoted_role}; REVOKE ALL ON _hoodmin_migrations FROM PUBLIC; GRANT EXECUTE ON FUNCTION hoodmin_vault_tenants() TO {quoted_role}; GRANT EXECUTE ON FUNCTION hoodmin_due_acme() TO {quoted_role}; GRANT EXECUTE ON FUNCTION hoodmin_due_publications() TO {quoted_role};").as_str()).await?;
+	connection.execute(format!("GRANT CONNECT ON DATABASE {quoted_db} TO {quoted_role}; GRANT USAGE ON SCHEMA public TO {quoted_role}; GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA public TO {quoted_role}; GRANT USAGE,SELECT ON ALL SEQUENCES IN SCHEMA public TO {quoted_role}; REVOKE UPDATE,DELETE ON audit_events FROM {quoted_role}; REVOKE ALL ON _hoodmin_migrations FROM {quoted_role}; REVOKE ALL ON _hoodmin_migrations FROM PUBLIC; GRANT SELECT ON _hoodmin_migrations TO {quoted_role}; GRANT EXECUTE ON FUNCTION hoodmin_vault_tenants() TO {quoted_role}; GRANT EXECUTE ON FUNCTION hoodmin_due_acme() TO {quoted_role}; GRANT EXECUTE ON FUNCTION hoodmin_due_publications() TO {quoted_role};").as_str()).await?;
 	query("SELECT pg_advisory_unlock(684663001)")
-		.execute(&mut connection)
+		.execute(&mut *connection)
 		.await?;
 	Ok(())
 }

@@ -23,7 +23,7 @@ PORT = '55440'
 ORIGIN = 'https://yapayzeka:3459'
 CONFIG = Path('/etc/hoodmin/hoodmin.json')
 OWNER = Path('/root/hoodmin-first-owner.json')
-PATHS = [Path('/etc/hoodmin'), Path('/var/lib/hoodmin'), Path('/usr/share/hoodmin')]
+PATHS = [Path('/etc/hoodmin'), Path('/var/lib/hoodmin'), Path('/usr/share/hoodmin'), Path('/var/lib/hoodmin-upgrade')]
 BINARIES = [Path('/usr/bin/hoodmin'), Path('/usr/bin/hoodmin-cli')]
 assert Path('/etc/vpnhood-manager/tls/ca.crt').exists(), 'Dedicated QA certificates required'
 assert all(not p.exists() for p in [*PATHS, *BINARIES, OWNER]), 'Use an unused QA installation'
@@ -98,7 +98,9 @@ try:
 	for binary in BINARIES:
 		shutil.copy2(ROOT / 'target/release' / binary.name, binary)
 	shutil.copy2(ROOT / 'deploy/hoodmin.json', CONFIG)
-	run(['sh', ROOT / 'debian/hoodmin.postinst', 'configure', ''])
+	shutil.copy2(ROOT / 'deploy/upgrade.json', PATHS[0] / 'upgrade.json')
+	(PATHS[0] / 'upgrade.json').chmod(0o600)
+	postinst=WORK/'postinst';postinst.write_text((ROOT/'debian/hoodmin.postinst').read_text().split('#DEBHELPER#')[0]);run(['sh',postinst,'configure',''])
 	check('postgresql' not in next(l for l in (ROOT / 'debian/control').read_text().splitlines() if l.startswith('Depends:')), 'No PostgreSQL server/client package dependency')
 	log = LOG.open('wb')
 	server = subprocess.Popen(['runuser', '-u', 'hoodmin', '--', str(BINARIES[0]), '--config', str(CONFIG), '--listen', '127.0.0.1:3108'], stdout=log, stderr=log, start_new_session=True)
@@ -171,7 +173,11 @@ http {{
 	check(app_password not in cli('config', 'show').stdout, 'CLI configuration output redacts the database password')
 	cli('database', 'init', '--admin-url-file', admin_file)
 	cli('database', 'init', '--admin-url-file', admin_file)
-	cli('database', 'check')
+	admin_upgrade=private(WORK/'upgrade-admin.url',admin_url.replace('/postgres?','/hoodmin?'))
+	cli('upgrade','--configure','--admin-url-file',admin_upgrade)
+	cli('upgrade')
+	check(json.loads(cli('upgrade','--status').stdout)['phase']=='ready','Upgrade worker validates current schema before API readiness')
+	run(['runuser','-u','hoodmin','--',BINARIES[1],'database','check'],env=ENV)
 	local_config = json.loads(CONFIG.read_text())
 	local_key=Path('/var/lib/hoodmin/local-master.key')
 	local_key.write_bytes(secrets.token_bytes(32));local_key.chmod(0o600);run(['chown','hoodmin:hoodmin',local_key]);local_config['master_key_file']=str(local_key)

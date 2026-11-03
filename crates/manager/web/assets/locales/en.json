@@ -714,5 +714,10 @@
 	"Şifreli sunucu adresi yayımla": "Publish encrypted server address",
 	"Şifreli sunucu adresi yayımlansın mı?": "Publish the encrypted server address?",
 	"Şimdi yayımla": "Publish now",
-	"← Önceki": "← Previous"
+	"← Önceki": "← Previous",
+	"Kurulumun tamamlanması bekleniyor.": "Waiting for setup to be completed.",
+	"Veritabanı bağlantısı bekleniyor.": "Waiting for the database connection.",
+	"Yükseltme için yönetici yapılandırması bekleniyor.": "Waiting for administrator configuration to upgrade.",
+	"Yükseltme tamamlanamadı. Lütfen yöneticiye başvurun.": "Upgrade could not be completed. Please contact the administrator.",
+	"Yükseltme tamamlanıyor. Lütfen bekleyin.": "Completing the upgrade. Please wait."
 }

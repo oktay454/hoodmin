@@ -1,3 +1,11 @@
+hoodmin (0.5.0-1~deb13u1) unstable; urgency=medium
+
+  * Coordinate resumable upgrades through the Rust CLI and a separate service.
+  * Gate API readiness on the immutable migration catalog and upgrade state.
+  * Resume pending work on service starts without blocking package installation.
+
+ -- Hoodmin maintainers <vpn@oktayaktogan.com.tr>  Tue, 03 Nov 2026 15:15:00 +0300
+
 hoodmin (0.4.0-2~deb13u1) unstable; urgency=medium
 
   * Refresh the target deployment handbook for the current CLI, service

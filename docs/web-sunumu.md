@@ -70,8 +70,8 @@ Tarayıcı → genel Nginx (statik dosyalar)
 
 ```bash
 install -d -m 0755 /usr/share/hoodmin
-scp -r root@ARKA_UC:/usr/share/hoodmin/web /usr/share/hoodmin/web-0.4.0
-ln -s web-0.4.0 /usr/share/hoodmin/web
+scp -r root@ARKA_UC:/usr/share/hoodmin/web /usr/share/hoodmin/web-0.5.0
+ln -s web-0.5.0 /usr/share/hoodmin/web
 ```
 
 Kopyanın hedef sürüm dizini önceden mevcut olmamalıdır. Bu makinede Hoodmin paketi gerekmez. SSH kopyasında yalnız herkese açık statik dosyalar taşınır; `/etc/hoodmin` veya `/var/lib/hoodmin` kopyalanmaz.

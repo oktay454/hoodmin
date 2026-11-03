@@ -17,6 +17,8 @@ override_dh_auto_install:
 	cargo metadata --locked --format-version 1 | python3 scripts/dependency-licenses.py >debian/hoodmin/usr/share/doc/hoodmin/dependency-licenses.json
 	install -Dm0755 target/release/hoodmin debian/hoodmin/usr/bin/hoodmin
 	install -Dm0755 target/release/hoodmin-cli debian/hoodmin/usr/bin/hoodmin-cli
+	install -Dm0644 deploy/hoodmin-upgrade.service debian/hoodmin/usr/lib/systemd/system/hoodmin-upgrade.service
+	install -Dm0600 deploy/upgrade.json debian/hoodmin/etc/hoodmin/upgrade.json
 	install -Dm0644 deploy/hoodmin.json debian/hoodmin/etc/hoodmin/hoodmin.json
 	install -d debian/hoodmin/usr/share/hoodmin/web/assets/locales
 	install -m0644 crates/manager/web/index.html debian/hoodmin/usr/share/hoodmin/web/
@@ -26,7 +28,7 @@ override_dh_auto_install:
 	install -m0644 migrations/*.sql debian/hoodmin/usr/share/hoodmin/migrations/
 
 override_dh_installsystemd:
-	dh_installsystemd --no-start --no-enable
+	dh_installsystemd --no-start --no-enable hoodmin.service hoodmin-upgrade.service
 
 override_dh_auto_clean:
 

@@ -1,5 +1,22 @@
 #!/bin/sh
 set -e
+StartService()
+{
+	if [ -x /usr/sbin/policy-rc.d ]
+	then
+		STATUS=0
+		/usr/sbin/policy-rc.d "$1" start || STATUS="$?"
+		case "${STATUS}" in
+			0|104) ;;
+			101) return 0 ;;
+			*) printf '%s\n' 'policy-rc.d did not permit service startup.' >&2
+				return "${STATUS}" ;;
+		esac
+	fi
+	# deb-systemd-invoke intentionally skips static/disabled units. This helper
+	# is static, and a previously running panel may have been disabled by admin.
+	systemctl start "$1"
+}
 if [ "$1" = configure ]
 then
 	if ! getent passwd hoodmin >/dev/null
@@ -20,5 +37,23 @@ then
 	fi
 	chown root:hoodmin /etc/hoodmin/hoodmin.json
 	chmod 0640 /etc/hoodmin/hoodmin.json
+	chown root:root /etc/hoodmin/upgrade.json
+	chmod 0600 /etc/hoodmin/upgrade.json
+	install -d -o root -g hoodmin -m 0750 /var/lib/hoodmin-upgrade
+	hoodmin-cli upgrade --request --from-version "${2:-}"
 fi
 #DEBHELPER#
+
+if [ "$1" = configure ] && [ -d /run/systemd/system ]
+then
+	systemctl --system daemon-reload
+	StartService hoodmin-upgrade.service
+	UPGRADE_STATUS=0
+	hoodmin-cli upgrade --wait 20 || UPGRADE_STATUS="$?"
+	if [ -f /var/lib/hoodmin-upgrade/resume-service ]
+	then
+		StartService hoodmin.service
+		rm -f /var/lib/hoodmin-upgrade/resume-service
+	fi
+	exit "${UPGRADE_STATUS}"
+fi

@@ -118,6 +118,9 @@ fn bytes(path: &Path) -> Result<u64> {
 fn normal(path: &Path) -> bool {
 	fs::symlink_metadata(path).is_ok_and(|m| m.is_file() && !m.file_type().is_symlink())
 }
+pub(crate) fn verify(path: &Path) -> Result<()> {
+	valid(path).map(|_| ())
+}
 fn valid(path: &Path) -> Result<Manifest> {
 	ensure!(normal(&path.join(MARKER)), "Yedek tamamlanma kaydı yok.");
 	let m: Manifest = serde_json::from_slice(&fs::read(path.join(MARKER))?)?;

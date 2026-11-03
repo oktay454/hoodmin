@@ -33,10 +33,12 @@ Bunlar **ayrılmış QA ortamı** içindir; üretimde doğrudan çalıştırmay�
 
 | Araç | Amaç |
 |---|---|
+| `tests/test_package_upgrade.py ESKI_DEB YENI_DEB` | Ayrılmış boş Debian kapsayıcısında gerçek dpkg/systemd geçişi; uzak TLS/yerel peer, bağlantı kesintisi, hizmet durumu, kalıcı hata, dosya/PG kilidi ve öldürülen işin doğrulanmış yedekle devamı. |
 | `tests/test_runtime_cli.py` | Yapılandırılmamış başlangıç, doğrulanmış PostgreSQL TLS, yerel peer kimliğiyle anahtar döndürme, CLI/insan/bot API, kesinti/toparlanma ve şifreli dış yedek. |
 | `tests/test_operations.py` | Kiracı/rol/CSRF sınırları, agent yapılandırması, sürüm çatışmaları, bütün şifreli tabloların döndürülmesi, kesinti enjeksiyonu, saklama ve bildirim hata/iyileşme geçişleri. Yalnız üstteki betik çağırır. |
 | `tests/notification_fixture.py` | Yalnız QA içinde geçici IP/DNS/CA ve bağımsız TLS webhook/SMTPS alıcıları; gerçek TLS doğrulamasıyla teslim. Üst betiğin sonlandırma bloğu geçici ayarları kaldırır. |
 | `tests/static_serving.py` | Üstteki izole betikle paket Nginx örnekleri, dahili/statik/ayrı HTTPS sunum, gerçek dosya kopyası, derin bağlantı, 404, durdurulmuş hizmet ve yanlış arka uç sertifika adı. |
+| `tests/test_upgrade_ui.mjs` | Yerel statik arayüz ve sahte 503 API ile beş yükseltme mesajı; Türkçe/İngilizce/Arapça, RTL ve tek hata kartı. Üretim hesabı gerekmez. |
 | `tests/test_spa.mjs` | Gerçek API'ye bağlı Chromium'da giriş, ekranlar, 47 alan, onay, tema/dil/RTL ve mobil taşma. Node.js'in yerel DevTools protokolü kullanılır; npm bağımlılığı yoktur. |
 | `scripts/test-contract.sh`, `tests/ContractProbe` | Hazır .NET türleriyle protokol/anahtar/istemci kanıtı karşılaştırması; ayrıca ayrılmış hedef/veritabanı ister. |
 | `tests/ConnectionProbe`, `tests/UdpProbe` | Hazır VPN'e gerçek istemci veri yolu/TCP/UDP/QUIC. |

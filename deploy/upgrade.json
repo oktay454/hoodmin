@@ -1,0 +1,6 @@
+{
+	"admin_url_file": null,
+	"backup_directory": "/var/backups/hoodmin-upgrade",
+	"attempt_timeout_seconds": 300,
+	"retry_seconds": 30
+}

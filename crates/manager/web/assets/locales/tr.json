@@ -714,5 +714,10 @@
 	"Şifreli sunucu adresi yayımla": "Şifreli sunucu adresi yayımla",
 	"Şifreli sunucu adresi yayımlansın mı?": "Şifreli sunucu adresi yayımlansın mı?",
 	"Şimdi yayımla": "Şimdi yayımla",
-	"← Önceki": "← Önceki"
+	"← Önceki": "← Önceki",
+	"Kurulumun tamamlanması bekleniyor.": "Kurulumun tamamlanması bekleniyor.",
+	"Veritabanı bağlantısı bekleniyor.": "Veritabanı bağlantısı bekleniyor.",
+	"Yükseltme için yönetici yapılandırması bekleniyor.": "Yükseltme için yönetici yapılandırması bekleniyor.",
+	"Yükseltme tamamlanamadı. Lütfen yöneticiye başvurun.": "Yükseltme tamamlanamadı. Lütfen yöneticiye başvurun.",
+	"Yükseltme tamamlanıyor. Lütfen bekleyin.": "Yükseltme tamamlanıyor. Lütfen bekleyin."
 }

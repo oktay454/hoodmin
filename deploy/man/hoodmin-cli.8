@@ -1,4 +1,4 @@
-.TH HOODMIN-CLI 8 "2026-11-03" "Hoodmin 0.4.0" "System Administration"
+.TH HOODMIN-CLI 8 "2026-11-03" "Hoodmin 0.5.0" "System Administration"
 .SH NAME
 hoodmin-cli \- configure, maintain and manage Hoodmin
 .SH SYNOPSIS
@@ -23,6 +23,9 @@ backup create|export|pull: create, encrypt or fetch backups. pg_dump and age are
 service start|stop|restart|status|enable|disable: control the local service.
 .br
 acme-hook: internal Certbot HTTP01 callback.
+upgrade [--watch|--status|--request|--wait SECONDS]: root-only resumable upgrade coordinator. Normally managed by hoodmin-upgrade.service and package postinst. SQL uses the native Rust driver; pg_dump is required for pre-migration backups.
+.br
+upgrade --configure --admin-url-file FILE: save a protected remote administrator URL file targeting the same application database. Local peer administration needs no file.
 .SH SECURITY
 TCP PostgreSQL connections require sslmode=verify-full.
 Read database URLs, passwords and bot tokens from private files instead of command arguments.
