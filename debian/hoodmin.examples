@@ -1,4 +1,7 @@
 deploy/nginx-hoodmin.conf
+deploy/nginx-hoodmin-static.conf
+deploy/nginx-hoodmin-static-remote.conf
+deploy/nginx-hoodmin-backend.conf
 deploy/hoodmin-backup-export.service
 deploy/hoodmin-backup-export.timer
 deploy/hoodmin-backup-pull.service

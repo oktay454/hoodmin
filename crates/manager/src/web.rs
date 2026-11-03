@@ -42,112 +42,8 @@ impl WebState {
 }
 pub fn router(state: WebState) -> Router {
 	Router::new()
-		.route("/", get(|| async { Redirect::to("/panel") }))
-		.route("/signin", get(signin).post(login))
-		.route("/language", get(i18n::change))
-		.route("/theme", get(i18n::change_theme))
-		.route("/logout", post(logout))
-		.route("/panel", get(dashboard))
-		.route("/panel/{page}", get(page))
-		.route("/manage/bots", get(bots).post(create_bot))
-		.route("/manage/bots/{id}/revoke", post(revoke_bot))
-		.route("/manage/farms", post(add_farm))
-		.route(
-			"/manage/farms/{id}/destinations",
-			get(destination_page).post(destination_create),
-		)
-		.route("/manage/farms/{id}/push", post(destinations_push_all))
-		.route(
-			"/manage/publications/{id}",
-			get(destination_edit).post(destination_update),
-		)
-		.route("/manage/publications/{id}/push", post(destination_push))
-		.route("/manage/publications/{id}/remove", post(destination_remove))
-		.route(
-			"/manage/farms/{id}/publication",
-			get(farm_publication).post(enable_farm_publication),
-		)
-		.route(
-			"/manage/farms/{id}/certificates",
-			get(farm_certificates).post(upload_farm_certificate),
-		)
 		.route("/f/{tenant}/{farm}/{seed}", get(published_farm_token))
-		.route("/manage/servers", post(add_server))
-		.route("/manage/servers/{id}", post(edit_server))
-		.route(
-			"/manage/servers/{id}/configuration",
-			get(server_configuration).post(save_configuration),
-		)
-		.route(
-			"/manage/servers/{id}/credential",
-			get(confirm_credential).post(rotate_credential),
-		)
-		.route("/reports", get(reports))
-		.route(
-			"/manage/server-profiles",
-			get(server_profiles).post(add_server_profile),
-		)
-		.route("/manage/server-profiles/{id}", post(edit_server_profile))
-		.route(
-			"/manage/servers/{id}/autosign",
-			get(autosign).post(save_autosign),
-		)
-		.route(
-			"/manage/farms/{id}/server-profile",
-			get(farm_server_profile).post(assign_farm_server_profile),
-		)
-		.route(
-			"/manage/server-profiles/{id}/apply",
-			post(apply_server_profile),
-		)
-		.route("/manage/profiles", get(profiles).post(add_profile))
-		.route("/manage/profiles/{id}", post(edit_profile))
-		.route(
-			"/manage/tokens/{id}/policy",
-			get(token_policy).post(save_token_policy),
-		)
-		.route("/manage/tokens/{id}/key", get(token_key))
-		.route("/manage/tokens/{id}/download", get(download_token))
-		.route("/manage/tokens/{id}/details", post(save_token_details))
 		.route("/s/{tenant}/{server}", get(published_server_token))
-		.route("/manage/servers/{id}/publish", post(publish_token))
-		.route(
-			"/manage/servers/{id}/certificates",
-			get(server_certificates).post(upload_certificate),
-		)
-		.route("/manage/servers/{id}/challenge", post(set_challenge))
-		.route(
-			"/manage/servers/{id}/routing",
-			get(server_routing).post(save_routing),
-		)
-		.route("/manage/tokens/{id}/access-code", post(create_access_code))
-		.route(
-			"/manage/integrations",
-			get(integrations).post(configure_ad_hook),
-		)
-		.route(
-			"/manage/servers/{id}/installation",
-			get(installation).post(start_installation),
-		)
-		.route("/manage/install-jobs/{id}", get(install_status))
-		.route("/manage/tokens", post(add_tokens))
-		.route("/manage/tokens/bulk", post(bulk_tokens))
-		.route("/manage/sessions/{id}/close", post(close_session))
-		.route("/manage/users", post(add_user))
-		.route("/manage/users/{id}", post(edit_user))
-		.route("/manage/password", post(change_password))
-		.route("/manage/tenant", post(update_tenant))
-		.route("/export/usage.csv", get(export_csv))
-		.route("/events", get(events))
-		.route(
-			"/assets/app.css",
-			get(|| async {
-				(
-					[(header::CONTENT_TYPE, "text/css; charset=utf-8")],
-					include_str!("../assets/app.css"),
-				)
-			}),
-		)
 		.nest("/api/manage", management_api())
 		.layer(DefaultBodyLimit::max(512 * 1024))
 		.layer(middleware::from_fn(security))
@@ -253,20 +149,6 @@ async fn require(
 		));
 	}
 	Ok(user)
-}
-async fn signin(State(state): State<WebState>, headers: HeaderMap) -> Result<Response, PanelError> {
-	if auth::user(&state.store, &headers).await?.is_some() {
-		return Ok(Redirect::to("/panel").into_response());
-	}
-	let csrf = auth::nonce();
-	Ok((
-		[(
-			header::SET_COOKIE,
-			auth::cookie_header(auth::LOGIN_COOKIE, &csrf, 600),
-		)],
-		views::signin(&csrf, None),
-	)
-		.into_response())
 }
 #[derive(Deserialize)]
 struct LoginForm {
@@ -375,7 +257,7 @@ async fn login(
 	)
 	.await?;
 	tx.commit().await?;
-	let mut response = Redirect::to("/panel").into_response();
+	let mut response = Redirect::to("/").into_response();
 	response.headers_mut().append(
 		header::SET_COOKIE,
 		auth::cookie_header(auth::COOKIE, &token, 28800)
@@ -492,7 +374,7 @@ async fn add_farm(
 		.await?;
 	auth::audit(&mut tx, &user, "Sunucu grubu oluşturuldu", &id.to_string()).await?;
 	tx.commit().await?;
-	Ok(Redirect::to("/panel/servers?notice=saved").into_response())
+	Ok(Redirect::to("/servers?notice=saved").into_response())
 }
 #[derive(Deserialize)]
 struct ServerForm {
@@ -796,7 +678,7 @@ async fn edit_server(
 	}
 	auth::audit(&mut tx, &user, "Sunucu güncellendi", &id.to_string()).await?;
 	tx.commit().await?;
-	Ok(Redirect::to("/panel/servers?notice=saved").into_response())
+	Ok(Redirect::to("/servers?notice=saved").into_response())
 }
 async fn server_configuration(
 	State(state): State<WebState>,
@@ -923,7 +805,7 @@ async fn save_configuration(
 		.await?;
 	}
 	tx.commit().await?;
-	Ok(Redirect::to(&format!("/manage/servers/{id}/configuration")).into_response())
+	Ok(Redirect::to(&format!("/servers/{id}/configuration")).into_response())
 }
 
 #[derive(Deserialize)]
@@ -1131,7 +1013,7 @@ async fn bulk_tokens(
 	)
 	.await?;
 	tx.commit().await?;
-	Ok(Redirect::to("/panel/tokens?notice=saved").into_response())
+	Ok(Redirect::to("/access-keys?notice=saved").into_response())
 }
 async fn close_session(
 	State(state): State<WebState>,
@@ -1153,7 +1035,7 @@ async fn close_session(
 	}
 	auth::audit(&mut tx, &user, "VPN oturumu sonlandırıldı", &id.to_string()).await?;
 	tx.commit().await?;
-	Ok(Redirect::to("/panel/sessions?notice=saved").into_response())
+	Ok(Redirect::to("/sessions?notice=saved").into_response())
 }
 #[derive(Deserialize)]
 struct UserForm {
@@ -1188,7 +1070,7 @@ async fn add_user(
 	auth::insert_account(&mut tx, user.tenant, id, &address, &hash, &form.role).await?;
 	auth::audit(&mut tx, &user, "Panel kullanıcısı eklendi", &address).await?;
 	tx.commit().await?;
-	Ok(Redirect::to("/panel/users?notice=saved").into_response())
+	Ok(Redirect::to("/users?notice=saved").into_response())
 }
 #[derive(Deserialize)]
 struct EditUserForm {
@@ -1274,7 +1156,7 @@ async fn edit_user(
 	)
 	.await?;
 	tx.commit().await?;
-	Ok(Redirect::to("/panel/users?notice=saved").into_response())
+	Ok(Redirect::to("/users?notice=saved").into_response())
 }
 #[derive(Deserialize)]
 struct PasswordForm {
@@ -1340,7 +1222,7 @@ async fn update_tenant(
 	)
 	.await?;
 	tx.commit().await?;
-	Ok(Redirect::to("/panel/account?notice=saved").into_response())
+	Ok(Redirect::to("/account?notice=saved").into_response())
 }
 async fn export_csv(
 	State(state): State<WebState>,
@@ -1467,7 +1349,7 @@ async fn add_profile(
 	)
 	.await?;
 	tx.commit().await?;
-	Ok(Redirect::to("/manage/profiles").into_response())
+	Ok(Redirect::to("/profiles").into_response())
 }
 async fn edit_profile(
 	State(state): State<WebState>,
@@ -1519,7 +1401,7 @@ async fn edit_profile(
 	)
 	.await?;
 	tx.commit().await?;
-	Ok(Redirect::to("/manage/profiles").into_response())
+	Ok(Redirect::to("/profiles").into_response())
 }
 async fn token_policy(
 	State(state): State<WebState>,
@@ -1590,7 +1472,7 @@ async fn save_token_policy(
 	)
 	.await?;
 	tx.commit().await?;
-	Ok(Redirect::to("/panel/tokens?notice=saved").into_response())
+	Ok(Redirect::to("/access-keys?notice=saved").into_response())
 }
 async fn token_key(
 	State(state): State<WebState>,
@@ -1721,7 +1603,7 @@ async fn save_routing(
 	)
 	.await?;
 	tx.commit().await?;
-	Ok(Redirect::to(&format!("/manage/servers/{id}/routing")).into_response())
+	Ok(Redirect::to(&format!("/servers/{id}/routing")).into_response())
 }
 #[derive(Deserialize)]
 struct ConfirmForm {
@@ -1947,7 +1829,7 @@ async fn start_installation(
 		job,
 		parameters,
 	));
-	Ok(Redirect::to(&format!("/manage/servers/{id}/installation")).into_response())
+	Ok(Redirect::to(&format!("/servers/{id}/installation")).into_response())
 }
 async fn install_status(
 	State(state): State<WebState>,
@@ -2042,7 +1924,7 @@ async fn publish_token(
 	)
 	.await?;
 	tx.commit().await?;
-	Ok(Redirect::to(&format!("/manage/servers/{id}/configuration")).into_response())
+	Ok(Redirect::to(&format!("/servers/{id}/configuration")).into_response())
 }
 
 async fn server_certificates(
@@ -2151,7 +2033,7 @@ async fn upload_certificate(
 	)
 	.await?;
 	tx.commit().await?;
-	Ok(Redirect::to(&format!("/manage/servers/{id}/certificates")).into_response())
+	Ok(Redirect::to(&format!("/servers/{id}/certificates")).into_response())
 }
 #[derive(Deserialize)]
 struct ChallengeForm {
@@ -2225,7 +2107,7 @@ async fn set_challenge(
 	)
 	.await?;
 	tx.commit().await?;
-	Ok(Redirect::to(&format!("/manage/servers/{id}/certificates")).into_response())
+	Ok(Redirect::to(&format!("/servers/{id}/certificates")).into_response())
 }
 
 async fn server_profiles(
@@ -2295,7 +2177,7 @@ async fn add_server_profile(
 	)
 	.await?;
 	tx.commit().await?;
-	Ok(Redirect::to("/manage/server-profiles").into_response())
+	Ok(Redirect::to("/server-profiles").into_response())
 }
 async fn edit_server_profile(
 	State(state): State<WebState>,
@@ -2345,7 +2227,7 @@ async fn edit_server_profile(
 	)
 	.await?;
 	tx.commit().await?;
-	Ok(Redirect::to("/manage/server-profiles").into_response())
+	Ok(Redirect::to("/server-profiles").into_response())
 }
 #[derive(Deserialize)]
 struct ApplyServerProfileForm {
@@ -2437,7 +2319,7 @@ async fn apply_server_profile(
 	)
 	.await?;
 	tx.commit().await?;
-	Ok(Redirect::to("/panel/servers").into_response())
+	Ok(Redirect::to("/servers").into_response())
 }
 
 #[derive(Deserialize)]
@@ -2572,7 +2454,7 @@ async fn save_token_details(
 	)
 	.await?;
 	tx.commit().await?;
-	Ok(Redirect::to(&format!("/manage/tokens/{id}/policy")).into_response())
+	Ok(Redirect::to("/access-keys").into_response())
 }
 
 async fn bots(State(state): State<WebState>, headers: HeaderMap) -> Result<Response, PanelError> {
@@ -2676,7 +2558,7 @@ async fn revoke_bot(
 		.await?;
 	auth::audit(&mut tx, &user, "Bot erişimi iptal edildi", &id.to_string()).await?;
 	tx.commit().await?;
-	Ok(Redirect::to("/manage/bots").into_response())
+	Ok(Redirect::to("/bots").into_response())
 }
 
 fn json_text<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<String, D::Error> {
@@ -2844,6 +2726,9 @@ json_write!(api_tenant, FarmForm, update_tenant);
 json_write!(api_integration, ConfirmForm, configure_ad_hook);
 json_write!(api_add_bot, BotForm, create_bot);
 json_write!(api_revoke_bot, Uuid, ConfirmForm, revoke_bot);
+json_read!(api_get_farm_publication, Uuid, farm_publication);
+json_read!(api_get_destination, Uuid, destination_edit);
+json_read!(api_get_token_policy, Uuid, token_policy);
 json_read!(api_get_routing, Uuid, server_routing);
 json_read!(api_get_certificates, Uuid, server_certificates);
 json_read!(api_get_installation, Uuid, installation);
@@ -2979,6 +2864,7 @@ async fn api_json(mut request: axum::extract::Request, next: Next) -> Response {
 fn management_api() -> Router<WebState> {
 	Router::new()
 		.route("/schema", get(api_schema))
+		.route("/events", get(events))
 		.route("/notifications", get(api_notifications))
 		.route("/notifications/{id}", post(api_notification_save))
 		.route("/notifications/{id}/test", post(api_notification_test))
@@ -2987,7 +2873,10 @@ fn management_api() -> Router<WebState> {
 		.route("/logout", post(api_logout))
 		.route("/password", post(api_password))
 		.route("/dashboard", get(dashboard))
-		.route("/panel/{page}", get(page))
+		.route("/views/{page}", get(page))
+		.route("/views/profiles", get(profiles))
+		.route("/views/server-profiles", get(server_profiles))
+		.route("/views/bots", get(bots))
 		.route("/reports", get(reports))
 		.route("/usage.csv", get(export_csv))
 		.route("/servers", get(api_servers).post(api_add_server))
@@ -3021,17 +2910,26 @@ fn management_api() -> Router<WebState> {
 			get(api_destinations).post(api_destination_create),
 		)
 		.route("/farms/{id}/push", post(api_destinations_push_all))
-		.route("/publications/{id}", post(api_destination_update))
+		.route(
+			"/publications/{id}",
+			get(api_get_destination).post(api_destination_update),
+		)
 		.route("/publications/{id}/push", post(api_destination_push))
 		.route("/publications/{id}/remove", post(api_destination_remove))
-		.route("/farms/{id}/publication", post(api_farm_publication))
+		.route(
+			"/farms/{id}/publication",
+			get(api_get_farm_publication).post(api_farm_publication),
+		)
 		.route(
 			"/farms/{id}/certificates",
 			get(api_get_farm_certificates).post(api_farm_certificates),
 		)
 		.route("/tokens", get(api_tokens).post(api_add_tokens))
 		.route("/tokens/bulk", post(api_bulk_tokens))
-		.route("/tokens/{id}/policy", post(api_token_policy))
+		.route(
+			"/tokens/{id}/policy",
+			get(api_get_token_policy).post(api_token_policy),
+		)
 		.route("/tokens/{id}/details", post(api_token_details))
 		.route("/tokens/{id}/access-code", post(api_access_code))
 		.route("/tokens/{id}/key", get(api_get_key))
@@ -3261,7 +3159,7 @@ async fn assign_farm_server_profile(
 	)
 	.await?;
 	tx.commit().await?;
-	Ok(Redirect::to(&format!("/manage/farms/{id}/server-profile")).into_response())
+	Ok(Redirect::to(&format!("/farms/{id}/server-profile")).into_response())
 }
 
 async fn farm_publication(
@@ -3340,7 +3238,7 @@ async fn enable_farm_publication(
 	)
 	.await?;
 	tx.commit().await?;
-	Ok(Redirect::to(&format!("/manage/farms/{id}/publication")).into_response())
+	Ok(Redirect::to("/farms").into_response())
 }
 async fn published_farm_token(
 	State(state): State<WebState>,
@@ -3541,7 +3439,7 @@ async fn upload_farm_certificate(
 	)
 	.await?;
 	tx.commit().await?;
-	Ok(Redirect::to(&format!("/manage/farms/{id}/certificates")).into_response())
+	Ok(Redirect::to(&format!("/farms/{id}/certificates")).into_response())
 }
 
 #[cfg(test)]
@@ -3792,7 +3690,7 @@ async fn destination_save(
 	)
 	.await?;
 	tx.commit().await?;
-	Ok(Redirect::to(&format!("/manage/publications/{destination}")).into_response())
+	Ok(Redirect::to(&format!("/farms/{farm}/destinations")).into_response())
 }
 #[derive(Deserialize)]
 struct PushPublicationForm {
@@ -3842,7 +3740,7 @@ async fn destination_push(
 	.await?;
 	tx.commit().await?;
 	Ok(Redirect::to(&format!(
-		"/manage/farms/{}/destinations",
+		"/farms/{}/destinations",
 		row.get::<Uuid, _>("farm_id")
 	))
 	.into_response())
@@ -3876,7 +3774,7 @@ async fn destinations_push_all(
 	)
 	.await?;
 	tx.commit().await?;
-	Ok(Redirect::to(&format!("/manage/farms/{farm}/destinations")).into_response())
+	Ok(Redirect::to(&format!("/farms/{farm}/destinations")).into_response())
 }
 json_read!(api_destinations, Uuid, destination_page);
 json_write!(
@@ -3938,7 +3836,7 @@ async fn destination_remove(
 	.await?;
 	tx.commit().await?;
 	Ok(Redirect::to(&format!(
-		"/manage/farms/{}/destinations",
+		"/farms/{}/destinations",
 		row.get::<Uuid, _>("farm_id")
 	))
 	.into_response())
@@ -4060,7 +3958,7 @@ async fn save_autosign(
 	)
 	.await?;
 	tx.commit().await?;
-	Ok(Redirect::to(&format!("/manage/servers/{server}/autosign")).into_response())
+	Ok(Redirect::to(&format!("/servers/{server}/autosign")).into_response())
 }
 
 async fn api_login_form() -> Response {

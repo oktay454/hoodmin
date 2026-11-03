@@ -45,3 +45,5 @@ Aynı kiracı grubunda uygun konum ve kapasiteye göre yönlendirme yapılır. S
 `hoodmin-cli` aynı Rust kitaplığını ve yönetim API'sini kullanır. Kurulum, şema, ilk sahip ve yedekleme bu ikili içindedir. PostgreSQL sunucusu paket bağımlılığı değildir. CLI yerel veya uzak veritabanını ayrı yönetici bağlantısıyla hazırlayabilir; hizmete yönetici rolü verilmez.
 
 Anahtar döndürme, bildirim kuyruğu ve yedek saklama: [işletim politikaları](isletim-politikalari.md).
+
+Arayüz dosyaları `/usr/share/hoodmin/web/` altında ayrı statik ağaçtır. `web.serve_static=true` ile Hoodmin bu ağacı okur; `false` ile Nginx doğrudan sunar ve Hoodmin’e yalnız API/dinamik VPN istekleri gelir. İki durumda da aynı SPA ve güvenlik sözleşmesi kullanılır. Ayrı Nginx makinesinde yalnız aynı sürümün statik ağacı kopyalanır. [Yerleşimler](web-sunumu.md).

@@ -309,9 +309,7 @@ pub struct Bot {
 	pub expires: String,
 	pub revoked: bool,
 }
-pub fn signin(token: &str, error: Option<&str>) -> Json<Value> {
-	Json(json!({"token":token,"error":error}))
-}
+
 pub fn error(message: &str) -> Json<Value> {
 	Json(json!({"error":message}))
 }

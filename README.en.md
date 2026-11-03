@@ -12,7 +12,7 @@ Each organization brings its own VPN servers (BYOS). A server belongs to one ten
 2. As root, prepare a private (0600) `/root/hoodmin-db.url` containing the application connection URL. PostgreSQL is configured separately, locally or remotely; the package does not depend on a PostgreSQL server. The following example uses a separately installed local server:
 
 ```bash
-apt install ./hoodmin_0.3.0-1~deb13u1_amd64.deb
+apt install ./hoodmin_0.4.0-1~deb13u1_amd64.deb
 systemctl enable --now postgresql
 hoodmin-cli config set --database-url-file /root/hoodmin-db.url --public-origin https://hoodmin.example.com
 hoodmin-cli database init --local
@@ -71,3 +71,9 @@ Packages older than `0.2.0-1~deb13u1` require a fresh installation; newer instal
 ## Scope
 
 Compatibility target: VpnHood **9.0.856** on Debian 13 amd64. Windows installation is not end-to-end verified. AutoSign supports one FQDN per server with HTTP-01, without wildcard/DNS-01 or group-wide issuance. Other VPN engines, cloud IP ordering, billing, per-tenant branding and public signup are unavailable. Sustained load/outage tests and full desktop routing tests are incomplete; full commercial Manager equivalence is not claimed.
+
+## Static frontend deployment
+
+One package installs the complete public frontend at `/usr/share/hoodmin/web/`. Both modes retain client-side rendering. By default Hoodmin serves that directory. For direct Nginx serving, run `hoodmin-cli config web --serve-static false` on the backend. On the same host Nginx reads the installed directory; on a separate host copy only that entire directory, using the same Hoodmin version. No second package, database credentials or key files are needed on the frontend host. UI routes start at `/`, `/servers`, `/access-keys` and `/account`; there is no `/panel` prefix.
+
+Use `deploy/nginx-hoodmin.conf` for built-in serving, `deploy/nginx-hoodmin-static.conf` for local Nginx static serving, or `deploy/nginx-hoodmin-static-remote.conf` with `deploy/nginx-hoodmin-backend.conf` for separate hosts. Replace all example names, certificates and the allowed frontend source IP. Remote backend HTTPS verifies the certificate and hostname. Browser/API use one public origin; `/api/`, `/s/`, `/f/` and health checks remain dynamic. Nginx serves the UI even while the daemon is stopped; the browser shows a simple error and retries. [Copying, upgrades and complete steps](docs/web-sunumu.md).

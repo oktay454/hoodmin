@@ -117,3 +117,5 @@ Sertifika/adres değişince eski anahtarların parmak izini ve adresini güncell
 **Bildirimler** menüsünde webhook/SMTPS kanalı oluşturun, sınayıp son gönderimleri kontrol edin. Anahtar döndürme ve yedek saklama panel makinesinde root yetkili `hoodmin-cli` ile yönetilir. [Adım adım işletim politikaları](isletim-politikalari.md).
 
 Arayüz tarayıcıda çalışan statik uygulamadır (SPA); JavaScript gerekir. API bağlantısı kesilirse basit hata gösterilir ve tekrar denenir. Dil/tema tercihi tarayıcıda saklanır; oturum sırrı HttpOnly çerezindedir.
+
+Arayüz kök adreste açılır (`/`); sunucular `/servers`, VPN anahtarları `/access-keys`, hesabınız `/account` altındadır. [Web sunum kılavuzu](web-sunumu.md), aynı veya ayrı Nginx makinesindeki statik dosya kurulumunu anlatır.

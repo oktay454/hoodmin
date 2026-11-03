@@ -31,6 +31,7 @@ struct Args {
 struct Runtime {
 	router: Arc<RwLock<Option<Router>>>,
 	ready: Arc<AtomicBool>,
+	web: Arc<RwLock<crate::frontend::WebSettings>>,
 }
 pub async fn run() -> Result<()> {
 	tracing_subscriber::fmt()
@@ -48,23 +49,15 @@ pub async fn run() -> Result<()> {
 		"Hizmet yalnız loopback üzerinde dinleyebilir."
 	);
 	let listener = tokio::net::TcpListener::bind(listen).await?;
-	let runtime = Runtime::default();
+	let runtime = Runtime {
+		web: Arc::new(RwLock::new(settings.web)),
+		..Runtime::default()
+	};
 	tokio::spawn(supervise(runtime.clone(), args.config));
 	let router = Router::new()
-		.route("/assets/spa.js", get(crate::frontend::script))
-		.route("/assets/locales/{locale}", get(crate::frontend::locale))
 		.route("/healthz", get(|| async { "ok" }))
 		.route("/readyz", get(readiness))
 		.route("/api/status", get(readiness))
-		.route(
-			"/assets/app.css",
-			get(|| async {
-				(
-					[(header::CONTENT_TYPE, "text/css; charset=utf-8")],
-					include_str!("../assets/app.css"),
-				)
-			}),
-		)
 		.fallback(dispatch)
 		.with_state(runtime)
 		.layer(axum::middleware::from_fn(crate::web::security));
@@ -84,9 +77,29 @@ async fn readiness(State(state): State<Runtime>) -> Response {
 	(if ready {StatusCode::OK}else{StatusCode::SERVICE_UNAVAILABLE},axum::Json(serde_json::json!({"ready":ready,"message":if ready{"Hazır"}else{"Hizmet geçici olarak kullanılamıyor. Lütfen daha sonra yeniden deneyin."}}))).into_response()
 }
 async fn dispatch(State(state): State<Runtime>, request: Request) -> Response {
-	if request.method() == axum::http::Method::GET && crate::frontend::is_page(request.uri().path())
+	let path = request.uri().path();
+	if crate::frontend::is_page(path) || path.starts_with("/assets/") {
+		return if matches!(
+			*request.method(),
+			axum::http::Method::GET | axum::http::Method::HEAD
+		) {
+			crate::frontend::serve(
+				&*state.web.read().await,
+				path,
+				request.method() == axum::http::Method::HEAD,
+			)
+			.await
+		} else {
+			StatusCode::METHOD_NOT_ALLOWED.into_response()
+		};
+	}
+	// Never turn missing assets, API routes or published VPN tokens into HTML.
+	if !(path == "/api"
+		|| path.starts_with("/api/")
+		|| path.starts_with("/s/")
+		|| path.starts_with("/f/"))
 	{
-		return crate::frontend::index();
+		return StatusCode::NOT_FOUND.into_response();
 	}
 	if state.ready.load(Ordering::Acquire)
 		&& let Some(router) = state.router.read().await.clone()
@@ -108,10 +121,7 @@ async fn dispatch(State(state): State<Runtime>, request: Request) -> Response {
 }
 async fn supervise(state: Runtime, path: PathBuf) {
 	loop {
-		let settings = match Settings::load(&path).and_then(|s| {
-			s.validate()?;
-			Ok(s)
-		}) {
+		let settings = match Settings::load(&path) {
 			Ok(s) => s,
 			Err(error) => {
 				tracing::error!(detail=%crate::config::redact(&error,None),"Hoodmin yapılandırılamadı");
@@ -119,6 +129,13 @@ async fn supervise(state: Runtime, path: PathBuf) {
 				continue;
 			}
 		};
+		*state.web.write().await = settings.web.clone();
+		if let Err(error) = settings.validate() {
+			tracing::error!(%error, "Hoodmin yapılandırması geçersiz");
+			tokio::time::sleep(Duration::from_secs(5)).await;
+			continue;
+		}
+
 		match initialize(&settings).await {
 			Err(error) => {
 				tracing::error!(detail=%crate::config::redact(&error,settings.database_url.as_deref()),"Hoodmin bağımlılıkları hazır değil")

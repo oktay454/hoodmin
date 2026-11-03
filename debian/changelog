@@ -1,3 +1,11 @@
+hoodmin (0.4.0-1~deb13u1) unstable; urgency=medium
+
+  * Use root-level client routes without panel or manage prefixes.
+  * Install one frontend tree for Hoodmin or direct Nginx static serving.
+  * Add local and remote Nginx deployment examples and CLI web settings.
+
+ -- Hoodmin maintainers <vpn@oktayaktogan.com.tr>  Tue, 03 Nov 2026 15:00:00 +0300
+
 hoodmin (0.3.0-1~deb13u1) unstable; urgency=medium
 
   * Add recoverable, transactional encryption key rotation.

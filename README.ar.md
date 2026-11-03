@@ -12,7 +12,7 @@ Hoodmin **لوحة مستقلة لإدارة VPN، متوافقة مع VpnHood**
 2. جهّز ملف `/root/hoodmin-db.url` بصلاحيات 0600 يتضمن رابط اتصال التطبيق. يُجهّز PostgreSQL بشكل منفصل محليًا أو على خادم بعيد؛ الحزمة لا تفرض تثبيت خادم PostgreSQL. المثال التالي يستخدم خادمًا محليًا مثبتًا بشكل منفصل:
 
 ```bash
-apt install ./hoodmin_0.3.0-1~deb13u1_amd64.deb
+apt install ./hoodmin_0.4.0-1~deb13u1_amd64.deb
 systemctl enable --now postgresql
 hoodmin-cli config set --database-url-file /root/hoodmin-db.url --public-origin https://hoodmin.example.com
 hoodmin-cli database init --local
@@ -71,3 +71,9 @@ curl --fail --show-error https://hoodmin.example.com/healthz
 سياسة الاحتفاظ معطلة افتراضياً. استخدم `hoodmin-cli backup policy --file FILE` لملف JSON خاص، و`backup prune` للمعاينة، و`backup prune --apply` للحذف. لا تحذف إلا النسخ المكتملة التي اجتازت فحص SHA-256، مع حماية أحدث `keep_min` نسخة. تطبق السياسة المفعلة بعد إنشاء أو تصدير نسخة ناجحة. حدود المساحة ليست حجزاً مضموناً على نظام الملفات.
 
 يضيف المدير قناة HTTPS webhook أو SMTP مشفرة من البداية عبر **الإشعارات**، ثم يختبرها ويتابع قائمة الإرسال الدائمة. تشمل الأحداث انقطاع الخادم وتعافيه وفشل AutoSign والنشر الخارجي وتعافيهما. تعاد المحاولة حتى ثماني مرات. يجب على المستقبل إزالة تكرار معرف الحدث. تشفر بيانات الاعتماد ولا تعرض في القائمة. يستطيع مشغل النظام تحديد مستأجر لتلقي أحداث النسخ والمساحة عبر `backup.notify_tenant`. توقف الخدمة أو قاعدة البيانات يحتاج مراقبة مستقلة. [مرجع التشغيل الكامل](docs/isletim-politikalari.md).
+
+## نشر الواجهة الثابتة
+
+تثبت حزمة واحدة كامل ملفات الواجهة العامة في `/usr/share/hoodmin/web/`. تبقى الواجهة في الوضعين تطبيقاً يعمل في المتصفح. يقدم Hoodmin الملفات افتراضياً. لتقديمها مباشرة بواسطة Nginx نفّذ على الخادم الخلفي `hoodmin-cli config web --serve-static false`. على الجهاز نفسه يقرأ Nginx المجلد المثبت مباشرة؛ وعلى جهاز منفصل انسخ هذا المجلد كاملاً وبنفس إصدار Hoodmin. لا تحتاج إلى حزمة ثانية أو نقل بيانات قاعدة البيانات أو المفاتيح. تبدأ المسارات من `/` و`/servers` و`/access-keys` و`/account` دون بادئة `/panel`.
+
+استخدم `deploy/nginx-hoodmin.conf` للتقديم المدمج، أو `deploy/nginx-hoodmin-static.conf` على الجهاز نفسه، أو `deploy/nginx-hoodmin-static-remote.conf` مع `deploy/nginx-hoodmin-backend.conf` للجهازين المنفصلين. استبدل أسماء النطاقات والشهادات وعنوان IP المسموح به للواجهة. يتحقق اتصال HTTPS الخلفي من الشهادة والاسم. تستخدم الواجهة وAPI نفس العنوان العام؛ وتبقى `/api/` و`/s/` و`/f/` وفحوص الصحة ديناميكية. تبقى الواجهة ظاهرة عند توقف الخدمة وتعرض رسالة قصيرة وتعيد المحاولة. [النسخ والترقية والخطوات الكاملة](docs/web-sunumu.md).

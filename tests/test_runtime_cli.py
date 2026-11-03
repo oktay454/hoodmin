@@ -94,6 +94,7 @@ try:
 	for path in PATHS:
 		path.mkdir(mode=0o755)
 	shutil.copytree(ROOT / 'migrations', PATHS[2] / 'migrations')
+	shutil.copytree(ROOT / 'crates/manager/web', PATHS[2] / 'web')
 	for binary in BINARIES:
 		shutil.copy2(ROOT / 'target/release' / binary.name, binary)
 	shutil.copy2(ROOT / 'deploy/hoodmin.json', CONFIG)
@@ -133,6 +134,16 @@ http {{
 	check(request('/healthz')[0] == 200 and request('/signin')[0] == 200 and request('/assets/app.css')[0] == 200, 'Unconfigured service stays alive and serves the static SPA shell')
 	check('database_url' not in request('/signin')[1] and '/var/' not in request('/signin')[1], 'Browser error does not disclose configuration details')
 
+	cli('config', 'web', '--serve-static', 'false')
+	for _ in range(50):
+		if request('/signin')[0] == 404: break
+		time.sleep(.2)
+	check(request('/signin')[0] == 404 and request('/assets/spa.js')[0] == 404 and request('/api/manage/me')[0] == 503, 'Web mode reloads independently of absent database')
+	cli('config', 'web', '--serve-static', 'true')
+	for _ in range(50):
+		if request('/signin')[0] == 200: break
+		time.sleep(.2)
+	check(request('/signin')[0] == 200, 'Built-in static serving recovers without database initialization')
 	run(['pg_createcluster', '17', CLUSTER, '--port', PORT])
 	CREATED = True
 	ca = WORK / 'db-ca.crt'
@@ -186,7 +197,7 @@ http {{
 	created = json.loads(api('post', '/servers', '--data-file', form).stdout)
 	sid = created['id']
 	check(len(json.loads(api('get', '/servers').stdout)['items']) == 1, 'CLI uses shared server creation/list API')
-	for path in ['/dashboard', '/panel/audit', '/panel/account', '/reports?hours=24', f'/servers/{sid}/configuration', f'/servers/{sid}/routing', f'/servers/{sid}/certificates', f'/servers/{sid}/installation']:
+	for path in ['/dashboard', '/views/audit', '/views/account', '/reports?hours=24', f'/servers/{sid}/configuration', f'/servers/{sid}/routing', f'/servers/{sid}/certificates', f'/servers/{sid}/installation']:
 		json.loads(api('get', path).stdout)
 	check(True, 'Dashboard, audit, account, report and server detail operations return JSON')
 	session = json.loads((WORK / 'session.json').read_text())
@@ -245,6 +256,8 @@ http {{
 	import tarfile
 	with tarfile.open(archive) as exported:
 		check(exported.extractfile('./master.key').read() == Path('/var/lib/hoodmin/master.key').read_bytes() and exported.extractfile('./database.dump').read(5) == b'PGDMP', 'Native CLI encrypted export decrypts to the exact key and valid PostgreSQL dump')
+	from static_serving import exercise
+	server, proxy = exercise(ROOT, WORK, CONFIG, proxy, PROCESSES, server, log, CONTEXT, cli, api, request, wait_ready, run, check)
 	if os.environ.get('HOODMIN_QA_BROWSER_WAIT'):
 		print('BROWSER_READY '+str(WORK), flush=True)
 		deadline=time.monotonic()+min(600,int(os.environ['HOODMIN_QA_BROWSER_WAIT']))

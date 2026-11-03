@@ -2,6 +2,8 @@
 
 Standart kurulum, [aynı makinedeki Nginx](uretim-kurulumu.md#5-nginx-ters-vekilini-etkinleştirme) ile daha kolaydır. Bu başvuru, genel TLS vekilinin ayrı VPS'te bulunduğu yerleşimler içindir.
 
+Bu yerleşimde statikleri de genel VPS’ten sunmak için [ayrı Nginx makinesi kurulumu](web-sunumu.md#3-ayrı-makinedeki-nginx-statikleri-sunar) ve hazır yapılandırmaları kullanın. Yalnız `/usr/share/hoodmin/web/` ağacı kopyalanır; Hoodmin loopback dinleyicisi doğrudan internete açılmaz.
+
 ## Bağlantı düzeni
 
 Tarayıcı/agent → genel VPS Nginx → arka uç Nginx → `127.0.0.1:3080` Hoodmin.
@@ -42,7 +44,7 @@ real_ip_header X-Real-IP;
 Arka uçtan Rust'a `X-Forwarded-For $remote_addr` yazılmalıdır. İstemcinin kendi başlığını aynen geçirmeyin; tüm interneti güvenilir vekil saymayın.
 
 5. `/etc/hoodmin/hoodmin.json` içindeki `public_origin` değerini genel HTTPS adresiyle eşleştirip Hoodmin'i yeniden başlatın.
-6. Her Nginx'te `nginx -t` başarılı olduktan sonra yeniden yükleyin. Genel `/healthz`, giriş/form gönderimi ve canlı olay akışını kontrol edin.
+6. Her Nginx'te `nginx -t` başarılı olduktan sonra yeniden yükleyin. Genel `/healthz`, giriş/form gönderimi ve `/api/manage/events` olay akışını kontrol edin.
 
 Genel ve arka uç sertifikalarının ikisinin de yenilemesini izleyin. WAF kullanılıyorsa agent ve yükleme isteklerinin gerçek içerik türlerini koruyun; şifreli düz metni otomatik JSON'a dönüştürmeyin. Ürünün standart veri biçimini vekil güvenlik kuralına göre değiştirmeyin.
 

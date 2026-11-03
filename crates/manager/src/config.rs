@@ -15,6 +15,7 @@ pub const DEFAULT_FILE: &str = "/etc/hoodmin/hoodmin.json";
 pub struct Settings {
 	pub database_url: Option<String>,
 	pub backup: crate::retention::Policy,
+	pub web: crate::frontend::WebSettings,
 	pub master_key_file: PathBuf,
 	pub public_origin: String,
 	pub listen: SocketAddr,
@@ -24,6 +25,7 @@ impl Default for Settings {
 		Self {
 			database_url: None,
 			backup: Default::default(),
+			web: Default::default(),
 			master_key_file: "/var/lib/hoodmin/master.key".into(),
 			public_origin: "https://hoodmin.example.invalid".into(),
 			listen: "127.0.0.1:3080".parse().expect("loopback"),
@@ -48,6 +50,10 @@ impl Settings {
 		);
 		validate_origin(&self.public_origin)?;
 		self.backup.validate()?;
+		ensure!(
+			self.web.directory.is_absolute(),
+			"Statik arayüz dizini mutlak yol olmalı."
+		);
 		if let Some(url) = &self.database_url {
 			database_options(url)?;
 		}

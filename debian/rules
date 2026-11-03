@@ -18,6 +18,10 @@ override_dh_auto_install:
 	install -Dm0755 target/release/hoodmin debian/hoodmin/usr/bin/hoodmin
 	install -Dm0755 target/release/hoodmin-cli debian/hoodmin/usr/bin/hoodmin-cli
 	install -Dm0644 deploy/hoodmin.json debian/hoodmin/etc/hoodmin/hoodmin.json
+	install -d debian/hoodmin/usr/share/hoodmin/web/assets/locales
+	install -m0644 crates/manager/web/index.html debian/hoodmin/usr/share/hoodmin/web/
+	install -m0644 crates/manager/web/assets/*.js crates/manager/web/assets/*.css debian/hoodmin/usr/share/hoodmin/web/assets/
+	install -m0644 crates/manager/web/assets/locales/*.json debian/hoodmin/usr/share/hoodmin/web/assets/locales/
 	install -d debian/hoodmin/usr/share/hoodmin/migrations
 	install -m0644 migrations/*.sql debian/hoodmin/usr/share/hoodmin/migrations/
 

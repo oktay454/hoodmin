@@ -2,5 +2,9 @@
 	"database_url": null,
 	"master_key_file": "/var/lib/hoodmin/master.key",
 	"public_origin": "https://hoodmin.example.invalid",
-	"listen": "127.0.0.1:3080"
+	"listen": "127.0.0.1:3080",
+	"web": {
+		"serve_static": true,
+		"directory": "/usr/share/hoodmin/web"
+	}
 }

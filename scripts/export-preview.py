@@ -73,5 +73,5 @@ for path in ["panel", "panel/servers", "panel/tokens", "panel/sessions", "panel/
 	save(path, text)
 assets = ROOT / "work/preview/assets"
 assets.mkdir(parents=True, exist_ok=True)
-(assets / "app.css").write_text((ROOT / "crates/manager/assets/app.css").read_text())
+(assets / "app.css").write_text((ROOT / "crates/manager/web/assets/app.css").read_text())
 print("Görsel QA sayfaları work/preview altında hazırlandı; parola/oturum çerezi kopyalanmadı.")

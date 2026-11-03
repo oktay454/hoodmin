@@ -24,7 +24,7 @@ enum Action {
 		#[arg(long)]
 		password_file: PathBuf,
 	},
-	/// API yolunu oku; örnek: get /servers veya get /panel/audit.
+	/// API yolunu oku; örnek: get /servers veya get /views/audit.
 	Get {
 		path: String,
 		#[arg(long)]

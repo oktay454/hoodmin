@@ -19,7 +19,7 @@ Her kuruluş kendi VPN sunucusunu getirir (bring your own server, BYOS). Sunucu 
 Debian 13 amd64 üzerinde root olarak çalışın. Bağlantı dizesini 0600 izinli `/root/hoodmin-db.url` dosyasına yazın. PostgreSQL sunucusunu yerel veya uzak ortamda ayrıca hazırlayın; paket bunu zorunlu bağımlılık olarak kurmaz. Yerel örnek:
 
 ```bash
-apt install ./hoodmin_0.3.0-1~deb13u1_amd64.deb
+apt install ./hoodmin_0.4.0-1~deb13u1_amd64.deb
 hoodmin-cli config set --database-url-file /root/hoodmin-db.url --public-origin https://hoodmin.example.com
 hoodmin-cli database init --local
 hoodmin-cli owner-init --email vpn@example.com
@@ -50,3 +50,7 @@ Hizmet hesabı, grubu ve PostgreSQL rolü **`hoodmin`** adını kullanır. Yerel
 ## Destek sınırları
 
 Uyumluluk hedefi VpnHood **9.0.856**; paket hedefi Debian 13 amd64'tür. Windows kurucu komutu üretilir; Windows kurulumu uçtan uca sınanmamıştır. AutoSign tek sunucu/tek FQDN ve HTTP-01 içindir; joker alan adı/DNS-01 yoktur. Bulut IP satın alma, başka VPN motorları, faturalama, kiracıya özel markalama ve genel kayıt portalı sunulmaz. Uzun süreli yük/kesinti ve tam masaüstü rota sınamaları tamamlanmış değildir; kapalı kaynak Manager ile tam eşdeğerlik iddia edilmez.
+
+## Arayüzün sunumu
+
+Tek paket, tek `/usr/share/hoodmin/web/` dizini ve iki sunum biçimi vardır: Hoodmin statikleri sunabilir veya Nginx bu dizinden doğrudan sunabilir. Nginx ayrı makinedeyse yalnız dizini kopyalayın; ikinci paket gerekmez. `hoodmin-cli config web --serve-static false` ile arka ucu yalnız API/dinamik VPN yolları için kullanın. Arayüz kök adreste açılır; örneğin `/servers` ve `/access-keys`. [Aynı ve ayrı makine için Nginx kurulumları](docs/web-sunumu.md).

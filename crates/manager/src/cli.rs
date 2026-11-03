@@ -67,6 +67,13 @@ enum Action {
 }
 #[derive(Subcommand)]
 enum ConfigAction {
+	/// Statik arayüz sunumunu veritabanından bağımsız yapılandır.
+	Web {
+		#[arg(long, action = clap::ArgAction::Set, required = true)]
+		serve_static: bool,
+		#[arg(long)]
+		directory: Option<PathBuf>,
+	},
 	/// Parola ve bağlantı sırlarını göstermeden ayar özetini yazdır.
 	Show,
 	/// Bağlantı dizesini özel dosyadan al, ayarları doğrula ve kaydet.
@@ -157,6 +164,26 @@ pub fn read_secret(path: &Path) -> Result<String> {
 }
 fn configure(path: &Path, command: ConfigAction) -> Result<()> {
 	match command {
+		ConfigAction::Web {
+			serve_static,
+			directory,
+		} => {
+			root()?;
+			let mut s = Settings::load(path)?;
+			s.web.serve_static = serve_static;
+			if let Some(directory) = directory {
+				s.web.directory = directory;
+			}
+			s.validate()?;
+			let parent = path.parent().context("Yapılandırma yolu geçersiz.")?;
+			let tmp = parent.join(format!(".hoodmin-{}.json", uuid::Uuid::new_v4()));
+			crate::crypto::write_private(&tmp, &serde_json::to_vec_pretty(&s)?)?;
+			chown(&tmp, "root:hoodmin")?;
+			use std::os::unix::fs::PermissionsExt;
+			std::fs::set_permissions(&tmp, std::fs::Permissions::from_mode(0o640))?;
+			std::fs::rename(tmp, path)?;
+			println!("Statik arayüz sunumu kaydedildi. Nginx yapılandırmasını eşleştirin.");
+		}
 		ConfigAction::Show => {
 			let s = Settings::load(path)?;
 			let endpoint = s
@@ -167,7 +194,7 @@ fn configure(path: &Path, command: ConfigAction) -> Result<()> {
 			println!(
 				"{}",
 				serde_json::to_string_pretty(
-					&serde_json::json!({"listen":s.listen,"public_origin":s.public_origin,"master_key_file":s.master_key_file,"database":endpoint.as_ref().map(|o|serde_json::json!({"host":o.get_host(),"port":o.get_port(),"database":o.get_database(),"user":o.get_username(),"socket":o.get_socket(),"tls":format!("{:?}",o.get_ssl_mode())}))})
+					&serde_json::json!({"listen":s.listen,"public_origin":s.public_origin,"master_key_file":s.master_key_file,"web":s.web,"database":endpoint.as_ref().map(|o|serde_json::json!({"host":o.get_host(),"port":o.get_port(),"database":o.get_database(),"user":o.get_username(),"socket":o.get_socket(),"tls":format!("{:?}",o.get_ssl_mode())}))})
 				)?
 			);
 		}
@@ -184,6 +211,7 @@ fn configure(path: &Path, command: ConfigAction) -> Result<()> {
 				public_origin,
 				listen,
 				backup: Settings::load(path).unwrap_or_default().backup,
+				web: Settings::load(path).unwrap_or_default().web,
 			};
 			s.validate()?;
 			if let Ok(previous) = Settings::load(path) {

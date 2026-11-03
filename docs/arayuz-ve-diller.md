@@ -12,7 +12,7 @@ Arayüz VPN yönetimini anlatır. Sunucu menüsündeki değerler VPN sunucusuna 
 
 Türkçe varsayılandır; Türkçe, İngilizce ve Arapça giriş/panel ekranlarından seçilebilir. Dil ve tema yalnız tercih olarak tarayıcının yerel deposunda (localStorage) saklanır. Oturum sırrı burada tutulmaz. Statik sözlük yüklenir ve metinler tarayıcıda çevrilir; arayüz JavaScript gerektirir.
 
-Sözlükler `crates/manager/locales/{tr,en,ar}.json` dosyalarıdır. Kaynak adları, e-postalar, sırlar ve JSON ayar anahtarları çevrilmez. Teknik API/CSV yanıtlarının dili arayüz tercihinden bağımsız olabilir; Arapçada `lang=ar`, `dir=rtl` olur. E-posta ve teknik girdiler kendi yönünde gösterilir.
+Sözlükler `crates/manager/web/assets/locales/{tr,en,ar}.json` dosyalarıdır. Kaynak adları, e-postalar, sırlar ve JSON ayar anahtarları çevrilmez. Teknik API/CSV yanıtlarının dili arayüz tercihinden bağımsız olabilir; Arapçada `lang=ar`, `dir=rtl` olur. E-posta ve teknik girdiler kendi yönünde gösterilir.
 
 Genel kullanım saatleri İstanbul (UTC+03) olarak gösterilir. AutoSign ve harici yayım iş zamanları açıkça **UTC** etiketi taşır. Tarih alanlarında yerel saat seçimi API için saat dilimli ISO 8601 değerine dönüştürülür.
 
@@ -27,3 +27,5 @@ Anahtar iptali, toplu değişiklik ve oturum sonlandırmada açıklamalı taray�
 ## Veri ve kullanılabilirlik
 
 Bütün sayfaların HTML iskeleti, JavaScript, CSS ve dil sözlükleri sabittir. Tarayıcı `/api/manage` üzerinden JSON alıp ekranı oluşturur; HTML parçası indirmez. Veritabanı kapalıyken de arayüz açılır ve basit hata gösterip tekrar dener. Yanıt sırları önbelleğe alınmaz; oturum çerezi HttpOnly/Secure olarak kalır. Gezinme ve temalar tam sayfa yenilemesi gerektirmez.
+
+Statik dosyaların tek kurulu konumu `/usr/share/hoodmin/web/` ağacıdır. Hoodmin veya Nginx aynı dosyaları sunar; ayrı ön uç makinesine yalnız bu dizin kopyalanır. Arayüz `/` kökünü kullanır; `/panel` ve `/manage` önekleri yoktur. [Sunum ve kopyalama adımları](web-sunumu.md).

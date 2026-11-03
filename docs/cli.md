@@ -44,7 +44,7 @@ hoodmin-cli api --origin https://hoodmin.example.com login --email vpn@example.c
 hoodmin-cli api whoami
 hoodmin-cli api get /servers
 hoodmin-cli api get /dashboard
-hoodmin-cli api get /panel/audit
+hoodmin-cli api get /views/audit
 hoodmin-cli api get /reports?hours=24
 ```
 
@@ -105,3 +105,13 @@ Yerel sokette yönetici dökümü yerel `postgres` hesabından alınır. Uzak su
 ## Anahtarlar, saklama ve bildirimler
 
 `keys status`, `keys rotate --confirmed`, `backup policy [--file DOSYA]` ve `backup prune [--apply]` root işletim komutlarıdır. Anahtar döndürmeden önce doğrulanmış bağımsız yedek alın. Bildirim kanalları web ile aynı `/notifications` API yollarıyla yönetilir. Alanlar, kesinti davranışı ve sınırlar: [işletim politikaları](isletim-politikalari.md).
+
+## Statik arayüz sunumu
+
+```bash
+hoodmin-cli config web --serve-static true
+hoodmin-cli config web --serve-static false
+hoodmin-cli config show
+```
+
+`true` Hoodmin’in `/usr/share/hoodmin/web/` dosyalarını sunmasını sağlar; `false` Nginx doğrudan sunumu içindir. Aynı makinede kopyalama gerekmez, ayrı makinede yalnız bu ağaç kopyalanır. İsteğe bağlı `--directory /MUTLAK/YOL` farklı statik kök seçer. `config set` bu tercihi korur. [Nginx yapılandırmaları](web-sunumu.md).

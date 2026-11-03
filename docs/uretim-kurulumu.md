@@ -12,7 +12,7 @@ Uzak PostgreSQL için panelden veritabanı adresine TCP erişimi gerekir. Verita
 
 ```bash
 apt update
-apt install ./hoodmin_0.3.0-1~deb13u1_amd64.deb
+apt install ./hoodmin_0.4.0-1~deb13u1_amd64.deb
 ```
 
 Paket `hoodmin` sistem hesabını, ana anahtar dosyasını ve boş `/etc/hoodmin/hoodmin.json` yapılandırmasını hazırlar. Hizmet kendiliğinden etkinleşmez. Elle başlattığınızda henüz yapılandırılmamış olsa bile HTTP hizmeti ayakta kalır; basit bir kullanılabilirlik mesajı gösterir.
@@ -174,6 +174,8 @@ certbot renew --dry-run
 
 Bu Certbot zamanlayıcısı **panelin HTTPS sertifikasını** yönetir. VPN sertifikası için panelden [AutoSign](autosign.md) kullanın; aynı VPN sertifikasını iki farklı zamanlayıcıya bağlamayın. Ayrı VPS üzerinden vekilleme gerekiyorsa [çok katmanlı vekil başvurusunu](vps-ters-vekil.md) okuyun.
 
+Nginx’in statikleri doğrudan sunmasını isterseniz [iki sunum biçimi ve ayrı makine kurulumu](web-sunumu.md) kılavuzunu kullanın. Tek paket `/usr/share/hoodmin/web/` ağacını kurar; ayrı Nginx’e yalnız bu ağaç kopyalanır.
+
 ## 6. İlk giriş ve VPN sunucusu
 
 Tarayıcıdan `https://hoodmin.example.com` adresini açın. İlk sahip e-postası/parolasıyla giriş yapın; **Hesabım** bölümünden parolayı değiştirin. **Sunucular → Sunucu ekle** ile devam edin. [Elkitabı](elkitabi.md), sunucuyu bağlama ve ilk VPN anahtarını oluşturma adımlarını içerir.
@@ -188,6 +190,7 @@ Tarayıcıdan `https://hoodmin.example.com` adresini açın. İlk sahip e-postas
 | Ana anahtar | `/var/lib/hoodmin/master.key`, hoodmin:hoodmin 0600 |
 | AutoSign dosyaları | `/var/lib/hoodmin/acme/` |
 | İlk sahip bilgileri | `/root/hoodmin-first-owner.json`, 0600 |
+| Statik arayüz | `/usr/share/hoodmin/web/` |
 | Belgeler | `/usr/share/doc/hoodmin/docs/` |
 
 Veritabanı adı ve rol, bağlantı dizesinden okunur. `hoodmin` sistem hesabı panel giriş hesabı değildir. Yerel soket ve uzak TLS seçenekleri aynı şema/kiracı korumasını kullanır.

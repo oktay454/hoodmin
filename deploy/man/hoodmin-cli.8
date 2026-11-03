@@ -1,10 +1,12 @@
-.TH HOODMIN-CLI 8 "2026-11-03" "Hoodmin 0.3.0" "System Administration"
+.TH HOODMIN-CLI 8 "2026-11-03" "Hoodmin 0.4.0" "System Administration"
 .SH NAME
 hoodmin-cli \- configure, maintain and manage Hoodmin
 .SH SYNOPSIS
 .B hoodmin-cli [--config FILE] COMMAND
 .SH COMMANDS
 config show|set: inspect redacted settings or configure database/HTTPS from a private URL file.
+.br
+config web --serve-static true|false [--directory DIR]: select built-in or direct Nginx static serving.
 .br
 database init|check: provision local or remote PostgreSQL and apply checksummed migrations.
 .br

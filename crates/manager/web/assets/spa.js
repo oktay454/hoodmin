@@ -138,9 +138,9 @@ function controls() {
 }
 function shell() {
 	main = n('main', {class:'content spa-content', id:'main'});
-	const selected=location.pathname.startsWith('/manage/servers/') ? '/panel/servers' : location.pathname.startsWith('/manage/farms/') ? '/manage/farms' : location.pathname==='/' ? '/panel' : location.pathname;
-	const nav = [['Genel bakış','/panel'],['Sunucular','/panel/servers'],['Sunucu grupları','/manage/farms'],['Erişim anahtarları','/panel/tokens'],['Erişim profilleri','/manage/profiles'],['Sunucu profilleri','/manage/server-profiles'],['VPN oturumları','/panel/sessions'],['Raporlar','/reports'],['Denetim kaydı','/panel/audit'],...(admin() ? [['Kullanıcılar','/panel/users'],['Botlar','/manage/bots'],['Bildirimler','/manage/notifications'],['Entegrasyonlar','/manage/integrations']] : [])];
-	root.replaceChildren(n('div', {class:'app-shell'}, link('İçeriğe geç','#main','skip-link'), n('aside', {class:'sidebar'}, n('div', {class:'brand'}, n('span',{class:'brand-mark'},'HM'), n('strong', {},'Hoodmin'), n('small', {},t('VPN yönetimi'))), b('Menü',() => {const sidebar=document.querySelector('.sidebar');const open=sidebar.classList.toggle('spa-nav-open');sidebar.querySelector('.menu-toggle').setAttribute('aria-expanded',String(open));},'menu-toggle'), n('div', {class:'workspace'}, n('strong',{},user.tenant_name), n('small',{},t('Çalışma alanı'))), n('nav', {},nav.map(([label,path]) => {const a=link(label,path,selected === path ? 'active' : '');a.prepend(icon(path.split('/').at(-1)));return a;}))), n('div', {class:'main-shell'}, n('header', {class:'topbar'}, n('strong', {}, 'Hoodmin · VPN'), n('div', {class:'profile'}, controls(), n('a',{href:'/panel/account',class:'account-link'},icon('account'),n('span',{},n('strong',{},t('Hesabım')),n('bdi',{dir:'ltr'},user.email))), n('span', {class:'badge'},roleLabel(user.role)), b('Çıkış', async () => {await api('/logout',{});user = undefined;go('/signin');}))), main)));
+	const selected=location.pathname.startsWith('/servers/') ? '/servers' : location.pathname.startsWith('/farms/') ? '/farms' : location.pathname==='/' ? '/' : location.pathname;
+	const nav = [['Genel bakış','/'],['Sunucular','/servers'],['Sunucu grupları','/farms'],['Erişim anahtarları','/access-keys'],['Erişim profilleri','/profiles'],['Sunucu profilleri','/server-profiles'],['VPN oturumları','/sessions'],['Raporlar','/reports'],['Denetim kaydı','/audit'],...(admin() ? [['Kullanıcılar','/users'],['Botlar','/bots'],['Bildirimler','/notifications'],['Entegrasyonlar','/integrations']] : [])];
+	root.replaceChildren(n('div', {class:'app-shell'}, link('İçeriğe geç','#main','skip-link'), n('aside', {class:'sidebar'}, n('div', {class:'brand'}, n('span',{class:'brand-mark'},'HM'), n('strong', {},'Hoodmin'), n('small', {},t('VPN yönetimi'))), b('Menü',() => {const sidebar=document.querySelector('.sidebar');const open=sidebar.classList.toggle('spa-nav-open');sidebar.querySelector('.menu-toggle').setAttribute('aria-expanded',String(open));},'menu-toggle'), n('div', {class:'workspace'}, n('strong',{},user.tenant_name), n('small',{},t('Çalışma alanı'))), n('nav', {},nav.map(([label,path]) => {const a=link(label,path,selected === path ? 'active' : '');a.prepend(icon(path==='/access-keys' ? 'tokens' : path.split('/').at(-1)));return a;}))), n('div', {class:'main-shell'}, n('header', {class:'topbar'}, n('strong', {}, 'Hoodmin · VPN'), n('div', {class:'profile'}, controls(), n('a',{href:'/account',class:'account-link'},icon('account'),n('span',{},n('strong',{},t('Hesabım')),n('bdi',{dir:'ltr'},user.email))), n('span', {class:'badge'},roleLabel(user.role)), b('Çıkış', async () => {await api('/logout',{});user = undefined;go('/signin');}))), main)));
 }
 function go(path) { document.querySelectorAll('dialog').forEach(d => d.close()); history.pushState({},'',path);window.scrollTo(0,0); return render(); }
 document.addEventListener('input',event => {if(main?.contains(event.target))main.dataset.dirty='true';});
@@ -155,20 +155,20 @@ async function signin() {
 	user = undefined;
 	const nonce = await api('/login');
 	main = n('main', {class:'spa-login'}); root.replaceChildren(main);
-	main.append(n('header', {},n('h1',{},'Hoodmin'),n('p',{},t('VPN yönetimi')),controls()),form('Oturum aç',[field('E-posta','email','email'),field('Parola','password','password')],async data => {await api('/login',data,{csrf:nonce.csrf});await go('/panel');},{label:'Oturum aç'}));
+	main.append(n('header', {},n('h1',{},'Hoodmin'),n('p',{},t('VPN yönetimi')),controls()),form('Oturum aç',[field('E-posta','email','email'),field('Parola','password','password')],async data => {await api('/login',data,{csrf:nonce.csrf});await go('/');},{label:'Oturum aç'}));
 }
 async function overview() {
 	const data = await api('/dashboard');
-	page('Genel bakış',n('div',{class:'stats-grid'},Object.entries(data.stats).map(([k,v]) => box(({servers:'Sunucular',online:'Çevrimiçi',tokens:'Erişim anahtarları',activeSessions:'Aktif oturumlar',traffic:'Trafik'})[k] || k,n('strong',{class:'spa-metric'},v)))),box('VPN yönetimi',n('div',{class:'spa-grid'},[['Sunucular','/panel/servers'],['Erişim anahtarları','/panel/tokens'],['Raporlar','/reports']].map(([title,url]) => link(title,url,'action-tile')))));
+	page('Genel bakış',n('div',{class:'stats-grid'},Object.entries(data.stats).map(([k,v]) => box(({servers:'Sunucular',online:'Çevrimiçi',tokens:'Erişim anahtarları',activeSessions:'Aktif oturumlar',traffic:'Trafik'})[k] || k,n('strong',{class:'spa-metric'},v)))),box('VPN yönetimi',n('div',{class:'spa-grid'},[['Sunucular','/servers'],['Erişim anahtarları','/access-keys'],['Raporlar','/reports']].map(([title,url]) => link(title,url,'action-tile')))));
 }
 async function servers() {
-	const params = new URLSearchParams(location.search), data = await api('/panel/servers?' + params);
+	const params = new URLSearchParams(location.search), data = await api('/views/servers?' + params);
 	const search = n('input',{type:'search',placeholder:t('Sunucu ara'),value:params.get('q') || '',maxlength:120,'aria-label':t('Sunucu ara')});
-	const toolbar = actions(n('form',{onsubmit:event => {event.preventDefault();go('/panel/servers?q=' + encodeURIComponent(search.value));}},search,n('button',{type:'submit',class:'button'},t('Ara'))));
+	const toolbar = actions(n('form',{onsubmit:event => {event.preventDefault();go('/servers?q=' + encodeURIComponent(search.value));}},search,n('button',{type:'submit',class:'button'},t('Ara'))));
 	if (write()) toolbar.append(b('Sunucu ekle', () => editDialog('Sunucu ekle',[field('Sunucu adı','name'),field('VPN adresi (DNS veya IP)','host'),field('TCP portu','port','number',443),field('Sunucu grubu','farm','select','',[['','Grupsuz'],...data.farms.map(f => [f.id,f.name])])],'/servers')),help('Her sunucu yalnızca kendi çalışma alanınıza aittir.'));
-	page('Sunucular',toolbar,box('Sunucular',table(['Sunucu','Grup','Durum','CPU','Bellek','Oturum','İşlemler'],data.servers.map(s => [n('div',{},n('strong',{},s.name),n('small',{},s.host ? `${s.host}:${s.port}` : ''),n('small',{},t(s.seen))),s.group || t('Grupsuz'),n('span',{class:`badge ${s.online ? 'online' : ''}`},t(s.status)),s.cpu,s.memory,s.sessions,actions(write() && b('Düzenle', () => editDialog('Sunucuyu düzenle',[field('Sunucu adı','name','text',s.name),field('VPN adresi (DNS veya IP)','host','text',s.host),field('TCP portu','port','number',s.port),field('Sunucu grubu','farm','select',s.farm || '',[['','Grupsuz'],...data.farms.map(f => [f.id,f.name])]),field('Yeni oturumları durdur (bakım)','paused','checkbox',s.paused)],`/servers/${s.id}`,{},'Adres veya port değişikliği sunucunun sonraki bildiriminde uygulanır. Daha önce paylaşılan erişim anahtarlarındaki adres kendiliğinden güncellenmez.')),link('Yapılandırma',`/manage/servers/${s.id}/configuration`),link('AutoSign',`/manage/servers/${s.id}/autosign`))]))),actions(data.page > 1 && link('Önceki',`/panel/servers?q=${encodeURIComponent(data.query)}&p=${data.page-1}`),data.more && link('Sonraki',`/panel/servers?q=${encodeURIComponent(data.query)}&p=${data.page+1}`)));
+	page('Sunucular',toolbar,box('Sunucular',table(['Sunucu','Grup','Durum','CPU','Bellek','Oturum','İşlemler'],data.servers.map(s => [n('div',{},n('strong',{},s.name),n('small',{},s.host ? `${s.host}:${s.port}` : ''),n('small',{},t(s.seen))),s.group || t('Grupsuz'),n('span',{class:`badge ${s.online ? 'online' : ''}`},t(s.status)),s.cpu,s.memory,s.sessions,actions(write() && b('Düzenle', () => editDialog('Sunucuyu düzenle',[field('Sunucu adı','name','text',s.name),field('VPN adresi (DNS veya IP)','host','text',s.host),field('TCP portu','port','number',s.port),field('Sunucu grubu','farm','select',s.farm || '',[['','Grupsuz'],...data.farms.map(f => [f.id,f.name])]),field('Yeni oturumları durdur (bakım)','paused','checkbox',s.paused)],`/servers/${s.id}`,{},'Adres veya port değişikliği sunucunun sonraki bildiriminde uygulanır. Daha önce paylaşılan erişim anahtarlarındaki adres kendiliğinden güncellenmez.')),link('Yapılandırma',`/servers/${s.id}/configuration`),link('AutoSign',`/servers/${s.id}/autosign`))]))),actions(data.page > 1 && link('Önceki',`/servers?q=${encodeURIComponent(data.query)}&p=${data.page-1}`),data.more && link('Sonraki',`/servers?q=${encodeURIComponent(data.query)}&p=${data.page+1}`)));
 }
-function serverNav(id) { return actions(...[['Yapılandırma','configuration'],['Yönlendirme','routing'],['Sertifikalar','certificates'],['AutoSign','autosign'],['Kurulum','installation'],['Bağlantı kimliğini yenile','credential']].filter(([,part]) => write() || ['configuration','routing','autosign'].includes(part)).map(([label,part]) => link(label,`/manage/servers/${id}/${part}`,'spa-tab'))); }
+function serverNav(id) { return actions(...[['Yapılandırma','configuration'],['Yönlendirme','routing'],['Sertifikalar','certificates'],['AutoSign','autosign'],['Kurulum','installation'],['Bağlantı kimliğini yenile','credential']].filter(([,part]) => write() || ['configuration','routing','autosign'].includes(part)).map(([label,part]) => link(label,`/servers/${id}/${part}`,'spa-tab'))); }
 async function serverDetail(id, kind) {
 	const path = `/servers/${id}/${kind}`, data = await api(path);
 	if(kind === 'configuration') await schema();
@@ -200,19 +200,19 @@ async function listPage(endpoint){const p=new URLSearchParams(location.search).g
 function pager(data){main.append(actions(data.page>0&&link('Önceki',location.pathname+'?p='+(data.page-1)),data.hasMore&&link('Sonraki',location.pathname+'?p='+(data.page+1))));}
 async function farms() {
 	const data = await listPage('/farms');
-	page('Sunucu grupları',write() && b('Grup oluştur', () => editDialog('Grup oluştur',[field('Grup adı','name')],'/farms')),box('Sunucu grupları',table(['Ad','İşlemler'],data.items.map(f => [f.name,actions(link('Sunucu profili',`/manage/farms/${f.id}/server-profile`),link('Sertifikalar',`/manage/farms/${f.id}/certificates`),link('Harici yayım',`/manage/farms/${f.id}/destinations`),write() && b('Şifreli adresi yayımla',async () => {if (await confirm('Grubun şifreli sunucu adreslerini yayımlamayı onaylayın.')) {await api(`/farms/${f.id}/publication`,{version:f.version,confirmed:true});notice('İşlem tamamlandı.');}}))]))));
+	page('Sunucu grupları',write() && b('Grup oluştur', () => editDialog('Grup oluştur',[field('Grup adı','name')],'/farms')),box('Sunucu grupları',table(['Ad','İşlemler'],data.items.map(f => [f.name,actions(link('Sunucu profili',`/farms/${f.id}/server-profile`),link('Sertifikalar',`/farms/${f.id}/certificates`),link('Harici yayım',`/farms/${f.id}/destinations`),write() && b('Şifreli adresi yayımla',async () => {if (await confirm('Grubun şifreli sunucu adreslerini yayımlamayı onaylayın.')) {await api(`/farms/${f.id}/publication`,{version:f.version,confirmed:true});notice('İşlem tamamlandı.');}}))]))));
 	pager(data);
 }
 async function farmDetail(id,kind) {
 	const path = `/farms/${id}/${kind}`, data = await api(path);
-	page('Sunucu grubu',actions(link('Sunucu grupları','/manage/farms')));
+	page('Sunucu grubu',actions(link('Sunucu grupları','/farms')));
 	if (kind === 'certificates') return certificateForm(path,data);
 	if (kind === 'server-profile') {
 		main.append(box('Sunucu profili',n('p',{},`${t('Üye sunucu sayısı')}: ${data.members}`)));
 		if (write()) main.append(form('Gruba sunucu profili ata',[field('Sunucu profili','profile','select',data.profile || '',[['','Bağımsız'],...data.profiles.map(p => [p.id,p.name])])],flat => api(path,{...flat,version:data.version,profile_version:data.profiles.find(p => p.id === flat.profile)?.version || null,confirmed:true}),{confirm:'Bağlı sunucuların ayarları değişecek. Onaylıyor musunuz?',done:render}));
 	} else if (kind === 'destinations') {
 		if (!admin()) {main.append(box('Harici yayım',table(['Ad','Durum'],data.items.map(d => [d.name,t(d.status)]))));return;}
-		const members = (await api('/panel/servers')).servers.filter(s => s.farm === id);
+		const members = (await api('/views/servers')).servers.filter(s => s.farm === id);
 		main.append(b('Yayım hedefi ekle', () => publicationDialog(id,{},members)),box('Harici yayım',table(['Ad','Durum','Son deneme','İşlemler'],data.items.map(d => [d.name,n('div',{},t(d.status),n('small',{},t(d.message))),d.last_attempt,actions(b('Düzenle',() => publicationDialog(id,d,members)),b('Şimdi yayımla',async () => {if (await confirm('Şifreli adres belirtecini dış hedefe göndermek istiyor musunuz?')) {await api(`/publications/${d.id}/push`,{version:d.version,confirmed:true});await render();}}),b('Kaldır',async () => {if (await confirm('Yayım hedefini kaldırmak istiyor musunuz?')) {await api(`/publications/${d.id}/remove`,{version:d.version,confirmed:true});await render();}},'danger'))]))),form('Tüm hedeflere yayımla',[],() => api(`/farms/${id}/push`,{confirmed:true}),{confirm:'Tüm etkin yayım hedeflerine gönderim yapılacak. Onaylıyor musunuz?',done:render}));
 	}
 }
@@ -221,14 +221,14 @@ function publicationDialog(farm,d,members) {
 }
 async function tokenList() {
 	const data = await api('/tokens?p=' + (new URLSearchParams(location.search).get('p') || 0));
-	const panel = await api('/panel/tokens');
+	const panel = await api('/views/tokens');
 	const names = new Map(panel.servers.map(s => [s.id,s.name]));
 	const selected = new Set();
 	page('Erişim anahtarları');
 	if (tokensWrite()) main.append(b('Anahtar oluştur',() => editDialog('Anahtar oluştur',[field('Ad','name'),field('Sunucu','server','select','',panel.servers.map(s => [s.id,s.name])),field('Erişim profili','profile','select','',[['','Özel'],...panel.profiles.map(p => [p.id,p.name])]),field('Adet','count','number',1),field('Cihaz sınırı','max_clients','number',1),field('Kota (GiB)','max_gib','number',0),field('Son kullanım','expires','datetime-local')],'/tokens')));
 	main.append(box('Erişim anahtarları',table(['Seç','Ad','Sunucu','Kullanım','Durum','İşlemler'],data.items.map(k => [n('input',{type:'checkbox','aria-label':`${t('Seç')}: ${k.name}`,onchange:event => event.target.checked ? selected.add(k.id) : selected.delete(k.id)}),n('div',{},k.name,n('small',{},k.group_name)),names.get(k.server_id) || k.server_id,`${k.sent} / ${k.received}`,t(k.revoked ? 'İptal edildi' : 'Etkin'),actions(tokensWrite() && b('Anahtarı göster',async () => secret((await api(`/tokens/${k.id}/key`)).value)),tokensWrite() && b('İndir',() => download(`/tokens/${k.id}/download`,'access-key.vhkey')),tokensWrite() && b('Düzenle',() => tokenDialog(k)),tokensWrite() && b('Politika',async () => {const defaults = (await schema()).policy;let dialog;dialog=modal(t('Erişim politikası'),form('Erişim politikası',[editor({...defaults,...k.policy})],flat => api(`/tokens/${k.id}/policy`,{policy:objectValues(flat),confirmed:true}),{confirm:'Mevcut VPN oturumlarını etkileyebilecek politika değişikliğini onaylayın.',done:() => {dialog.close();return render();}}));}),tokensWrite() && b('Erişim kodu',async () => {if (await confirm('Erişim kodu oluşturmayı onaylayın.')) secret((await api(`/tokens/${k.id}/access-code`,{confirmed:true})).value);}))]))));
 	if (tokensWrite()) main.append(form('Toplu işlemler',[field('İşlem','action','select','revoke',[['revoke','İptal et'],['enable','Yeniden etkinleştir'],['quota','Kota değiştir'],['expiry','Son kullanım']]),field('Kota (GiB)','max_gib','number',0),field('Cihaz sınırı','max_clients','number',1),field('Son kullanım','expires','datetime-local')],flat => api('/tokens/bulk',{...flat,ids:[...selected].join('\n')}),{confirm:'Seçili erişim anahtarlarına toplu işlem uygulanacak. Onaylıyor musunuz?',done:render}));
-	main.append(actions(data.page > 0 && link('Önceki',`/panel/tokens?p=${data.page-1}`),data.hasMore && link('Sonraki',`/panel/tokens?p=${data.page+1}`)));
+	main.append(actions(data.page > 0 && link('Önceki',`/access-keys?p=${data.page-1}`),data.hasMore && link('Sonraki',`/access-keys?p=${data.page+1}`)));
 }
 function tokenDialog(k) { editDialog('Anahtar bilgileri',['name','group_name','description','customer_id','order_id','support_id'].map(key => field(({name:'Ad',group_name:'Grup',description:'Açıklama',customer_id:'Müşteri kimliği',order_id:'Sipariş kimliği',support_id:'Destek kimliği'})[key],key,key === 'description' ? 'textarea' : 'text',k[key])),`/tokens/${k.id}/details`); }
 async function download(path,name) {
@@ -250,11 +250,11 @@ async function profiles(serverProfiles = false) {
 			return api(endpoint + (p.id ? `/${p.id}` : ''),{name,...objectValues(flat),...(serverProfiles ? {version:p.version || null} : {apply_existing}),confirmed:true});
 		},{confirm:'Profil değişikliğini ve bağlı VPN kaynaklarına etkisini onaylayın.',done:() => {dialog.close();return render();}}));
 	}
-	page(title,canEdit && b('Profil oluştur',() => edit()),box(title,table(['Ad','İşlemler'],data.items.map(p => [p.name,actions(canEdit && b('Düzenle',() => edit(p)),serverProfiles && write() && b('Sunuculara uygula',async () => {const servers=(await api('/panel/servers')).servers;editDialog('Sunuculara uygula',[field('Sunucu kimlikleri','servers','textarea',''),n('details',{},n('summary',{},t('Sunucu kimlikleri')),table(['Sunucu','Kimlik'],servers.map(s=>[s.name,s.id])))],`/server-profiles/${p.id}/apply`,{version:p.version},'Seçili sunucuların yapılandırması değişecek. Onaylıyor musunuz?');}))]))));
+	page(title,canEdit && b('Profil oluştur',() => edit()),box(title,table(['Ad','İşlemler'],data.items.map(p => [p.name,actions(canEdit && b('Düzenle',() => edit(p)),serverProfiles && write() && b('Sunuculara uygula',async () => {const servers=(await api('/views/servers')).servers;editDialog('Sunuculara uygula',[field('Sunucu kimlikleri','servers','textarea',''),n('details',{},n('summary',{},t('Sunucu kimlikleri')),table(['Sunucu','Kimlik'],servers.map(s=>[s.name,s.id])))],`/server-profiles/${p.id}/apply`,{version:p.version},'Seçili sunucuların yapılandırması değişecek. Onaylıyor musunuz?');}))]))));
 	pager(data);
 }
 async function sessions() {
-	const data = await api('/panel/sessions');
+	const data = await api('/views/sessions');
 	page('VPN oturumları',box('VPN oturumları',table(['Anahtar','Sunucu','Oluşturuldu','Durum','İşlemler'],data.sessions.map(s => [s.token,s.server,s.created,t(s.closed ? 'Kapalı' : 'Açık'),tokensWrite() && !s.closed && b('Oturumu sonlandır',async () => {if(await confirm('VPN oturumunu sonlandırmak istiyor musunuz?')) {await api(`/sessions/${s.id}/close`,{});await render();}},'danger')]))));
 }
 async function users() {
@@ -283,7 +283,7 @@ async function account() {
 	page('Hesabım',box('Hesabım',n('p',{},user.email),n('p',{},`${user.tenant_name} · ${user.role}`)),form('Parola değiştir',[field('Mevcut parola','current_password','password'),field('Yeni parola','new_password','password')],flat => api('/password',flat),{confirm:'Parolanızı değiştirmek istiyor musunuz?',done:() => go('/signin')}));
 	if(admin()) main.append(form('Çalışma alanı',[field('Ad','name','text',user.tenant_name)],flat => api('/tenant',flat),{done:render}));
 }
-async function audit() {const data=await api('/panel/audit');page('Denetim kaydı',box('Denetim kaydı',table(['Tarih','Kullanıcı','İşlem','Kaynak'],data.audit.map(a => [a.time,a.email,t(a.action),a.resource]))));}
+async function audit() {const data=await api('/views/audit');page('Denetim kaydı',box('Denetim kaydı',table(['Tarih','Kullanıcı','İşlem','Kaynak'],data.audit.map(a => [a.time,a.email,t(a.action),a.resource]))));}
 async function reports() {
 	const params=new URLSearchParams(location.search), data=await api('/reports?' + params);
 	page('Raporlar',form('Filtre',[field('Sunucu','server','select',params.get('server') || '',[['','Tümü'],...data.servers.map(s => Array.isArray(s) ? [s[0],s[1]] : [s.id,s.name])]),field('Saat','hours','select',data.hours,[1,24,48,72,168,744].map(v => [v,String(v)]))],flat => go('/reports?' + new URLSearchParams(flat)),{label:'Göster'}),b('CSV indir',() => download('/usage.csv','hoodmin-usage.csv')));
@@ -301,34 +301,35 @@ function refreshLater(){retryTimer=setTimeout(() => {if(!document.querySelector(
 async function render() {
 	const serial=++navigation;requests.abort();requests=new AbortController();clearTimeout(retryTimer);
 	try {
-		const current=location.pathname;
+		const current=location.pathname.replace(/\/+$/,'') || '/';
+		if(current!==location.pathname)history.replaceState({},'',current+location.search+location.hash);
 		if(current === '/signin') return await signin();
 		const me=await api('/me');if(serial!==navigation)return;user=me;shell();
 		const route=current.split('/').filter(Boolean);
-		if(current==='/'||current==='/panel') await overview();
-		else if(current==='/panel/servers') await servers();
-		else if(current==='/panel/tokens') await tokenList();
-		else if(current==='/panel/sessions') await sessions();
-		else if(current==='/panel/users'&&admin()) await users();
-		else if(current==='/panel/audit') await audit();
-		else if(current==='/panel/account') await account();
-		else if(current==='/manage/farms') await farms();
-		else if(current==='/manage/profiles') await profiles();
-		else if(current==='/manage/server-profiles') await profiles(true);
-		else if(current==='/manage/bots'&&admin()) await bots();
-		else if(current==='/manage/notifications'&&admin()) await notifications();
-		else if(current==='/manage/integrations'&&admin()) await integrations();
-		else if(route[0]==='manage'&&route[1]==='servers'&&route.length===4) await serverDetail(route[2],route[3]);
-		else if(route[0]==='manage'&&route[1]==='farms'&&route.length===4) await farmDetail(route[2],route[3]);
+		if(current==='/') await overview();
+		else if(current==='/servers') await servers();
+		else if(current==='/access-keys') await tokenList();
+		else if(current==='/sessions') await sessions();
+		else if(current==='/users'&&admin()) await users();
+		else if(current==='/audit') await audit();
+		else if(current==='/account') await account();
+		else if(current==='/farms') await farms();
+		else if(current==='/profiles') await profiles();
+		else if(current==='/server-profiles') await profiles(true);
+		else if(current==='/bots'&&admin()) await bots();
+		else if(current==='/notifications'&&admin()) await notifications();
+		else if(current==='/integrations'&&admin()) await integrations();
+		else if(route[0]==='servers'&&route.length===3) await serverDetail(route[1],route[2]);
+		else if(route[0]==='farms'&&route.length===3) await farmDetail(route[1],route[2]);
 		else if(current==='/reports') await reports();
-		else page('Sayfa bulunamadı.',link('Genel bakış','/panel'));
-		if(['/panel','/panel/servers','/panel/sessions','/manage/notifications'].includes(current)) refreshLater();
+		else page('Sayfa bulunamadı.',link('Genel bakış','/'));
+		if(['/','/servers','/sessions','/notifications'].includes(current)) refreshLater();
 	} catch(error) {
 		if(serial!==navigation)return;
 		if(error.status===401 && location.pathname!=='/signin') return go('/signin');
 		if(!main?.isConnected){main=n('main',{class:'spa-loading'});root.replaceChildren(main);}
-		main.replaceChildren(box('İşlem tamamlanamadı.',n('p',{role:'alert'},t(error.status===503||!error.status ? 'Hizmet geçici olarak kullanılamıyor. Lütfen daha sonra yeniden deneyin.' : error.message)),b('Yeniden dene',render)));
-		if(error.status===503||!error.status)retryTimer=setTimeout(render,10000);
+		main.replaceChildren(box('İşlem tamamlanamadı.',n('p',{role:'alert'},t([502,503,504].includes(error.status)||!error.status ? 'Hizmet geçici olarak kullanılamıyor. Lütfen daha sonra yeniden deneyin.' : error.message)),b('Yeniden dene',render)));
+		if([502,503,504].includes(error.status)||!error.status)retryTimer=setTimeout(render,10000);
 	}
 }
 
