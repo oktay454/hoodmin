@@ -12,6 +12,7 @@ Hoodmin, VpnHood VPN ortamının yönetim panelidir. Genel amaçlı sunucu, sana
 6. [Sertifikalar ve adres yenileme](#sertifikalar-ve-adres-yenileme)
 7. [Ekip ve otomasyon](#ekip-ve-otomasyon)
 8. [Günlük işletim](#günlük-işletim)
+9. [Arayüz ve diller](#arayüz-ve-diller)
 
 ## Kurulum ve ilk giriş
 
@@ -50,7 +51,6 @@ Soru işareti düğmeleri ilgili alanın açıklamasını açar. Escape ile kapa
 4. Bir kurulum yöntemi seçin:
    - **Linux: elle komut:** oluşturulan komutu VPN makinesinde çalıştırın. Resmî hazır VpnHood kurucusunu indirir.
    - **SSH:** hedef adres/port/kullanıcı ve doğrulanmış SHA-256 SSH sunucu parmak izini girin. Parola veya özel anahtar kullanın; gerekiyorsa sudo parolası verin. Parmak izini hedefteki güvenilir konsoldan veya yöneticinizden alın; eşleşmediğinde kurulumu zorlamayın.
-   - **Windows:** oluşturulan PowerShell komutunu yetkili oturumda çalıştırın. Windows kurulumu ayrı işletim sistemi doğrulaması gerektirir.
    - **Mevcut kurulum:** oluşturulan JSON'u sunucunun `storage/appsettings.json` ayarlarıyla birleştirin; gerekli sunucu hizmeti yeniden başlatmasını yapın.
 5. SSH kullanıyorsanız iş durumunu ve temizlenmiş günlüğünü izleyin. Kesilen bir kurulum işi kendiliğinden tekrar çalıştırılmaz; hedefin durumunu inceleyip yeniden başlatın.
 6. Sunucu panelin `/api/agent/` yoluna HTTPS üzerinden bağlandığında durum ekranını kontrol edin. Çevrimiçi toleransı en az 90 saniye veya bildirim aralığının üç katıdır; bu gösterge gerçek istemci bağlantı sınamasının yerini almaz.
@@ -108,7 +108,7 @@ Sertifika/adres değişince eski anahtarların parmak izini ve adresini güncell
 1. **Genel bakış** ve **Raporlar** ile çevrimdışı üyeleri, kapasiteyi ve kullanım eğilimini izleyin. Ülke bilgisi bildirilen değerdir; bağımsız IP konumlandırması yapılmaz.
 2. **Denetim kaydı** ile yönetim değişikliklerini inceleyin. İzleme günlüğünü erişim anahtarı, parola veya PFX paylaşma kanalı olarak kullanmayın.
 3. [Yedekleme](yedekleme.md) düzenini kurun; ayrı makinedeki şifreli kopyayı ve kurtarma anahtarını düzenli doğrulayın. Saklama süresini ve disk kullanımını ayrıca yönetin.
-4. [Kurulum kılavuzundaki yükseltme adımlarını](uretim-kurulumu.md#yükseltme) uygulayın. Ana anahtarı ve ortam dosyasını koruyun; VPN sürümünü kontrollü güncelleyin.
+4. [Yükseltme kılavuzunu](yukseltme.md) uygulayın. Ana anahtarı ve JSON yapılandırmasını koruyun; VPN sürümünü kontrollü güncelleyin.
 5. Sertifika durumunu ve AutoSign hatalarını kontrol edin. E-posta alanı, harici alarm hizmeti kurulduğu anlamına gelmez.
 6. Hata durumunda [sorun giderme kılavuzunu](sorun-giderme.md) kullanın.
 
@@ -116,6 +116,10 @@ Sertifika/adres değişince eski anahtarların parmak izini ve adresini güncell
 
 **Bildirimler** menüsünde webhook/SMTPS kanalı oluşturun, sınayıp son gönderimleri kontrol edin. Anahtar döndürme ve yedek saklama panel makinesinde root yetkili `hoodmin-cli` ile yönetilir. [Adım adım işletim politikaları](isletim-politikalari.md).
 
-Arayüz tarayıcıda çalışan statik uygulamadır (SPA); JavaScript gerekir. API bağlantısı kesilirse basit hata gösterilir ve tekrar denenir. Dil/tema tercihi tarayıcıda saklanır; oturum sırrı HttpOnly çerezindedir.
+## Arayüz ve diller
 
-Arayüz kök adreste açılır (`/`); sunucular `/servers`, VPN anahtarları `/access-keys`, hesabınız `/account` altındadır. [Web sunum kılavuzu](web-sunumu.md), aynı veya ayrı Nginx makinesindeki statik dosya kurulumunu anlatır.
+Dil ve tema tercihi tarayıcıda saklanır. Arapça arayüz sağdan sola (RTL) yerleşir. Oturum çerezi HttpOnly ve Secure olarak saklanır. E-posta, sırlar, kaynak adları ve JSON anahtarları çevrilmez.
+
+Genel kullanım saatleri İstanbul saatine (UTC+03) göre gösterilir. AutoSign ve harici yayım zamanları UTC olarak etiketlenir. Tarih alanları API'ye saat dilimli ISO 8601 değeri gönderir.
+
+Arayüz `/` adresinde açılır. `/servers` sunucuları, `/access-keys` VPN anahtarlarını, `/account` hesabınızı açar. Tarayıcı ekranları JavaScript ile oluşturur. API kesintisinde kısa bir durum mesajı gösterip bağlantıyı tekrar dener. [Web sunumu](web-sunumu.md).

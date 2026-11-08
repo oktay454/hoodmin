@@ -3,19 +3,17 @@
 Validates the QA certificate and hostname. Test cookies are isolated from production.
 Requires an active test_runtime_cli.py session. No production targets are accepted.
 """
-import http.client, http.server, json, socket, ssl
+import http.client, http.server, ssl
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 TLS=ssl.create_default_context(cafile=str(ROOT/'work/browser-qa/ca.crt'))
-class QA(http.client.HTTPSConnection):
-	def __init__(self):super().__init__('yapayzeka',3459,context=TLS,timeout=25)
-	def connect(self):self.sock=TLS.wrap_socket(socket.create_connection(('10.0.3.236',3459),timeout=25),server_hostname='yapayzeka')
+ORIGIN = 'https://localhost:3459'
 class Handler(http.server.BaseHTTPRequestHandler):
 	def log_message(self,*args):pass
 	def do_GET(self):self.handle_request()
 	def do_POST(self):self.handle_request()
 	def handle_request(self):
-		connection=QA();headers={'Origin':'https://yapayzeka:3459'}
+		connection=http.client.HTTPSConnection('localhost',3459,context=TLS,timeout=25);headers={'Origin':ORIGIN}
 		for name in ['Content-Type','Cookie','Accept']:
 			if name in self.headers:headers[name]=self.headers[name].replace('hoodmin_qa_session=','__Host-vhm_session=').replace('hoodmin_qa_login=','__Host-vhm_login=')
 		try:

@@ -1,3 +1,11 @@
+hoodmin (0.5.0-2~deb13u1) unstable; urgency=medium
+
+  * License Hoodmin under GNU GPL version 3 or later.
+  * Consolidate the operator handbook and package dependency notices.
+  * Remove obsolete deployment examples and isolate the current QA fixtures.
+
+ -- Hoodmin maintainers <vpn@oktayaktogan.com.tr>  Sun, 08 Nov 2026 12:00:00 +0300
+
 hoodmin (0.5.0-1~deb13u1) unstable; urgency=medium
 
   * Coordinate resumable upgrades through the Rust CLI and a separate service.

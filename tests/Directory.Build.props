@@ -1,0 +1,6 @@
+<Project>
+	<PropertyGroup>
+		<VpnHoodSource Condition="'$(VpnHoodSource)' == '' and '$(VPNHOOD_SOURCE)' != ''">$(VPNHOOD_SOURCE)</VpnHoodSource>
+		<VpnHoodSource Condition="'$(VpnHoodSource)' == ''">$(MSBuildThisFileDirectory)../../VpnHood-Current</VpnHoodSource>
+	</PropertyGroup>
+</Project>

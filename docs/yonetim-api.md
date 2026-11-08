@@ -84,7 +84,7 @@ Sunucu AutoSign yönetimi: [GET/POST alanları ve CA onayı](autosign.md).
 
 `GET /api/manage/login`, giriş CSRF değerini ve giriş çerezini verir. `POST /api/manage/login`, aynı Origin ve CSRF kurallarıyla `email`, `password`, `csrf` kabul eder; oturum çerezini döndürür. `GET /api/manage/me` kimlik/rol/kiracı ve oturum CSRF bilgisidir. `POST /api/manage/logout` oturumu kapatır; `POST /api/manage/password` mevcut parolayla yeni parolayı kaydeder ve açık oturumları kapatır.
 
-Arayüz veri kümeleri `/views/{page}` altındadır; eski `/panel` öneki kullanılmaz. Canlı olay akışı `/api/manage/events` altındadır. Ek okuma yolları: `/dashboard`, `/views/audit`, `/views/account`, `/reports?hours=24`, `/usage.csv`; sunucuda `/servers/{id}/routing`, `/certificates`, `/installation` GET yolları ayar/sertifika/iş metaverisi döndürür. CSV ve anahtar indirme metin/dosya yanıtıdır; diğerleri JSON için `Accept: application/json` kullanır. Görüntülenen kaynakların kiracı/rol sınırları web ile aynıdır.
+Arayüz veri kümeleri `/views/{page}` altındadır. Canlı olay akışı `/api/manage/events` altındadır. Ek okuma yolları: `/dashboard`, `/views/audit`, `/views/account`, `/reports?hours=24`, `/usage.csv`; sunucuda `/servers/{id}/routing`, `/certificates`, `/installation` GET yolları ayar/sertifika/iş metaverisi döndürür. CSV ve anahtar indirme metin/dosya yanıtıdır; diğerleri JSON için `Accept: application/json` kullanır. Görüntülenen kaynakların kiracı/rol sınırları web ile aynıdır.
 
 `hoodmin-cli api login|get|post|logout` bu sözleşmeyi kullanır. İnsan isteklerine CSRF/Origin otomatik eklenir; onay/sürüm kanıtları kendiliğinden üretilmez. [CLI kılavuzu](cli.md).
 

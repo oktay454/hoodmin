@@ -1,11 +1,11 @@
 # VpnHood protokol başvurusu
 
-İncelenen kaynak: `../VpnHood-Current`, Git `fec557a91908ffe27e238e7e6375a8ead997d2a4`. Hazır sunucu: **9.0.856**. Sunucu kurulumu resmî hazır dağıtımı kullanır; .NET projeleri sözleşme/istemci sınaması içindir.
+Alan kataloğunun VpnHood kaynak kaydı (commit) `fec557a91908ffe27e238e7e6375a8ead997d2a4`. Hazır sunucu: **9.0.856**. Sunucu kurulumu resmî hazır dağıtımı kullanır; .NET projeleri sözleşme/istemci sınaması içindir.
 
-Makinece okunabilir alan kataloğu: `crates/protocol/contract-catalog.json`. Katalog kaynak dosyalarının SHA-256 özetlerini içerir; kurulum dosyalarını veya sırları okumaz. Yenileme:
+Makinece okunabilir alan kataloğu: `crates/protocol/contract-catalog.json`. Katalog kaynak dosyalarının SHA-256 özetlerini içerir; kurulum dosyalarını veya sırları okumaz. Yenilemek için `VPNHOOD_SOURCE` değişkenine VpnHood kaynak dizininin mutlak yolunu verin.
 
 ```sh
-python3 scripts/catalog-contract.py ../VpnHood-Current crates/protocol/contract-catalog.json
+python3 scripts/catalog-contract.py "$VPNHOOD_SOURCE" crates/protocol/contract-catalog.json
 ```
 
 ## Sunucunun aldığı komutlar
@@ -64,7 +64,7 @@ PFX yükleme özel anahtarın varlığını, sertifika-anahtar eşleşmesini ve 
 
 ## Kurulum
 
-Linux ve Windows için resmi hazır kurulum komutları, appsettings.json ve parola/özel anahtarlı SSH yolu sunulur. SSH sunucu anahtarı SHA-256 parmak iziyle sabitlenir; uyuşmazlıkta bağlanılmaz. SSH parola/özel anahtarı veritabanına kaydedilmez; özel çalışma zamanı dizininden iş sonunda silinir. Agent kimliği sonraki kurulum için AES-GCM ile saklanır. Eski kayıtlardaki yalnız özetten kimlik geri üretilemez; mevcut kimliğin girilmesi gerekir.
+Linux için resmî hazır kurulum komutu, appsettings.json ve parola veya özel anahtarla SSH kurulumu sunulur. SSH sunucu anahtarı SHA-256 parmak iziyle sabitlenir; uyuşmazlıkta bağlanılmaz. SSH parola/özel anahtarı veritabanına kaydedilmez; özel çalışma zamanı dizininden iş sonunda silinir. Agent kimliği sonraki kurulum için AES-GCM ile saklanır. Eski kayıtlardaki yalnız özetten kimlik geri üretilemez; mevcut kimliğin girilmesi gerekir.
 
 Kurulum işi önceki appsettings dosyasını hedefte 0600 izinli yedekler. Aynı sunucuya eşzamanlı ikinci kurulum açılmaz. Çalışan SSH işinin zaman aşımı vardır. Paket bağımlılıkları Debian önceliğiyle kurulur; resmi VpnHood betiği kendi güncelleme/bağımlılık akışını yönetir.
 
@@ -78,10 +78,8 @@ Sunucu başına HTTP-01 [AutoSign](autosign.md) vardır. Grup sertifika deposu o
 
 - Kaynak kataloğu 47 düzenlenebilir yaprak ayarı kapsar. Yerel çekirdek/yetkiler bazı ayarların etkisini sınırlar; sürüm onayı bütün işletim sistemi etkilerinin kanıtı değildir.
 - Gerçek hazır sunucuda TCP/UDP/QUIC veri yolu, TUN/NAT, hız ve ağ filtresi, PFX ve HTTP-01 sınanmıştır. Masaüstü işletim sisteminin bütün rotaları ve uzun süreli yük/kesinti ayrı doğrulama gerektirir.
-- Windows kurulum komutu üretilir; Windows üzerinde uçtan uca kurulum doğrulaması yoktur.
 - İstemci politikalarının kapalı kaynak ticari ülke/plan kararları birebir çıkarılamaz. Hoodmin'in açık politika kuralları uygulanır; reklam ağı entegrasyonu yoktur.
 - `UseUdpProxy2`, incelenen kaynak sürümünde uygulanabilir ayar olarak doğrulanmamıştır; desteklenen 47 ayara dahil değildir.
-- Locked IPs, bulut IP satın alma ve markalama için bilinmeyen davranış uydurulmaz. Başka VPN motoru adaptörü bulunmaz.
 - Kullanım raporlarının tekil rapor kimliği olmadığından kesintilerde tam bir kez (exactly-once) muhasebe garantisi verilmez.
 - [Yönetim API'si](yonetim-api.md), Hoodmin'in kendi sözleşmesidir; kapalı kaynak Console'un özel API'sinin kopyası değildir.
 

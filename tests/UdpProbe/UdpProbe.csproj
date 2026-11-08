@@ -6,7 +6,7 @@
 		<Nullable>enable</Nullable>
 	</PropertyGroup>
 	<ItemGroup>
-		<ProjectReference Include="../../../VpnHood-Current/src/Core/VpnHood.Core.Client/VpnHood.Core.Client.csproj" />
-		<ProjectReference Include="../../../VpnHood-Current/src/Net/VpnHood.Net.Quic.MsQuic/VpnHood.Net.Quic.MsQuic.csproj" />
+		<ProjectReference Include="$(VpnHoodSource)/src/Core/VpnHood.Core.Client/VpnHood.Core.Client.csproj" />
+		<ProjectReference Include="$(VpnHoodSource)/src/Net/VpnHood.Net.Quic.MsQuic/VpnHood.Net.Quic.MsQuic.csproj" />
 	</ItemGroup>
 </Project>

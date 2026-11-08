@@ -12,7 +12,7 @@ Uzak PostgreSQL için panelden veritabanı adresine TCP erişimi gerekir. Verita
 
 ```bash
 apt update
-apt install ./hoodmin_0.5.0-1~deb13u1_amd64.deb
+apt install ./hoodmin_0.5.0-2~deb13u1_amd64.deb
 ```
 
 Paket `hoodmin` sistem hesabını, ana anahtar dosyasını ve boş `/etc/hoodmin/hoodmin.json` yapılandırmasını hazırlar. Hizmet kendiliğinden etkinleşmez. Elle başlattığınızda henüz yapılandırılmamış olsa bile HTTP hizmeti ayakta kalır; basit bir kullanılabilirlik mesajı gösterir.
@@ -112,50 +112,23 @@ certbot certonly --webroot -w /var/www/html --domain hoodmin.example.com --email
 
 ## 5. Nginx ters vekilini etkinleştirme
 
-Aynı dosyayı aşağıdaki iki blokla değiştirin:
+Paketle gelen Nginx örneğini etkin yapılandırmaya kopyalayın:
 
-```nginx
-server {
-	listen 80;
-	server_name hoodmin.example.com;
-	location ^~ /.well-known/acme-challenge/ {
-		root /var/www/html;
-		try_files $uri =404;
-	}
-	location / {
-		return 301 https://hoodmin.example.com$request_uri;
-	}
-}
-server {
-	listen 443 ssl;
-	server_name hoodmin.example.com;
-	ssl_certificate /etc/letsencrypt/live/hoodmin.example.com/fullchain.pem;
-	ssl_certificate_key /etc/letsencrypt/live/hoodmin.example.com/privkey.pem;
-	ssl_protocols TLSv1.2 TLSv1.3;
-	server_tokens off;
-	client_max_body_size 1m;
-	location / {
-		proxy_pass http://127.0.0.1:3080;
-		proxy_http_version 1.1;
-		proxy_set_header Host $host;
-		proxy_set_header X-Forwarded-Proto https;
-		proxy_set_header X-Forwarded-For $remote_addr;
-		proxy_set_header X-Real-IP $remote_addr;
-		proxy_set_header Connection "";
-		proxy_buffering off;
-		proxy_read_timeout 3600s;
-	}
-}
+```bash
+install -m 0644 /usr/share/doc/hoodmin/examples/nginx-hoodmin.conf /etc/nginx/sites-available/hoodmin
 ```
+
+Dosyadaki `hoodmin.example.com` adını ve sertifika yollarını kendi kurulumunuza göre düzenleyin. Örnek, `sites-enabled` bağlantısıyla etkinleştirilir. Bu bağlantıyı sertifika alma adımında oluşturduysanız aynı bağlantı kullanılır. Kaynak deposundaki karşılığı `deploy/nginx-hoodmin.conf` dosyasıdır.
 
 Yapılandırmayı kontrol edip paneli başlatın:
 
 ```bash
+ln -sfn /etc/nginx/sites-available/hoodmin /etc/nginx/sites-enabled/hoodmin
 nginx -t
 systemctl reload nginx
 hoodmin-cli service enable
 hoodmin-cli service start
-curl --fail --show-error https://hoodmin.example.com/healthz
+curl --fail --show-error --retry 5 --retry-delay 1 https://hoodmin.example.com/readyz
 ```
 
 Sertifika yenilenince Nginx'i yeniden yüklemek için `/etc/letsencrypt/renewal-hooks/deploy/hoodmin-nginx` dosyasına şunu yazın ve `chmod 0755` uygulayın:
@@ -172,7 +145,7 @@ systemctl enable --now certbot.timer
 certbot renew --dry-run
 ```
 
-Bu Certbot zamanlayıcısı **panelin HTTPS sertifikasını** yönetir. VPN sertifikası için panelden [AutoSign](autosign.md) kullanın; aynı VPN sertifikasını iki farklı zamanlayıcıya bağlamayın. Ayrı VPS üzerinden vekilleme gerekiyorsa [çok katmanlı vekil başvurusunu](vps-ters-vekil.md) okuyun.
+Bu Certbot zamanlayıcısı **panelin HTTPS sertifikasını** yönetir. VPN sertifikası için panelden [AutoSign](autosign.md) kullanın; aynı VPN sertifikasını iki farklı zamanlayıcıya bağlamayın. Ayrı VPS üzerinden vekilleme gerekiyorsa [çok katmanlı vekil başvurusunu](web-sunumu.md#4-ayrı-vps-bütün-istekleri-vekiller) okuyun.
 
 Nginx’in statikleri doğrudan sunmasını isterseniz [iki sunum biçimi ve ayrı makine kurulumu](web-sunumu.md) kılavuzunu kullanın. Tek paket `/usr/share/hoodmin/web/` ağacını kurar; ayrı Nginx’e yalnız bu ağaç kopyalanır.
 
@@ -198,29 +171,6 @@ Veritabanı adı ve rol, bağlantı dizesinden okunur. `hoodmin` sistem hesabı 
 
 Yapılandırma veya veritabanı erişilemiyorsa hizmet kapanmaz. Tarayıcı kısa bir hata gösterir; ayrıntı `journalctl -u hoodmin.service` içindedir. Bağlantı geri geldiğinde otomatik toparlanır. `/healthz` HTTP sürecinin çalıştığını, `/readyz` veritabanı/uygulamanın hazır olduğunu bildirir. Dinleme adresi değişikliği için hizmeti yeniden başlatın.
 
-## Yükseltme
+## Bakım ve kaynak paket
 
-Yükseltme işlemlerini ayrı root hizmeti `hoodmin-upgrade.service` yürütür. `hoodmin.service` şema değiştirmez; ortamın hazır olmasını bekler. Yerel PostgreSQL eş kimliği (peer) otomatik kullanılır. Uzak veritabanında ilk güncellemeden **önce** [yükseltme yönetici bağlantısını](yukseltme.md#uzak-postgresql) yapılandırın. Bekleyen şema değişikliği varsa doğrulanmış yedek alınması için uygun sürümde `postgresql-client` ve yeterli disk alanı gerekir; araç eksikse yükseltme uygulanmaz.
-
-```bash
-apt install ./hoodmin_YENI_SURUM_amd64.deb
-hoodmin-cli upgrade --status
-journalctl -u hoodmin-upgrade.service
-```
-
-Paketin kurulum sonrası betiği (postinst) yükseltmeyi tetikler ve en fazla 20 saniye bekler. Veritabanı geçici olarak erişilemiyorsa paket kurulumu başarılı tamamlanır; yardımcı hizmet arka planda tekrar dener. Önceden çalışan panel yeniden başlatılır; yönetici tarafından durdurulmuş panel kendiliğinden açılmaz. Her panel başlangıcı yükseltme hizmetini yeniden çağırır. Bekleme sırasında arayüz kısa durum mesajı gösterir; API hazır olana kadar 503 döndürür.
-
-Ana anahtar ve JSON yapılandırması korunur. Yeni veritabanı veya sahip hesabı yükseltme yoluyla oluşturulmaz; ilk kurulumun açık adımları kullanılır. Değiştirilmiş/bilinmeyen geçiş kayıtları kalıcı hata sayılır; bunları yok sayarak hizmet açılmaz. Geri dönüşte paket, veritabanı ve anahtar birlikte ele alınır; otomatik şema düşürme yoktur. [İşleyiş, ayarlar ve kurtarma](yukseltme.md).
-
-## Kaynaktan derleme
-
-Debian `build-essential`, `debhelper`, `dpkg-dev`, `pkg-config`, `libssl-dev`, Python 3 ve `rust-toolchain.toml` içindeki Rust/Cargo zinciri gerekir. Python yalnız derleme lisans raporunda kullanılır; kurulu hizmet/CLI Rust'tır.
-
-```bash
-cargo fmt --all -- --check
-cargo test --workspace --locked
-cargo clippy --workspace --all-targets --locked -- -D warnings
-dpkg-buildpackage -b -us -uc
-```
-
-Rust yalnız rustup ile kuruluysa dpkg paket kaydını göremez; bütün bağımlılıkları denetledikten sonra `dpkg-buildpackage -d -b -us -uc` kullanılabilir. [Geliştirme başvurusu](dogrulama.md).
+Paket güncellemeleri için [yükseltme kılavuzunu](yukseltme.md), kurtarma ve düzenli kopyalar için [yedekleme kılavuzunu](yedekleme.md) kullanın. Kaynaktan Debian paketi üretme adımları [geliştirme başvurusunda](dogrulama.md) yer alır.

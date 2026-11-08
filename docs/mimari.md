@@ -1,6 +1,6 @@
 # Hoodmin mimarisi
 
-Hoodmin, VpnHood VPN ortamını yöneten modüler bir Rust uygulamasıdır. Genel sunucu/kapsayıcı yönetimi sağlamaz. Her kuruluş kendi sunucularını getirir; bir VPN sunucusu tek kiracıya aittir. Başka VPN motorları için uygulanmış adaptör yoktur; mevcut API ve ayarlar VpnHood sözleşmesini izler.
+Hoodmin, VpnHood VPN ortamını yöneten modüler bir Rust uygulamasıdır. Genel sunucu/kapsayıcı yönetimi sağlamaz. Her kuruluş kendi sunucularını getirir; bir VPN sunucusu tek kiracıya aittir. API ve ayarlar VpnHood sözleşmesini izler.
 
 ## Bileşenler ve veri yolu
 

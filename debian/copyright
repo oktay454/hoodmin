@@ -1,15 +1,24 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: Hoodmin
-Source: local private development repository
 
 Files: *
 Copyright: 2026 Hoodmin contributors
-License: proprietary
- No redistribution license has been granted for Hoodmin.
- This package is prepared for the project owner's deployment.
+License: GPL-3+
+Comment: VpnHood is a separate upstream project. The package includes
+ Hoodmin's protocol implementation, but does not bundle the VpnHood
+ server, client, or their source code.
  .
- VpnHood is a separate upstream project. Its server application is not
- included in this package and is installed from its official release.
+ Rust dependency license declarations and notices are installed under
+ /usr/share/doc/hoodmin/. Each dependency retains its own license.
+
+License: GPL-3+
+ This work is free software: you may redistribute and modify it under
+ the GNU General Public License as published by the Free Software
+ Foundation, version 3 or, at your option, any later version.
  .
- Rust dependency license expressions and package source locations are
- recorded in dependency-licenses.json in the documentation directory.
+ This work is distributed in the hope that it will be useful, but
+ WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ .
+ On Debian systems, the complete text of version 3 of the GNU General
+ Public License can be found in /usr/share/common-licenses/GPL-3.

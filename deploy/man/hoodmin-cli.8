@@ -23,6 +23,7 @@ backup create|export|pull: create, encrypt or fetch backups. pg_dump and age are
 service start|stop|restart|status|enable|disable: control the local service.
 .br
 acme-hook: internal Certbot HTTP01 callback.
+.br
 upgrade [--watch|--status|--request|--wait SECONDS]: root-only resumable upgrade coordinator. Normally managed by hoodmin-upgrade.service and package postinst. SQL uses the native Rust driver; pg_dump is required for pre-migration backups.
 .br
 upgrade --configure --admin-url-file FILE: save a protected remote administrator URL file targeting the same application database. Local peer administration needs no file.

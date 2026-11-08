@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 """Fresh, isolated QA only: native CLI, verified PostgreSQL TLS and HTTP recovery.
-Never run on a configured panel. Requires existing Debian QA tools and certificates.
+Never run on a configured panel. Requires existing Debian QA tools. Uses a temporary HTTPS certificate.
 """
 import hashlib
 import json
@@ -20,12 +20,11 @@ import urllib.request
 ROOT = Path(__file__).resolve().parents[1]
 CLUSTER = 'hoodmin-runtime-qa'
 PORT = '55440'
-ORIGIN = 'https://yapayzeka:3459'
+ORIGIN = 'https://localhost:3459'
 CONFIG = Path('/etc/hoodmin/hoodmin.json')
 OWNER = Path('/root/hoodmin-first-owner.json')
 PATHS = [Path('/etc/hoodmin'), Path('/var/lib/hoodmin'), Path('/usr/share/hoodmin'), Path('/var/lib/hoodmin-upgrade')]
 BINARIES = [Path('/usr/bin/hoodmin'), Path('/usr/bin/hoodmin-cli')]
-assert Path('/etc/vpnhood-manager/tls/ca.crt').exists(), 'Dedicated QA certificates required'
 assert all(not p.exists() for p in [*PATHS, *BINARIES, OWNER]), 'Use an unused QA installation'
 assert not Path('/etc/postgresql/17', CLUSTER).exists()
 try:
@@ -36,8 +35,8 @@ except KeyError:
 (ROOT / 'work').mkdir(exist_ok=True)
 WORK = Path(tempfile.mkdtemp(prefix='runtime-cli.', dir=ROOT / 'work'))
 WORK.chmod(0o700)
-CONTEXT = ssl.create_default_context(cafile='/etc/vpnhood-manager/tls/ca.crt')
-ENV = dict(os.environ, SSL_CERT_FILE='/etc/vpnhood-manager/tls/ca.crt')
+TLS = WORK / 'tls'
+ENV = dict(os.environ, SSL_CERT_FILE=str(TLS / 'ca.crt'))
 ENV.pop('DATABASE_URL', None)
 ENV.pop('VHM_MASTER_KEY_FILE', None)
 LOG = WORK / 'service.log'
@@ -71,15 +70,18 @@ def request(path, data=None, headers=None):
 		return response.status, response.read().decode()
 
 def wait_ready(ready=True):
+	expected = 200 if ready else 503
 	for _ in range(35):
 		try:
 			code, _ = request('/readyz')
-			if (code == 200) == ready:
+			if code == expected:
 				return
-		except OSError:
-			pass
+			detail = f'HTTP {code}'
+		except OSError as error:
+			detail = str(error)
 		time.sleep(.5)
-	raise AssertionError('Readiness transition timed out')
+	raise AssertionError(f'Expected HTTP {expected} from /readyz, last result: {detail}')
+
 
 def api(*args, expected=0, bot=None):
 	prefix = ['api', '--origin', ORIGIN, '--session-file', str(WORK / ('bot-session.json' if bot else 'session.json'))]
@@ -91,6 +93,16 @@ def sql(text):
 	return run(['runuser', '-u', 'postgres', '--', 'psql', '-X', '-p', PORT, '-d', 'postgres', '-v', 'ON_ERROR_STOP=1'], input=text).stdout
 
 try:
+	TLS.mkdir(mode=0o700)
+	run(['openssl', 'req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-days', '1',
+		'-subj', '/CN=Hoodmin runtime QA CA', '-addext', 'keyUsage=critical,keyCertSign,cRLSign', '-keyout', TLS / 'ca.key', '-out', TLS / 'ca.crt'])
+	run(['openssl', 'req', '-new', '-newkey', 'rsa:2048', '-nodes', '-subj', '/CN=localhost',
+		'-keyout', TLS / 'server.key', '-out', TLS / 'server.csr'])
+	extensions = TLS / 'server.ext'
+	extensions.write_text('subjectAltName=DNS:localhost\nextendedKeyUsage=serverAuth\n')
+	run(['openssl', 'x509', '-req', '-days', '1', '-in', TLS / 'server.csr', '-CA', TLS / 'ca.crt',
+		'-CAkey', TLS / 'ca.key', '-CAcreateserial', '-extfile', extensions, '-out', TLS / 'server.crt'])
+	CONTEXT = ssl.create_default_context(cafile=str(TLS / 'ca.crt'))
 	for path in PATHS:
 		path.mkdir(mode=0o755)
 	shutil.copytree(ROOT / 'migrations', PATHS[2] / 'migrations')
@@ -112,10 +124,10 @@ events {{}}
 http {{
 	access_log off;
 	server {{
-		listen 3459 ssl;
-		server_name yapayzeka;
-		ssl_certificate /etc/vpnhood-manager/tls/manager.crt;
-		ssl_certificate_key /etc/vpnhood-manager/tls/manager.key;
+		listen 127.0.0.1:3459 ssl;
+		server_name localhost;
+		ssl_certificate "{TLS}/server.crt";
+		ssl_certificate_key "{TLS}/server.key";
 		location / {{
 			proxy_pass http://127.0.0.1:3108;
 			proxy_http_version 1.1;
@@ -239,7 +251,7 @@ http {{
 	from notification_fixture import NotificationFixture
 	NOTIFICATION_FIXTURE=NotificationFixture(WORK,run)
 	NOTIFICATION_FIXTURE.start()
-	regression_env = dict(ENV, HOODMIN_QA_WORK=str(WORK), HOODMIN_QA_CONFIG=str(CONFIG), HOODMIN_QA_OWNER=str(OWNER), HOODMIN_QA_PORT=PORT, VHM_TEST_ISOLATED='1', VHM_TEST_ORIGIN=ORIGIN, VHM_TEST_CA='/etc/vpnhood-manager/tls/ca.crt', VHM_TEST_DATABASE_URL=app_url, VHM_TEST_AGENT_ORIGIN='http://127.0.0.1:3108', PGPORT=PORT)
+	regression_env = dict(ENV, HOODMIN_QA_WORK=str(WORK), HOODMIN_QA_CONFIG=str(CONFIG), HOODMIN_QA_OWNER=str(OWNER), HOODMIN_QA_PORT=PORT, VHM_TEST_ISOLATED='1', VHM_TEST_ORIGIN=ORIGIN, VHM_TEST_CA=str(TLS / 'ca.crt'), VHM_TEST_DATABASE_URL=app_url, VHM_TEST_AGENT_ORIGIN='http://127.0.0.1:3108', PGPORT=PORT)
 	for script in ([] if os.environ.get('HOODMIN_TEST_SKIP_REGRESSION') else ['test_operations.py']):
 		result = subprocess.run(['python3', str(ROOT / 'tests' / script)], env=regression_env, capture_output=True, text=True)
 		if result.returncode:
@@ -263,7 +275,7 @@ http {{
 	with tarfile.open(archive) as exported:
 		check(exported.extractfile('./master.key').read() == Path('/var/lib/hoodmin/master.key').read_bytes() and exported.extractfile('./database.dump').read(5) == b'PGDMP', 'Native CLI encrypted export decrypts to the exact key and valid PostgreSQL dump')
 	from static_serving import exercise
-	server, proxy = exercise(ROOT, WORK, CONFIG, proxy, PROCESSES, server, log, CONTEXT, cli, api, request, wait_ready, run, check)
+	server, proxy = exercise(ROOT, WORK, ORIGIN, CONFIG, proxy, PROCESSES, server, log, CONTEXT, cli, api, request, wait_ready, run, check)
 	if os.environ.get('HOODMIN_QA_BROWSER_WAIT'):
 		print('BROWSER_READY '+str(WORK), flush=True)
 		deadline=time.monotonic()+min(600,int(os.environ['HOODMIN_QA_BROWSER_WAIT']))

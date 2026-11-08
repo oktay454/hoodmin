@@ -2,7 +2,7 @@
 
 Hoodmin tek Debian paketiyle iki sunum biçimini destekler. İkisi de aynı istemci taraflı uygulamayı (SPA) kullanır; bütün ekranlar tarayıcıda oluşturulur. Yönetim API'si `/api/manage`, VPN sunucusu protokolü `/api/agent` altındadır. Tarayıcı ve API aynı genel HTTPS alan adını kullanır; ayrı CORS veya ikinci oturum yapılandırması gerekmez.
 
-Arayüz adresleri `/`, `/servers`, `/access-keys`, `/sessions`, `/account` biçimindedir. Sunucu ayrıntısı `/servers/KIMLIK/configuration` olur. Adreslere `/panel` veya `/manage` eklemeyin.
+Arayüz adresleri `/`, `/servers`, `/access-keys`, `/sessions`, `/account` biçimindedir. Sunucu ayrıntısı `/servers/KIMLIK/configuration` olur.
 
 ## Tek statik dizin
 
@@ -70,8 +70,8 @@ Tarayıcı → genel Nginx (statik dosyalar)
 
 ```bash
 install -d -m 0755 /usr/share/hoodmin
-scp -r root@ARKA_UC:/usr/share/hoodmin/web /usr/share/hoodmin/web-0.5.0
-ln -s web-0.5.0 /usr/share/hoodmin/web
+scp -r root@ARKA_UC:/usr/share/hoodmin/web /usr/share/hoodmin/web-SURUM
+ln -s web-SURUM /usr/share/hoodmin/web
 ```
 
 Kopyanın hedef sürüm dizini önceden mevcut olmamalıdır. Bu makinede Hoodmin paketi gerekmez. SSH kopyasında yalnız herkese açık statik dosyalar taşınır; `/etc/hoodmin` veya `/var/lib/hoodmin` kopyalanmaz.
@@ -103,3 +103,49 @@ Yalnız bilinen arayüz yolları `index.html` alır; doğrudan ayrıntı sayfas�
 Her iki biçimde oturum çerezleri HttpOnly/Secure, kaynak doğrulaması (Origin) ve CSRF koruması korunur. Nginx örnekleri CSP, MIME ve önbellek başlıklarını da uygular. Örnekler Nginx'in standart `http` bağlamında, `/etc/nginx/mime.types` yüklenmiş olarak kullanılır. Farklı statik konum gerekiyorsa Nginx `root` ve Hoodmin'in `web.directory` alanını eşleştirin; CLI karşılığı `config web --serve-static true --directory /MUTLAK/YOL` olur.
 
 Örneklerin kurulu kopyaları `/usr/share/doc/hoodmin/examples/` altındadır. Web sunum ayarı veritabanı erişiminden bağımsız okunur; çalışan hizmet normalde birkaç saniye içinde değişikliği alır. Dinleme adresi değişikliği yeniden başlatma gerektirir. `hoodmin-cli config set` mevcut web sunum tercihini korur.
+
+## 4. Ayrı VPS bütün istekleri vekiller
+
+Tarayıcı/agent → genel VPS Nginx → arka uç Nginx → `127.0.0.1:3080` Hoodmin.
+
+Her HTTPS bağlantısında sertifika ve ad doğrulanır. Arka uç için özel CA kullanılıyorsa yalnız o vekil bağlantısına CA dosyası tanımlayın; özel CA anahtarını VPS'e taşımayın. `proxy_ssl_verify off` kullanmayın.
+
+### Kurulum adımları
+
+1. Panel DNS'ini VPS'e yönlendirin ve bu adı kapsayan genel TLS sertifikası hazırlayın.
+2. VPS'ten arka uç IP/portuna erişimi açın. Arka uç sertifikasının doğrulanacak DNS adını belirleyin; bağlantı IP'si ile sertifika adı farklı olabilir.
+3. VPS'in HTTPS konumunda aşağıdaki başlık/TLS düzenini kendi adreslerinize uyarlayın:
+
+```nginx
+location / {
+	proxy_pass https://ARKA_UC_IP:443;
+	proxy_ssl_server_name on;
+	proxy_ssl_name backend.example.com;
+	proxy_ssl_verify on;
+	proxy_ssl_trusted_certificate /etc/nginx/hoodmin-backend-ca.crt;
+	proxy_set_header Host $host;
+	proxy_set_header X-Real-IP $remote_addr;
+	proxy_set_header X-Forwarded-For $remote_addr;
+	proxy_set_header X-Forwarded-Proto https;
+	proxy_set_header Connection "";
+	proxy_http_version 1.1;
+	proxy_buffering off;
+	proxy_read_timeout 3600s;
+}
+```
+
+4. Arka uç Nginx'te **yalnız VPS'in gerçek çıkış IP'sini** güvenilir vekil olarak tanımlayın:
+
+```nginx
+set_real_ip_from VPS_CIKIS_IP/32;
+real_ip_header X-Real-IP;
+```
+
+Arka uçtan Rust'a `X-Forwarded-For $remote_addr` yazılmalıdır. İstemcinin kendi başlığını aynen geçirmeyin; tüm interneti güvenilir vekil saymayın.
+
+5. `/etc/hoodmin/hoodmin.json` içindeki `public_origin` değerini genel HTTPS adresiyle eşleştirip Hoodmin'i yeniden başlatın.
+6. Her Nginx'te `nginx -t` başarılı olduktan sonra yeniden yükleyin. Genel `/healthz`, giriş/form gönderimi ve `/api/manage/events` olay akışını kontrol edin.
+
+Genel ve arka uç sertifikalarının ikisinin de yenilemesini izleyin. WAF kullanılıyorsa agent ve yükleme isteklerinin gerçek içerik türlerini koruyun; şifreli düz metni otomatik JSON'a dönüştürmeyin. Ürünün standart veri biçimini vekil güvenlik kuralına göre değiştirmeyin.
+
+Alan adı değişince panel oturumu yeniden açılır. Bağlı VPN sunucularının yönetim kök adreslerini de güncelleyin; çerez ve agent yapılandırması kendiliğinden başka alan adına taşınmaz.

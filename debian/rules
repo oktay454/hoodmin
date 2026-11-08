@@ -14,7 +14,9 @@ override_dh_auto_test:
 override_dh_auto_install:
 	install -d debian/hoodmin/usr/share/doc/hoodmin/docs
 	install -m0644 docs/*.md debian/hoodmin/usr/share/doc/hoodmin/docs/
-	cargo metadata --locked --format-version 1 | python3 scripts/dependency-licenses.py >debian/hoodmin/usr/share/doc/hoodmin/dependency-licenses.json
+	cargo metadata --locked --format-version 1 --filter-platform "$$(rustc --print host-tuple)" >debian/hoodmin/cargo-metadata.json
+	python3 scripts/dependency-licenses.py debian/hoodmin/usr/share/doc/hoodmin <debian/hoodmin/cargo-metadata.json
+	rm debian/hoodmin/cargo-metadata.json
 	install -Dm0755 target/release/hoodmin debian/hoodmin/usr/bin/hoodmin
 	install -Dm0755 target/release/hoodmin-cli debian/hoodmin/usr/bin/hoodmin-cli
 	install -Dm0644 deploy/hoodmin-upgrade.service debian/hoodmin/usr/lib/systemd/system/hoodmin-upgrade.service
@@ -34,4 +36,4 @@ override_dh_auto_clean:
 
 # Preserve Markdown filenames so links work in the installed handbook.
 override_dh_compress:
-	dh_compress -X.md
+	dh_compress -X.md -Xdependency-notices -Xdependency-licenses.json

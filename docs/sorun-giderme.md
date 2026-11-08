@@ -20,6 +20,8 @@ curl --fail --show-error http://127.0.0.1:3080/readyz
 - `502/504` için ters vekil hata günlüğüne bakın. Çok katmanlı vekilde her bağlantıyı kendi sertifika adıyla doğrulayın; TLS doğrulamasını kapatmayın.
 - Formlar 403 alıyorsa `public_origin` ile tarayıcının adresi (şema, ad ve port) eşleşmelidir. Alan adı değişince yeniden giriş yapın.
 
+Ayrıcalıksız LXC'de günlükler boşsa `systemctl status systemd-journald` ve ana makinenin AppArmor günlüğünü denetleyin. Yalnız AppArmor'un journald kimlik bilgisi (credential) bağlamasını reddettiği doğrulanırsa ve `journal.*` kimlik bilgisi aktarımı kullanılmıyorsa, kapsayıcıya özel `systemd-journald.service` ek ayarında (drop-in) `[Service]` altında `ImportCredential=` sıfırlanabilir. Ardından günlük hizmetini yeniden başlatıp doğrulayın.
+
 ## İlk erişim bilgileri nerede?
 
 Kurulum sırasında verdiğiniz e-posta ve rastgele parola `/root/hoodmin-first-owner.json` içindedir. Dosya **panelin kurulduğu makinede/kapsayıcıdadır**. `hoodmin` panel kullanıcı adı değildir. Parola ilk girişten sonra değiştirildiyse dosyadaki ilk parola artık geçerli değildir. Mevcut hesapta `hoodmin-cli owner-init` çalıştırmak parolayı sıfırlamaz.

@@ -6,6 +6,6 @@
 		<Nullable>enable</Nullable>
 	</PropertyGroup>
 	<ItemGroup>
-		<ProjectReference Include="../../../VpnHood-Current/src/Core/VpnHood.Core.Server.Access/VpnHood.Core.Server.Access.csproj" />
+		<ProjectReference Include="$(VpnHoodSource)/src/Core/VpnHood.Core.Server.Access/VpnHood.Core.Server.Access.csproj" />
 	</ItemGroup>
 </Project>
